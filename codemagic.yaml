@@ -1,39 +1,85 @@
+# codemagic.yaml — CI/CD for OneMET (commit at repo root)
+#
+# Pipeline: generate project (XcodeGen) → sign → build IPA → upload to TestFlight.
+# Runs on Codemagic's free individual tier (500 macOS M2 minutes/month).
+#
+# ─────────────────────────── ONE-TIME SETUP ───────────────────────────
+# 1. App Store Connect API key:
+#      ASC → Users and Access → Integrations → App Store Connect API →
+#      create a key (Admin/App Manager), download the .p8, note Issuer ID + Key ID.
+#      In Codemagic → Teams/Personal settings → Integrations → App Store Connect →
+#      add the key and give it a NAME. Put that name below in `integrations`.
+# 2. Developer portal: create the App ID for the bundle id below and tick the
+#      HealthKit capability on it.
+# 3. App Store Connect: create the app record (same bundle id) so TestFlight has
+#      somewhere to receive the build.
+# 4. Replace `OneMET_ASC_API_key` and the notification email below.
+#    (The bundle id is set to com.jmaiora.onemet — keep it consistent with
+#     project.yml and the App Store Connect record.)
+# ───────────────────────────────────────────────────────────────────────
+
 workflows:
-  ios-release:
-    name: OneMET iOS Release
+  ios-testflight:
+    name: OneMET • Build & TestFlight
+    instance_type: mac_mini_m2          # free-tier Apple-silicon instance
     max_build_duration: 60
-    instance_type: mac_mini_m2
+
     integrations:
-      app_store_connect: Api_onemet
+      app_store_connect: Api_onemet   # ← name you gave the key in Codemagic
+
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.jmaiora.onemet
       vars:
-        XCODE_PROJECT: OneMET.xcodeproj
-        XCODE_SCHEME: OneMET
-        BUNDLE_ID: com.jmaiora.onemet
+        XCODE_PROJECT: "OneMET.xcodeproj"
+        XCODE_SCHEME: "OneMET"
+        BUNDLE_ID: "com.jmaiora.onemet"        # your real bundle id (must match project.yml + ASC)
       xcode: latest
-      cocoapods: default
+
     scripts:
-      - name: Install XcodeGen
+      - name: Generate Xcode project from project.yml
         script: |
           brew install xcodegen
-      - name: Generate Xcode project
+          xcodegen generate
+      - name: Initialize the keychain
+        script: keychain initialize
+      - name: Fetch OR CREATE the signing certificate + provisioning profile
         script: |
-          xcodegen generate --spec project.yml
-      - name: Set up code signing settings on Xcode project
+          # --create builds the distribution profile (and a certificate, if the
+          # account has none yet) for a brand-new app. This is the step the
+          # automatic ios_signing block did NOT do, which is what produced
+          # "No matching profiles found for bundle identifier ...".
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add the certificate to the keychain
+        script: keychain add-certificates
+      - name: Apply the profile to the Xcode project
         script: xcode-project use-profiles
-      - name: Build ipa for distribution
+      - name: Set the build number
+        script: |
+          # Codemagic's per-build counter keeps TestFlight build numbers increasing.
+          agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build the signed IPA
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
+      email:
+        recipients:
+          - jmaiora@gmail.com               # ← build success/failure notifications
+        notify:
+          success: true
+          failure: true
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        # beta_groups:                    # auto-distribute to a TestFlight group
+        #   - "Internal testers"
+        # submit_to_app_store: false      # flip to true (and add release notes in
+                                          # ASC) when you're ready to push to review
