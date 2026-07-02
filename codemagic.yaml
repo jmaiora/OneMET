@@ -16,6 +16,17 @@
 # 4. Replace `OneMET_ASC_API_key` and the notification email below.
 #    (The bundle id is set to com.jmaiora.onemet — keep it consistent with
 #     project.yml and the App Store Connect record.)
+# 5. Create a CERTIFICATE_PRIVATE_KEY variable in Codemagic (used to mint the
+#    iOS distribution certificate — NOT the same as the .p8 API key):
+#      a. Generate an RSA key on your PC:
+#           ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key
+#         (press Enter twice for no passphrase)
+#      b. Codemagic → app settings → Environment variables:
+#           name  = CERTIFICATE_PRIVATE_KEY
+#           value = the full contents of the ios_distribution_private_key file
+#                   (including the BEGIN/END lines)
+#           group = appstore_credentials      ← referenced under `environment` below
+#           tick "Secure"
 # ───────────────────────────────────────────────────────────────────────
 
 workflows:
@@ -25,9 +36,11 @@ workflows:
     max_build_duration: 60
 
     integrations:
-      app_store_connect: Api_onemet   # ← name you gave the key in Codemagic
+      app_store_connect: OneMET_ASC_API_key   # ← name you gave the key in Codemagic
 
     environment:
+      groups:
+        - appstore_credentials               # ← must contain CERTIFICATE_PRIVATE_KEY (see setup note 5)
       vars:
         XCODE_PROJECT: "OneMET.xcodeproj"
         XCODE_SCHEME: "OneMET"
@@ -49,6 +62,7 @@ workflows:
           # "No matching profiles found for bundle identifier ...".
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --create
       - name: Add the certificate to the keychain
         script: keychain add-certificates
@@ -72,7 +86,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - jmaiora@gmail.com               # ← build success/failure notifications
+          - your@email.com               # ← build success/failure notifications
         notify:
           success: true
           failure: true
