@@ -36,7 +36,7 @@ workflows:
     max_build_duration: 60
 
     integrations:
-      app_store_connect: OneMET_ASC_API_key   # ← name you gave the key in Codemagic
+      app_store_connect: Api_onemet   # ← name you gave the key in Codemagic
 
     environment:
       groups:
