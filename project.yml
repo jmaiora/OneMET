@@ -1,0 +1,54 @@
+name: OneMET
+options:
+  bundleIdPrefix: com.jmaiora
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.jmaiora.onemet
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  OneMET:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - OneMET
+    info:
+      path: OneMET/Info.plist
+      properties:
+        CFBundleName: OneMET
+        CFBundleDisplayName: OneMET
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchStoryboardName: LaunchScreen
+        NSHealthShareUsageDescription: OneMET uses HealthKit to read your fitness and health data so it can display activity summaries, trends, and insights.
+        NSHealthUpdateUsageDescription: OneMET writes workout data to HealthKit to keep your records up to date.
+    entitlements:
+      path: OneMET/OneMET.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jmaiora.onemet
+        INFOPLIST_FILE: OneMET/Info.plist
+
+schemes:
+  OneMET:
+    build:
+      targets:
+        OneMET: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
