@@ -1,0 +1,38 @@
+workflows:
+  ios-release:
+    name: OneMET iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: OneMET_ASC_Key
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.jmaiora.onemet
+      vars:
+        XCODE_PROJECT: OneMET.xcodeproj
+        XCODE_SCHEME: OneMET
+        BUNDLE_ID: com.jmaiora.onemet
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
