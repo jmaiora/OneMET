@@ -21,7 +21,7 @@ enum Theme {
         static let headline  = SwiftUI.Font.system(.headline,  design: .rounded, weight: .semibold)
         static let body      = SwiftUI.Font.system(.body,      design: .rounded)
         static let caption   = SwiftUI.Font.system(.caption,   design: .rounded)
-        static let largeNum  = SwiftUI.Font.system(size: 42,   design: .rounded, weight: .bold)
+        static let largeNum  = SwiftUI.Font.system(size: 42,   weight: .bold, design: .rounded)
     }
 
     // MARK: – Spacing / radius

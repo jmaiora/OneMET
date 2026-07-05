@@ -184,7 +184,7 @@ final class HealthKitManager: ObservableObject {
     private func fetchWeekly(typeID: HKQuantityTypeIdentifier,
                               unit: HKUnit,
                               options: HKStatisticsOptions,
-                              completion: @escaping @Sendable ([Double]) -> Void) {
+                              completion: @escaping @MainActor ([Double]) -> Void) {
         let cal   = Calendar.current
         let now   = Date()
         let start = cal.date(byAdding: .day, value: -6, to: cal.startOfDay(for: now))!
