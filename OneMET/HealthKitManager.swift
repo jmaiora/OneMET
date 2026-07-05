@@ -27,7 +27,7 @@ final class HealthKitManager: ObservableObject {
             .stepCount, .activeEnergyBurned, .heartRate,
             .heartRateVariabilitySDNN, .oxygenSaturation
         ]
-        var types = Set(ids.compactMap { HKQuantityType.quantityType(forIdentifier: $0) })
+        var types: Set<HKObjectType> = Set(ids.compactMap { HKQuantityType.quantityType(forIdentifier: $0) })
         if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
         if let mind  = HKObjectType.categoryType(forIdentifier: .mindfulSession) { types.insert(mind) }
         return types
