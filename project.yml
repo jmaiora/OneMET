@@ -40,6 +40,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.jmaiora.onemet
         INFOPLIST_FILE: OneMET/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # tells the build which icon set to use
+        TARGETED_DEVICE_FAMILY: "1"                    # iPhone only, at target level so it beats Xcode's 1,2 default
 
 schemes:
   OneMET:
