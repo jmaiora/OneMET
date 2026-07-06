@@ -36,6 +36,9 @@ targets:
         NSHealthUpdateUsageDescription: OneMET writes workout data to HealthKit to keep your records up to date.
     entitlements:
       path: OneMET/OneMET.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jmaiora.onemet
