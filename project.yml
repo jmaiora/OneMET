@@ -28,6 +28,7 @@ targets:
         CFBundleDisplayName: OneMET
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "1"
+        ITSAppUsesNonExemptEncryption: false   # only standard HTTPS -> exempt; skips the TestFlight "Missing Compliance" prompt
         UILaunchScreen: {}             # storyboard-free launch screen (replaces missing LaunchScreen storyboard)
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
