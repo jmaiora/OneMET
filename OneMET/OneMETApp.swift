@@ -14,6 +14,7 @@ struct OneMETApp: App {
 // Data comes from HealthDataStore (live HealthKit); SampleData is the preview seed.
 struct RootView: View {
     @StateObject private var store = HealthDataStore()
+    @StateObject private var profileStore = ProfileStore()
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var mmol = false
@@ -41,7 +42,15 @@ struct RootView: View {
         }
         .tint(accent)
         .environmentObject(store)
-        .task { await store.load() }
+        .environmentObject(profileStore)
+        .task {
+            store.profile = profileStore.profile
+            await store.load()
+        }
+        .onChange(of: profileStore.profile) { newValue in
+            store.profile = newValue
+            Task { await store.refresh() }
+        }
     }
 
     @ViewBuilder

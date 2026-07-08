@@ -32,12 +32,14 @@ enum HealthMath {
         massKg > 0 ? totalKcal / (metKcalFactor * massKg) : 0
     }
 
-    static func tir(_ vals: [Double]) -> TimeInRange {
+    static func tir(_ vals: [Double],
+                    lowT: Double = Theme.targetLow,
+                    highT: Double = Theme.targetHigh) -> TimeInRange {
         guard !vals.isEmpty else { return TimeInRange(low: 0, inRange: 0, high: 0) }
         var low = 0, inr = 0, high = 0
         for v in vals {
-            if v < Theme.targetLow { low += 1 }
-            else if v > Theme.targetHigh { high += 1 }
+            if v < lowT { low += 1 }
+            else if v > highT { high += 1 }
             else { inr += 1 }
         }
         let n = Double(vals.count)
@@ -59,10 +61,10 @@ enum HealthMath {
     static func gmi(meanMgdl: Double) -> Double { 3.31 + 0.02392 * meanMgdl }
 
     /// Count of hypo excursions (transitions into < target low).
-    static func lowEvents(_ vals: [Double]) -> Int {
+    static func lowEvents(_ vals: [Double], lowT: Double = Theme.targetLow) -> Int {
         var count = 0, below = false
         for v in vals {
-            if v < Theme.targetLow { if !below { count += 1; below = true } }
+            if v < lowT { if !below { count += 1; below = true } }
             else { below = false }
         }
         return count
@@ -85,6 +87,8 @@ struct HealthSnapshot {
     var highestToday: Double = 0
     var sdToday: Double = 0
     var hasGlucose: Bool = false
+    var targetLow: Double = Theme.targetLow
+    var targetHigh: Double = Theme.targetHigh
 
     // Activity
     var rings: Rings
@@ -167,6 +171,9 @@ final class HealthDataStore: ObservableObject {
     @Published var authorized = false
     @Published var statusMessage: String? = nil
 
+    /// The user's personal data; set by the app before loading. Drives mass, MET goal, glucose range.
+    var profile = UserProfile()
+
     private let svc = HealthKitService()
     private let cal = Calendar.current
 
@@ -194,13 +201,15 @@ final class HealthDataStore: ObservableObject {
 
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)
-        let massKg = (try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))) ?? 70
+        let massKg = profile.weightKg ?? ((try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))) ?? 70)
 
         var snap = HealthSnapshot(rings: Rings(
             move: RingMetric(value: 0, goal: 500, unit: "KCAL"),
             exer: RingMetric(value: 0, goal: 30,  unit: "MIN"),
-            met:  RingMetric(value: 0, goal: 500, unit: "MET·MIN")
+            met:  RingMetric(value: 0, goal: Double(profile.dailyMetGoal), unit: "MET·MIN")
         ))
+        snap.targetLow = profile.glucoseLow
+        snap.targetHigh = profile.glucoseHigh
 
         await loadGlucoseToday(&snap, startOfDay: startOfDay, now: now)
         await loadActivityToday(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
@@ -244,7 +253,7 @@ final class HealthDataStore: ObservableObject {
             snap.currentTrend = d > 3 ? .up : (d < -3 ? .down : .flat)
         }
         snap.avg = (vals.reduce(0, +) / Double(vals.count)).rounded()
-        snap.tir = HealthMath.tir(vals)
+        snap.tir = HealthMath.tir(vals, lowT: profile.glucoseLow, highT: profile.glucoseHigh)
         snap.lowestToday = vals.min() ?? 0
         snap.highestToday = vals.max() ?? 0
         snap.sdToday = HealthMath.stddev(vals).rounded()
@@ -282,7 +291,7 @@ final class HealthDataStore: ObservableObject {
         let activeToday = (try? await svc.sum(.activeEnergyBurned, unit: .kilocalorie(), from: startOfDay, to: now)) ?? 0
         let basalToday = (try? await svc.sum(.basalEnergyBurned, unit: .kilocalorie(), from: startOfDay, to: now)) ?? 0
         snap.metToday = HealthMath.metMin(totalKcal: activeToday + basalToday, massKg: massKg).rounded()
-        snap.rings.met = RingMetric(value: snap.metToday, goal: 500, unit: "MET·MIN")
+        snap.rings.met = RingMetric(value: snap.metToday, goal: Double(profile.dailyMetGoal), unit: "MET·MIN")
 
         // MET by 2h bucket (12 buckets).
         let activeBuckets = (try? await svc.bucketSums(.activeEnergyBurned, unit: .kilocalorie(), from: startOfDay, to: now, hours: 2, count: 12)) ?? Array(repeating: 0, count: 12)
@@ -454,7 +463,7 @@ final class HealthDataStore: ObservableObject {
         for d in days {
             let key = cal.startOfDay(for: d)
             let vals = byDay[key] ?? []
-            let tirDay = vals.isEmpty ? 0 : Double(HealthMath.tir(vals).inRange)
+            let tirDay = vals.isEmpty ? 0 : Double(HealthMath.tir(vals, lowT: profile.glucoseLow, highT: profile.glucoseHigh).inRange)
             tirTrend.append(tirDay)
             let energy = (active14[key] ?? 0) + (basal14[key] ?? 0)
             let metDay = HealthMath.metMin(totalKcal: energy, massKg: massKg)
@@ -483,7 +492,7 @@ final class HealthDataStore: ObservableObject {
         snap.avgGlucose14 = mean14.rounded()
         snap.avgMet14 = metPerDay.isEmpty ? 0 : Int((metPerDay.reduce(0, +) / Double(metPerDay.count)).rounded())
         snap.avgSteps14 = stepsPerDay.isEmpty ? 0 : Int((stepsPerDay.reduce(0, +) / Double(stepsPerDay.count)).rounded())
-        snap.lowEvents14 = HealthMath.lowEvents(g14.map { $0.quantity.doubleValue(for: unit) })
+        snap.lowEvents14 = HealthMath.lowEvents(g14.map { $0.quantity.doubleValue(for: unit) }, lowT: profile.glucoseLow)
         snap.workoutCount14 = ((try? await svc.workouts(from: start14, to: now)) ?? []).count
     }
 }

@@ -225,25 +225,37 @@ struct IOSListRow: View {
     var detail: String? = nil
     var dot: Color
     var isLast: Bool = false
+    var action: (() -> Void)? = nil
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
+            Circle().fill(dot).frame(width: 10, height: 10)
+            Text(title)
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.ink)
+            Spacer(minLength: 8)
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.trailing)
+            }
+            if action != nil {
+                AppIconView(name: "chevron", color: Theme.ink3, size: 14)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Circle().fill(dot).frame(width: 10, height: 10)
-                Text(title)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Theme.ink)
-                Spacer(minLength: 8)
-                if let detail {
-                    Text(detail)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.ink2)
-                }
-                AppIconView(name: "chevron", color: Theme.ink3, size: 14)
+            if let action {
+                Button(action: action) { rowContent }.buttonStyle(.plain)
+            } else {
+                rowContent
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-
             if !isLast {
                 Rectangle().fill(Theme.sep).frame(height: 0.5).padding(.leading, 36)
             }

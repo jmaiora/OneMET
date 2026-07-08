@@ -10,7 +10,7 @@ struct GlucoseDetailView: View {
 
     var body: some View {
         let d = store.data
-        let st = glucoseStatus(d.current)
+        let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
         let trendWord = d.currentTrend == .down ? "falling" : d.currentTrend == .up ? "rising" : "steady"
         let unit = mmol ? "mmol/L" : "mg/dL"
 
@@ -57,7 +57,8 @@ struct GlucoseDetailView: View {
 
                 GlucoseChart(height: 184, mmol: mmol, accent: accent,
                              data: d.glucose, currentIdx: d.currentIdx,
-                             runFrom: d.runFrom, runTo: d.runTo)
+                             runFrom: d.runFrom, runTo: d.runTo,
+                             low: d.targetLow, high: d.targetHigh)
             }
 
             // Today stats

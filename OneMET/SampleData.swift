@@ -64,10 +64,12 @@ struct GlucoseStatus {
     let color: Color
 }
 
-/// Full status (label + color) for a reading. Complements Theme.glucoseColor / glucoseStatusLabel.
-func glucoseStatus(_ mgdl: Double) -> GlucoseStatus {
-    if mgdl < Theme.targetLow  { return GlucoseStatus(label: "Low",  color: Theme.red) }
-    if mgdl > Theme.targetHigh { return GlucoseStatus(label: "High", color: Theme.amber) }
+/// Full status (label + color) for a reading, against a target range (defaults to standard 70–180).
+func glucoseStatus(_ mgdl: Double,
+                   low: Double = Theme.targetLow,
+                   high: Double = Theme.targetHigh) -> GlucoseStatus {
+    if mgdl < low  { return GlucoseStatus(label: "Low",  color: Theme.red) }
+    if mgdl > high { return GlucoseStatus(label: "High", color: Theme.amber) }
     return GlucoseStatus(label: "In Range", color: Theme.green)
 }
 

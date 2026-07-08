@@ -65,6 +65,8 @@ struct GlucoseChart: View {
     var currentIdx: Int = SampleData.currentIdx
     var runFrom: Int? = 192
     var runTo: Int? = 216
+    var low: Double = Theme.targetLow
+    var high: Double = Theme.targetHigh
 
     var body: some View {
         Canvas { ctx, size in
@@ -82,7 +84,7 @@ struct GlucoseChart: View {
             func Y(_ v: CGFloat) -> CGFloat { padT + (1 - (v - gMin) / (gMax - gMin)) * (h - padT - padB) }
 
             let pts = series.enumerated().map { CGPoint(x: X($0.offset), y: Y(CGFloat($0.element))) }
-            let yLow = Y(CGFloat(Theme.targetLow)), yHigh = Y(CGFloat(Theme.targetHigh))
+            let yLow = Y(CGFloat(low)), yHigh = Y(CGFloat(high))
 
             // target band + dashed thresholds
             ctx.fill(Path(CGRect(x: padL, y: yHigh, width: w - padL - padR, height: yLow - yHigh)),
@@ -91,9 +93,11 @@ struct GlucoseChart: View {
                 var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
                 ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
             }
-            ctx.draw(Text(mmol ? "10" : "180").font(.system(size: 10)).foregroundColor(Theme.ink3),
+            let highLabel = mmol ? String(format: "%.1f", high / 18) : "\(Int(high))"
+            let lowLabel = mmol ? String(format: "%.1f", low / 18) : "\(Int(low))"
+            ctx.draw(Text(highLabel).font(.system(size: 10)).foregroundColor(Theme.ink3),
                      at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text(mmol ? "3.9" : "70").font(.system(size: 10)).foregroundColor(Theme.ink3),
+            ctx.draw(Text(lowLabel).font(.system(size: 10)).foregroundColor(Theme.ink3),
                      at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // run highlight
