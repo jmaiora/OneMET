@@ -1,114 +1,71 @@
 import SwiftUI
-import Charts
+
+// ActivityView.swift — OneMET Activity screen
+// Ported from the Claude Design handoff (screens.jsx → ActivityScreen).
 
 struct ActivityView: View {
-    @EnvironmentObject var hk: HealthKitManager
-
-    private let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    var accent: Color
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: Theme.sectionGap) {
+        let r = SampleData.rings
 
-                    // Steps bar chart
-                    SectionCard(title: "Steps – Last 7 Days") {
-                        Chart {
-                            ForEach(Array(hk.weeklySteps.enumerated()), id: \.offset) { idx, val in
-                                BarMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("Steps", val)
-                                )
-                                .foregroundStyle(Theme.steps.gradient)
-                                .cornerRadius(6)
-                            }
-                        }
-                        .frame(height: 180)
-                        .chartYAxis {
-                            AxisMarks(position: .leading)
-                        }
-                    }
+        ScreenScaffold {
+            AppHeader(title: "Activity", date: "Friday, Jun 19", accent: accent)
 
-                    // Calories bar chart
-                    SectionCard(title: "Active Calories – Last 7 Days") {
-                        Chart {
-                            ForEach(Array(hk.weeklyCalories.enumerated()), id: \.offset) { idx, val in
-                                BarMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("kcal", val)
-                                )
-                                .foregroundStyle(Theme.calories.gradient)
-                                .cornerRadius(6)
-                            }
-                        }
-                        .frame(height: 180)
-                    }
+            // Rings hero
+            Card(pad: 20) {
+                HStack {
+                    Spacer()
+                    ActivityRings(size: 172, stroke: 17)
+                    Spacer()
+                }
+                .padding(.bottom, 16)
 
-                    // Today summary
-                    SectionCard(title: "Today at a Glance") {
-                        HStack(spacing: 0) {
-                            GlanceStat(label: "Steps",
-                                       value: "\(hk.stepsToday)",
-                                       color: Theme.steps)
-                            Divider().frame(height: 48)
-                            GlanceStat(label: "Cal",
-                                       value: "\(Int(hk.caloriesActive))",
-                                       color: Theme.calories)
-                            Divider().frame(height: 48)
-                            GlanceStat(label: "HR",
-                                       value: "\(Int(hk.heartRateLatest)) bpm",
-                                       color: Theme.heartRate)
-                        }
+                VStack(alignment: .leading, spacing: 14) {
+                    RingStat(color: Theme.ringMove, label: "Move", value: r.move.value, goal: r.move.goal, unit: "kcal")
+                    RingStat(color: Theme.ringExer, label: "Exercise", value: r.exer.value, goal: r.exer.goal, unit: "min")
+                    RingStat(color: Theme.ringMet, label: "MET", value: r.met.value, goal: r.met.goal, unit: "MET·min")
+                }
+            }
+
+            // Steps & distance
+            Card(title: "Steps & Distance", icon: "shoe", iconColor: Theme.teal) {
+                HStack(spacing: 24) {
+                    StatBlock(label: "Steps", value: SampleData.steps.formatted(), color: Theme.teal)
+                    StatBlock(label: "Distance", value: "6.6", unit: "km")
+                    StatBlock(label: "Flights", value: "11")
+                }
+                ProgressBar(value: Double(SampleData.steps), goal: Double(SampleData.stepsGoal), color: Theme.teal)
+                    .padding(.top, 12)
+                Text("\(Int((Double(SampleData.steps) / Double(SampleData.stepsGoal) * 100).rounded()))% of \(SampleData.stepsGoal.formatted()) goal")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Theme.ink2)
+                    .padding(.top, 6)
+            }
+
+            // MET minutes
+            Card(title: "MET Minutes", icon: "bolt", iconColor: Theme.ringMet, right: "Today") {
+                BigStat(value: "486", unit: "MET·min", size: 34).padding(.bottom, 4)
+                MetBars(height: 104, accent: Theme.ringMet)
+                Text("Most activity 4–6 PM. 1 MET ≈ resting; running today peaked at 9.1 MET.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.ink2)
+                    .padding(.top, 6)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // Workouts
+            Card(title: "Workouts", icon: "run", iconColor: accent) {
+                VStack(spacing: 0) {
+                    ForEach(Array(SampleData.workouts.enumerated()), id: \.element.id) { i, w in
+                        WorkoutRow(w: w, accent: accent, last: i == SampleData.workouts.count - 1)
                     }
                 }
-                .padding(.vertical)
             }
-            .background(Theme.background)
-            .navigationTitle("Activity")
-            .navigationBarTitleDisplayMode(.large)
         }
-    }
-}
-
-// MARK: – Helpers
-struct SectionCard<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(Theme.Font.headline)
-                .padding(.horizontal)
-            content
-                .padding(.horizontal)
-        }
-        .padding(.vertical)
-        .background(Theme.card)
-        .cornerRadius(Theme.cornerRadius)
-        .padding(.horizontal)
-    }
-}
-
-struct GlanceStat: View {
-    let label: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(Theme.Font.headline)
-                .foregroundStyle(color)
-            Text(label)
-                .font(Theme.Font.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
 #Preview {
-    ActivityView()
-        .environmentObject(HealthKitManager())
+    ZStack { Theme.bg.ignoresSafeArea(); ActivityView(accent: Theme.accent) }
 }

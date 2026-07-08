@@ -1,122 +1,75 @@
 import SwiftUI
-import Charts
+
+// TrendsView.swift — OneMET Trends screen
+// Ported from the Claude Design handoff (screens.jsx → TrendsScreen).
 
 struct TrendsView: View {
-    @EnvironmentObject var hk: HealthKitManager
-
-    private let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    var accent: Color
+    var mmol: Bool = false
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: Theme.sectionGap) {
+        ScreenScaffold {
+            AppHeader(title: "Trends", date: "Last 14 Days", accent: accent)
 
-                    // Heart Rate trend (line chart)
-                    SectionCard(title: "Heart Rate – 7 Day Average") {
-                        Chart {
-                            ForEach(Array(hk.weeklyHR.enumerated()), id: \.offset) { idx, val in
-                                LineMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("BPM", val)
-                                )
-                                .foregroundStyle(Theme.heartRate)
-                                .interpolationMethod(.catmullRom)
-
-                                AreaMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("BPM", val)
-                                )
-                                .foregroundStyle(Theme.heartRate.opacity(0.15))
-                                .interpolationMethod(.catmullRom)
-
-                                PointMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("BPM", val)
-                                )
-                                .foregroundStyle(Theme.heartRate)
-                            }
-                        }
-                        .frame(height: 200)
-                        .chartYScale(domain: .automatic(includesZero: false))
-                    }
-
-                    // Steps trend (line chart)
-                    SectionCard(title: "Steps Trend") {
-                        Chart {
-                            ForEach(Array(hk.weeklySteps.enumerated()), id: \.offset) { idx, val in
-                                LineMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("Steps", val)
-                                )
-                                .foregroundStyle(Theme.steps)
-                                .interpolationMethod(.catmullRom)
-
-                                AreaMark(
-                                    x: .value("Day", days[idx % 7]),
-                                    y: .value("Steps", val)
-                                )
-                                .foregroundStyle(Theme.steps.opacity(0.15))
-                                .interpolationMethod(.catmullRom)
-                            }
-                        }
-                        .frame(height: 180)
-                    }
-
-                    // Insight cards
-                    VStack(spacing: 12) {
-                        InsightRow(icon: "moon.fill",
-                                   color: Theme.sleep,
-                                   label: "Last Night's Sleep",
-                                   value: String(format: "%.1f hrs", hk.sleepHoursLast))
-
-                        InsightRow(icon: "waveform.path.ecg",
-                                   color: Theme.hrv,
-                                   label: "Latest HRV",
-                                   value: "\(Int(hk.hrvLatest)) ms")
-
-                        InsightRow(icon: "brain.head.profile",
-                                   color: Theme.mindfulness,
-                                   label: "Mindful Minutes Today",
-                                   value: "\(Int(hk.mindfulMinutes)) min")
-                    }
-                    .padding(.horizontal)
+            // Time in range trend
+            Card(title: "Time in Range", icon: "drop", iconColor: Theme.green, right: "14-day") {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("82%")
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundStyle(Theme.green)
+                        .monospacedDigit()
+                    Text("↑ 8% vs prior")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.green)
                 }
-                .padding(.vertical)
+                .padding(.bottom, 4)
+
+                TrendBars(height: 150, accent: accent)
             }
-            .background(Theme.background)
-            .navigationTitle("Trends")
-            .navigationBarTitleDisplayMode(.large)
-        }
-    }
-}
 
-struct InsightRow: View {
-    let icon: String
-    let color: Color
-    let label: String
-    let value: String
+            // Activity vs range correlation
+            Card(title: "Activity vs. Range", icon: "bolt", iconColor: accent) {
+                Text("Days with more MET minutes track with more time in range.")
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(Theme.ink)
+                    .lineSpacing(2)
+                    .padding(.bottom, 10)
+                    .fixedSize(horizontal: false, vertical: true)
 
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-                .frame(width: 36)
-            Text(label)
-                .font(Theme.Font.body)
-                .foregroundStyle(.primary)
-            Spacer()
-            Text(value)
-                .font(Theme.Font.headline)
-                .foregroundStyle(color)
+                CorrScatter(height: 168, accent: accent)
+
+                HStack(spacing: 9) {
+                    AppIconView(name: "activity", color: accent, size: 18)
+                    (Text("+0.7%").fontWeight(.bold).foregroundColor(accent)
+                     + Text(" time in range for every extra 50 MET·min.").foregroundColor(Theme.ink))
+                        .font(.system(size: 13, weight: .medium))
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(accent.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .padding(.top, 12)
+            }
+
+            // 14-day summary
+            Card(title: "14-Day Summary") {
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
+                                    GridItem(.flexible(), alignment: .leading)], spacing: 18) {
+                    StatBlock(label: "Avg Glucose", value: fmtGlucose(SampleData.avg, mmol: mmol), unit: mmol ? "mmol/L" : "mg/dL")
+                    StatBlock(label: "GMI / A1C", value: "6.4", unit: "%", color: Theme.green)
+                    StatBlock(label: "Avg MET·min", value: "412")
+                    StatBlock(label: "Low Events", value: "3", color: Theme.red)
+                    StatBlock(label: "Avg Steps", value: "9,140", color: Theme.teal)
+                    StatBlock(label: "Workouts", value: "9", color: accent)
+                }
+            }
         }
-        .padding(Theme.cardPadding)
-        .background(Theme.card)
-        .cornerRadius(Theme.cornerRadius)
     }
 }
 
 #Preview {
-    TrendsView()
-        .environmentObject(HealthKitManager())
+    ZStack { Theme.bg.ignoresSafeArea(); TrendsView(accent: Theme.accent) }
 }

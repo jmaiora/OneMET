@@ -1,94 +1,57 @@
 import SwiftUI
 
+// ProfileView.swift — OneMET Profile screen
+// Ported from the Claude Design handoff (screens.jsx → ProfileScreen).
+
 struct ProfileView: View {
-    @EnvironmentObject var hk: HealthKitManager
+    var accent: Color
 
     var body: some View {
-        NavigationView {
-            List {
-                // Authorization status
-                Section {
-                    HStack {
-                        Image(systemName: hk.isAuthorized ? "checkmark.shield.fill" : "xmark.shield.fill")
-                            .foregroundStyle(hk.isAuthorized ? .green : .red)
-                            .font(.title2)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("HealthKit Access")
-                                .font(Theme.Font.headline)
-                            Text(hk.isAuthorized ? "Granted" : "Not Authorized")
-                                .font(Theme.Font.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
+        ScreenScaffold(spacing: 18) {
+            AppHeader(title: "Profile", date: "Account", accent: accent)
 
-                    if !hk.isAuthorized {
-                        Button("Request Access") {
-                            hk.requestAuthorization()
-                        }
-                        .tint(Theme.accent)
-                    }
-                } header: {
-                    Text("HealthKit")
+            // Identity row
+            HStack(spacing: 14) {
+                Text("AM")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 60, height: 60)
+                    .background(accent)
+                    .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Alex Moreno")
+                        .font(.system(size: 21, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                    Text("Type 1 · since 2014")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.ink2)
                 }
-
-                // Data summary
-                Section {
-                    ProfileRow(label: "Steps Today",     value: "\(hk.stepsToday)", color: Theme.steps)
-                    ProfileRow(label: "Active Calories", value: "\(Int(hk.caloriesActive)) kcal", color: Theme.calories)
-                    ProfileRow(label: "Heart Rate",      value: "\(Int(hk.heartRateLatest)) bpm", color: Theme.heartRate)
-                    ProfileRow(label: "HRV",             value: "\(Int(hk.hrvLatest)) ms",       color: Theme.hrv)
-                    ProfileRow(label: "Sleep",           value: String(format: "%.1f hrs", hk.sleepHoursLast), color: Theme.sleep)
-                    ProfileRow(label: "Mindfulness",     value: "\(Int(hk.mindfulMinutes)) min", color: Theme.mindfulness)
-                } header: {
-                    Text("Latest Data")
-                }
-
-                // Actions
-                Section {
-                    Button {
-                        hk.fetchAll()
-                    } label: {
-                        Label("Refresh All Data", systemImage: "arrow.clockwise")
-                    }
-                    .tint(Theme.accent)
-                } header: {
-                    Text("Actions")
-                }
-
-                // App info
-                Section {
-                    LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
-                    LabeledContent("Bundle ID", value: Bundle.main.bundleIdentifier ?? "com.jmaiora.onemet")
-                } header: {
-                    Text("App")
-                }
+                Spacer()
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.large)
-        }
-    }
-}
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
 
-struct ProfileRow: View {
-    let label: String
-    let value: String
-    let color: Color
+            IOSList(header: "Connected Devices") {
+                IOSListRow(title: "CGM Sensor", detail: "Connected", dot: Theme.green)
+                IOSListRow(title: "Apple Watch", detail: "Series 9", dot: Theme.red)
+                IOSListRow(title: "Insulin Pen", detail: "Synced 9:41", dot: accent, isLast: true)
+            }
 
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(Theme.Font.body)
-            Spacer()
-            Text(value)
-                .font(Theme.Font.headline)
-                .foregroundStyle(color)
+            IOSList(header: "Targets") {
+                IOSListRow(title: "Glucose Range", detail: "70–180 mg/dL", dot: Theme.green)
+                IOSListRow(title: "Daily MET Goal", detail: "500 MET·min", dot: Theme.ringMet)
+                IOSListRow(title: "Carb Ratio", detail: "1 : 10", dot: Theme.amber, isLast: true)
+            }
+
+            IOSList(header: "Data") {
+                IOSListRow(title: "Export Health Report", dot: accent)
+                IOSListRow(title: "Share with Clinician", dot: Theme.teal)
+                IOSListRow(title: "Notifications", dot: Theme.violet, isLast: true)
+            }
         }
     }
 }
 
 #Preview {
-    ProfileView()
-        .environmentObject(HealthKitManager())
+    ZStack { Theme.bg.ignoresSafeArea(); ProfileView(accent: Theme.accent) }
 }
