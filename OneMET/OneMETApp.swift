@@ -11,9 +11,9 @@ struct OneMETApp: App {
 
 // Custom tab container matching the design handoff: a blurred floating TabBar
 // with the active screen behind it and the GlucoseDetail overlay on top.
-// NOTE: the UI currently renders from SampleData (mock). HealthKitManager.swift
-// remains in the project and is where real data will be wired in next.
+// Data comes from HealthDataStore (live HealthKit); SampleData is the preview seed.
 struct RootView: View {
+    @StateObject private var store = HealthDataStore()
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var mmol = false
@@ -40,6 +40,8 @@ struct RootView: View {
             }
         }
         .tint(accent)
+        .environmentObject(store)
+        .task { await store.load() }
     }
 
     @ViewBuilder

@@ -1,30 +1,33 @@
 import SwiftUI
 
-// TrendsView.swift — OneMET Trends screen
-// Ported from the Claude Design handoff (screens.jsx → TrendsScreen).
+// TrendsView.swift — OneMET Trends screen (live 14-day data via HealthDataStore).
 
 struct TrendsView: View {
+    @EnvironmentObject var store: HealthDataStore
     var accent: Color
     var mmol: Bool = false
 
     var body: some View {
+        let d = store.data
+        let up = d.tirDeltaVsPrior >= 0
+
         ScreenScaffold {
             AppHeader(title: "Trends", date: "Last 14 Days", accent: accent)
 
             // Time in range trend
             Card(title: "Time in Range", icon: "drop", iconColor: Theme.green, right: "14-day") {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("82%")
+                    Text("\(d.avgTir14)%")
                         .font(.system(size: 34, weight: .bold))
                         .foregroundStyle(Theme.green)
                         .monospacedDigit()
-                    Text("↑ 8% vs prior")
+                    Text("\(up ? "↑" : "↓") \(abs(d.tirDeltaVsPrior))% vs prior")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.green)
+                        .foregroundStyle(up ? Theme.green : Theme.red)
                 }
                 .padding(.bottom, 4)
 
-                TrendBars(height: 150, accent: accent)
+                TrendBars(height: 150, accent: accent, data: d.tirTrend)
             }
 
             // Activity vs range correlation
@@ -36,12 +39,12 @@ struct TrendsView: View {
                     .padding(.bottom, 10)
                     .fixedSize(horizontal: false, vertical: true)
 
-                CorrScatter(height: 168, accent: accent)
+                CorrScatter(height: 168, accent: accent, data: d.corr)
 
                 HStack(spacing: 9) {
                     AppIconView(name: "activity", color: accent, size: 18)
-                    (Text("+0.7%").fontWeight(.bold).foregroundColor(accent)
-                     + Text(" time in range for every extra 50 MET·min.").foregroundColor(Theme.ink))
+                    (Text("Higher MET·min days").fontWeight(.bold).foregroundColor(accent)
+                     + Text(" tend to show more time in range.").foregroundColor(Theme.ink))
                         .font(.system(size: 13, weight: .medium))
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -58,12 +61,12 @@ struct TrendsView: View {
             Card(title: "14-Day Summary") {
                 LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
                                     GridItem(.flexible(), alignment: .leading)], spacing: 18) {
-                    StatBlock(label: "Avg Glucose", value: fmtGlucose(SampleData.avg, mmol: mmol), unit: mmol ? "mmol/L" : "mg/dL")
-                    StatBlock(label: "GMI / A1C", value: "6.4", unit: "%", color: Theme.green)
-                    StatBlock(label: "Avg MET·min", value: "412")
-                    StatBlock(label: "Low Events", value: "3", color: Theme.red)
-                    StatBlock(label: "Avg Steps", value: "9,140", color: Theme.teal)
-                    StatBlock(label: "Workouts", value: "9", color: accent)
+                    StatBlock(label: "Avg Glucose", value: d.avgGlucose14 > 0 ? fmtGlucose(d.avgGlucose14, mmol: mmol) : "—", unit: mmol ? "mmol/L" : "mg/dL")
+                    StatBlock(label: "GMI / A1C", value: d.gmi > 0 ? String(format: "%.1f", d.gmi) : "—", unit: "%", color: Theme.green)
+                    StatBlock(label: "Avg MET·min", value: "\(d.avgMet14)")
+                    StatBlock(label: "Low Events", value: "\(d.lowEvents14)", color: Theme.red)
+                    StatBlock(label: "Avg Steps", value: d.avgSteps14.formatted(), color: Theme.teal)
+                    StatBlock(label: "Workouts", value: "\(d.workoutCount14)", color: accent)
                 }
             }
         }
@@ -71,5 +74,5 @@ struct TrendsView: View {
 }
 
 #Preview {
-    ZStack { Theme.bg.ignoresSafeArea(); TrendsView(accent: Theme.accent) }
+    ZStack { Theme.bg.ignoresSafeArea(); TrendsView(accent: Theme.accent).environmentObject(HealthDataStore()) }
 }

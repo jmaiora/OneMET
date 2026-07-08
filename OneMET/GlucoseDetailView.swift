@@ -1,15 +1,18 @@
 import SwiftUI
 
-// GlucoseDetailView.swift — glucose detail overlay
-// Ported from the Claude Design handoff (screens.jsx → GlucoseDetail).
+// GlucoseDetailView.swift — glucose detail overlay (live data via HealthDataStore).
 
 struct GlucoseDetailView: View {
+    @EnvironmentObject var store: HealthDataStore
     var accent: Color
     var mmol: Bool = false
     var onBack: () -> Void
 
     var body: some View {
-        let st = glucoseStatus(SampleData.current)
+        let d = store.data
+        let st = glucoseStatus(d.current)
+        let trendWord = d.currentTrend == .down ? "falling" : d.currentTrend == .up ? "rising" : "steady"
+        let unit = mmol ? "mmol/L" : "mg/dL"
 
         ScreenScaffold {
             Button(action: onBack) {
@@ -23,7 +26,7 @@ struct GlucoseDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("FRIDAY, JUN 19")
+                Text(Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()).uppercased())
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
@@ -37,32 +40,36 @@ struct GlucoseDetailView: View {
             Card {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(fmtGlucose(SampleData.current, mmol: mmol))
+                        Text(d.hasGlucose ? fmtGlucose(d.current, mmol: mmol) : "—")
                             .font(.system(size: 52, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
-                        Text(mmol ? "mmol/L" : "mg/dL")
+                        Text(unit)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                     }
                     Spacer()
-                    Chip(color: st.color) { Dot(color: st.color); Text("\(st.label) · falling") }
+                    if d.hasGlucose {
+                        Chip(color: st.color) { Dot(color: st.color); Text("\(st.label) · \(trendWord)") }
+                    }
                 }
                 .padding(.bottom, 8)
 
-                GlucoseChart(height: 184, mmol: mmol, accent: accent)
+                GlucoseChart(height: 184, mmol: mmol, accent: accent,
+                             data: d.glucose, currentIdx: d.currentIdx,
+                             runFrom: d.runFrom, runTo: d.runTo)
             }
 
             // Today stats
             Card(title: "Today") {
                 LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
                                     GridItem(.flexible(), alignment: .leading)], spacing: 18) {
-                    StatBlock(label: "Average", value: fmtGlucose(SampleData.avg, mmol: mmol), unit: mmol ? "mmol/L" : "mg/dL")
-                    StatBlock(label: "Time in Range", value: "\(SampleData.tir.inRange)", unit: "%", color: Theme.green)
-                    StatBlock(label: "Lowest", value: fmtGlucose(68, mmol: mmol), color: Theme.red)
-                    StatBlock(label: "Highest", value: fmtGlucose(191, mmol: mmol), color: Theme.amber)
-                    StatBlock(label: "Std. Dev", value: mmol ? "1.8" : "32")
-                    StatBlock(label: "GMI", value: "6.4", unit: "%")
+                    StatBlock(label: "Average", value: fmtGlucose(d.avg, mmol: mmol), unit: unit)
+                    StatBlock(label: "Time in Range", value: "\(d.tir.inRange)", unit: "%", color: Theme.green)
+                    StatBlock(label: "Lowest", value: fmtGlucose(d.lowestToday, mmol: mmol), color: Theme.red)
+                    StatBlock(label: "Highest", value: fmtGlucose(d.highestToday, mmol: mmol), color: Theme.amber)
+                    StatBlock(label: "Std. Dev", value: mmol ? String(format: "%.1f", d.sdToday / 18) : "\(Int(d.sdToday))")
+                    StatBlock(label: "GMI", value: d.avg > 0 ? String(format: "%.1f", HealthMath.gmi(meanMgdl: d.avg)) : "—", unit: "%")
                 }
 
                 Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 14)
@@ -74,17 +81,19 @@ struct GlucoseDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 8)
 
-                TIRBar(height: 16)
+                TIRBar(height: 16, tir: d.tir)
 
                 HStack(spacing: 14) {
-                    TIRLegend(label: "Low", value: SampleData.tir.low, color: Theme.red)
-                    TIRLegend(label: "In Range", value: SampleData.tir.inRange, color: Theme.green)
-                    TIRLegend(label: "High", value: SampleData.tir.high, color: Theme.amber)
+                    TIRLegend(label: "Low", value: d.tir.low, color: Theme.red)
+                    TIRLegend(label: "In Range", value: d.tir.inRange, color: Theme.green)
+                    TIRLegend(label: "High", value: d.tir.high, color: Theme.amber)
                 }
                 .padding(.top, 9)
             }
 
-            EventsCard(accent: accent)
+            if !d.events.isEmpty {
+                EventsCard(events: d.events, accent: accent)
+            }
         }
     }
 }
@@ -92,21 +101,8 @@ struct GlucoseDetailView: View {
 // MARK: - Events card
 
 struct EventsCard: View {
+    var events: [DayEvent]
     var accent: Color
-
-    private struct Ev: Identifiable {
-        let id = UUID()
-        let t: String
-        let d: String
-        let c: Color
-    }
-    private let events: [Ev] = [
-        Ev(t: "7:30 AM",  d: "Breakfast · 62g carbs", c: Theme.amber),
-        Ev(t: "8:12 AM",  d: "Walk · −9 mg/dL",       c: Theme.green),
-        Ev(t: "12:15 PM", d: "Lunch · 48g carbs",     c: Theme.amber),
-        Ev(t: "4:08 PM",  d: "Run · −38 mg/dL",       c: Theme.green),
-        Ev(t: "5:55 PM",  d: "Snack · 22g (low treatment)", c: Theme.red)
-    ]
 
     var body: some View {
         Card(title: "Events", icon: "bolt", iconColor: accent) {
@@ -114,13 +110,13 @@ struct EventsCard: View {
                 ForEach(Array(events.enumerated()), id: \.element.id) { i, e in
                     VStack(spacing: 0) {
                         HStack(spacing: 12) {
-                            Circle().fill(e.c).frame(width: 8, height: 8)
-                            Text(e.t)
+                            Circle().fill(e.color).frame(width: 8, height: 8)
+                            Text(e.time)
                                 .font(.system(size: 13))
                                 .foregroundStyle(Theme.ink2)
                                 .frame(width: 64, alignment: .leading)
                                 .monospacedDigit()
-                            Text(e.d)
+                            Text(e.text)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(Theme.ink)
                             Spacer(minLength: 0)
@@ -141,5 +137,6 @@ struct EventsCard: View {
     ZStack {
         Theme.bg.ignoresSafeArea()
         GlucoseDetailView(accent: Theme.accent, onBack: {})
+            .environmentObject(HealthDataStore())
     }
 }

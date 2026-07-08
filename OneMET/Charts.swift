@@ -26,25 +26,24 @@ struct ActivityRings: View {
     var size: CGFloat = 132
     var stroke: CGFloat = 13
     var gap: CGFloat = 4
+    var fractions: [Double] = [SampleData.rings.move.frac,
+                               SampleData.rings.exer.frac,
+                               SampleData.rings.met.frac]
 
-    private var rings: [(color: Color, frac: Double)] {
-        [(Theme.ringMove, SampleData.rings.move.frac),
-         (Theme.ringExer, SampleData.rings.exer.frac),
-         (Theme.ringMet,  SampleData.rings.met.frac)]
-    }
+    private let colors: [Color] = [Theme.ringMove, Theme.ringExer, Theme.ringMet]
 
     var body: some View {
         ZStack {
             ForEach(0..<3, id: \.self) { i in
                 let inset = stroke / 2 + CGFloat(i) * (stroke + gap)
-                let frac = CGFloat(min(rings[i].frac, 1))
+                let frac = CGFloat(min(fractions[i], 1))
                 Circle()
                     .inset(by: inset)
-                    .stroke(rings[i].color.opacity(0.18), style: StrokeStyle(lineWidth: stroke))
+                    .stroke(colors[i].opacity(0.18), style: StrokeStyle(lineWidth: stroke))
                 Circle()
                     .inset(by: inset)
                     .trim(from: 0, to: frac)
-                    .stroke(rings[i].color, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
+                    .stroke(colors[i], style: StrokeStyle(lineWidth: stroke, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
         }
@@ -62,12 +61,17 @@ struct GlucoseChart: View {
     var from: Int = 0
     var to: Int = 288
     var markCurrent: Bool = true
+    var data: [Double] = SampleData.glucose
+    var currentIdx: Int = SampleData.currentIdx
+    var runFrom: Int? = 192
+    var runTo: Int? = 216
 
     var body: some View {
         Canvas { ctx, size in
-            let upper = min(to, SampleData.glucose.count)
-            let data = Array(SampleData.glucose[from..<upper])
-            let n = data.count
+            let upper = min(to, data.count)
+            let lower = min(from, upper)
+            let series = Array(data[lower..<upper])
+            let n = series.count
             guard n > 1 else { return }
 
             let w = size.width, h = size.height
@@ -77,7 +81,7 @@ struct GlucoseChart: View {
             func X(_ i: Int) -> CGFloat { padL + CGFloat(i) / CGFloat(n - 1) * (w - padL - padR) }
             func Y(_ v: CGFloat) -> CGFloat { padT + (1 - (v - gMin) / (gMax - gMin)) * (h - padT - padB) }
 
-            let pts = data.enumerated().map { CGPoint(x: X($0.offset), y: Y(CGFloat($0.element))) }
+            let pts = series.enumerated().map { CGPoint(x: X($0.offset), y: Y(CGFloat($0.element))) }
             let yLow = Y(CGFloat(Theme.targetLow)), yHigh = Y(CGFloat(Theme.targetHigh))
 
             // target band + dashed thresholds
@@ -93,8 +97,8 @@ struct GlucoseChart: View {
                      at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // run highlight
-            let rs = max(0, 192 - from), re = min(n - 1, 216 - from)
-            if showRun && re > rs {
+            let rs = max(0, (runFrom ?? -1) - lower), re = min(n - 1, (runTo ?? -2) - lower)
+            if showRun && runFrom != nil && runTo != nil && re > rs {
                 ctx.fill(Path(CGRect(x: X(rs), y: padT, width: X(re) - X(rs), height: h - padT - padB)),
                          with: .color(accent.opacity(0.06)))
                 ctx.draw(Text("RUN").font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
@@ -114,9 +118,9 @@ struct GlucoseChart: View {
                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
             // current marker
-            let curRel = SampleData.currentIdx - from
+            let curRel = currentIdx - lower
             if markCurrent && curRel >= 0 && curRel < n {
-                let cp = CGPoint(x: X(curRel), y: Y(CGFloat(data[curRel])))
+                let cp = CGPoint(x: X(curRel), y: Y(CGFloat(series[curRel])))
                 ctx.fill(Path(ellipseIn: CGRect(x: cp.x - 6.5, y: cp.y - 6.5, width: 13, height: 13)), with: .color(.white))
                 ctx.fill(Path(ellipseIn: CGRect(x: cp.x - 4.5, y: cp.y - 4.5, width: 9, height: 9)), with: .color(accent))
             }
@@ -124,7 +128,7 @@ struct GlucoseChart: View {
             // hour labels
             var hLab = 0
             while hLab <= 24 {
-                let idx = hLab * 12 - from
+                let idx = hLab * 12 - lower
                 if idx >= -2 && idx <= n + 2 {
                     let lab = hLab == 0 ? "12A" : hLab == 12 ? "12P" : hLab < 12 ? "\(hLab)A" : "\(hLab - 12)P"
                     let xx = X(max(0, min(n - 1, idx)))
@@ -143,10 +147,10 @@ struct GlucoseChart: View {
 struct MetBars: View {
     var height: CGFloat = 96
     var accent: Color
+    var data: [Double] = SampleData.metByHour
 
     var body: some View {
         Canvas { ctx, size in
-            let data = SampleData.metByHour
             let w = size.width, h = size.height
             let padB: CGFloat = 16, padT: CGFloat = 6
             let maxV = max(data.max() ?? 1, 1)
@@ -178,10 +182,11 @@ struct MetBars: View {
 
 struct HeartChart: View {
     var height: CGFloat = 92
+    var series: [Double] = SampleData.heart.series
 
     var body: some View {
         Canvas { ctx, size in
-            let s = SampleData.heart.series
+            let s = series
             let w = size.width, h = size.height
             let padT: CGFloat = 8, padB: CGFloat = 6
             let minV: CGFloat = 45, maxV: CGFloat = 165
@@ -228,9 +233,9 @@ struct Sparkline: View {
 
 struct TIRBar: View {
     var height: CGFloat = 14
+    var tir: TimeInRange = SampleData.tir
 
     var body: some View {
-        let tir = SampleData.tir
         let segs: [(v: Int, c: Color)] = [
             (tir.low, Theme.red), (tir.inRange, Theme.green), (tir.high, Theme.amber)
         ]
@@ -255,11 +260,12 @@ struct TIRBar: View {
 struct TrendBars: View {
     var height: CGFloat = 150
     var accent: Color
+    var data: [Double] = SampleData.tirTrend
 
     var body: some View {
         Canvas { ctx, size in
-            let data = SampleData.tirTrend
             let w = size.width, h = size.height
+            guard !data.isEmpty else { return }
             let padB: CGFloat = 18, padT: CGFloat = 6
             let n = data.count
             let slot = w / CGFloat(n)
@@ -295,11 +301,12 @@ struct TrendBars: View {
 struct CorrScatter: View {
     var height: CGFloat = 168
     var accent: Color
+    var data: [CorrPoint] = SampleData.corr
 
     var body: some View {
         Canvas { ctx, size in
-            let data = SampleData.corr
             let w = size.width, h = size.height
+            guard !data.isEmpty else { return }
             let padL: CGFloat = 28, padB: CGFloat = 24, padT: CGFloat = 8, padR: CGFloat = 8
             let xMin: CGFloat = 80, xMax: CGFloat = 560, yMin: CGFloat = 55, yMax: CGFloat = 95
             func X(_ v: Double) -> CGFloat { padL + (CGFloat(v) - xMin) / (xMax - xMin) * (w - padL - padR) }

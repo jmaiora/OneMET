@@ -1,12 +1,16 @@
 import SwiftUI
 
-// ProfileView.swift — OneMET Profile screen
-// Ported from the Claude Design handoff (screens.jsx → ProfileScreen).
+// ProfileView.swift — OneMET Profile screen.
 
 struct ProfileView: View {
+    @EnvironmentObject var store: HealthDataStore
     var accent: Color
 
     var body: some View {
+        let d = store.data
+        let range = "\(Int(Theme.targetLow))–\(Int(Theme.targetHigh)) mg/dL"
+        let metGoal = "\(Int(d.rings.met.goal)) MET·min"
+
         ScreenScaffold(spacing: 18) {
             AppHeader(title: "Profile", date: "Account", accent: accent)
 
@@ -32,14 +36,14 @@ struct ProfileView: View {
             .padding(.top, 4)
 
             IOSList(header: "Connected Devices") {
-                IOSListRow(title: "CGM Sensor", detail: "Connected", dot: Theme.green)
+                IOSListRow(title: "CGM Sensor", detail: store.authorized ? "Connected" : "Not linked", dot: store.authorized ? Theme.green : Theme.ink3)
                 IOSListRow(title: "Apple Watch", detail: "Series 9", dot: Theme.red)
                 IOSListRow(title: "Insulin Pen", detail: "Synced 9:41", dot: accent, isLast: true)
             }
 
             IOSList(header: "Targets") {
-                IOSListRow(title: "Glucose Range", detail: "70–180 mg/dL", dot: Theme.green)
-                IOSListRow(title: "Daily MET Goal", detail: "500 MET·min", dot: Theme.ringMet)
+                IOSListRow(title: "Glucose Range", detail: range, dot: Theme.green)
+                IOSListRow(title: "Daily MET Goal", detail: metGoal, dot: Theme.ringMet)
                 IOSListRow(title: "Carb Ratio", detail: "1 : 10", dot: Theme.amber, isLast: true)
             }
 
@@ -53,5 +57,5 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ZStack { Theme.bg.ignoresSafeArea(); ProfileView(accent: Theme.accent) }
+    ZStack { Theme.bg.ignoresSafeArea(); ProfileView(accent: Theme.accent).environmentObject(HealthDataStore()) }
 }
