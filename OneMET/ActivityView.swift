@@ -46,17 +46,22 @@ struct ActivityView: View {
                     .padding(.top, 6)
             }
 
-            // MET minutes
-            Card(title: "MET Minutes", icon: "bolt", iconColor: Theme.ringMet, right: "Today") {
-                BigStat(value: fmtNum(d.metToday), unit: "MET·min", size: 34).padding(.bottom, 4)
-                MetBars(height: 104, accent: Theme.ringMet, data: d.metByHour)
-                Text(d.metPeak > 0
-                     ? "Most activity \(d.peakBucketLabel). 1 MET ≈ resting; peaked at \(fmtNum(d.metPeak)) MET today."
-                     : "1 MET ≈ resting energy. MET·min accumulates as you move through the day.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.ink2)
-                    .padding(.top, 6)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Exercise intensity (MET)
+            Card(title: "Exercise Intensity", icon: "bolt", iconColor: Theme.ringMet, right: "Today") {
+                BigStat(value: d.metPeak > 0 ? fmtNum(d.metPeak) : "—", unit: "MET", size: 34).padding(.bottom, 4)
+                if !d.workouts.isEmpty {
+                    WorkoutMetBars(workouts: d.workouts, height: 120, showLabels: true)
+                    Text("Average MET per workout, from Apple Watch. Moderate 3–6, vigorous 6+; ~1 MET at rest.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.ink2)
+                        .padding(.top, 6)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("No workouts today. Intensity (MET) is read from your logged workouts.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.ink2)
+                        .padding(.top, 4)
+                }
             }
 
             // Workouts

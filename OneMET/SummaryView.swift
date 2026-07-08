@@ -88,10 +88,14 @@ struct SummaryView: View {
             // ── MET + Heart row ──
             HStack(spacing: 14) {
                 Card(title: "MET", icon: "bolt", iconColor: Theme.ringMet, pad: 14) {
-                    BigStat(value: fmtNum(d.metToday), unit: "MET·min")
-                    Text(d.metPeak > 0 ? "Peak \(fmtNum(d.metPeak)) MET today" : "No workouts yet")
+                    BigStat(value: d.metPeak > 0 ? fmtNum(d.metPeak) : "—", unit: "MET")
+                    Text(d.metPeak > 0 ? "Peak intensity today" : "No workouts yet")
                         .font(.system(size: 11.5)).foregroundStyle(Theme.ink2)
-                    MetBars(height: 62, accent: Theme.ringMet, data: d.metByHour).padding(.top, 8)
+                    if !d.workouts.isEmpty {
+                        WorkoutMetBars(workouts: d.workouts, height: 58, showLabels: false).padding(.top, 8)
+                    } else {
+                        Spacer().frame(height: 8)
+                    }
                 }
                 Card(title: "Heart", icon: "heart", iconColor: Theme.red, pad: 14) {
                     BigStat(value: "\(d.heartCurrent)", unit: "BPM")

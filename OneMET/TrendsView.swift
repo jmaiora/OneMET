@@ -32,7 +32,7 @@ struct TrendsView: View {
 
             // Activity vs range correlation
             Card(title: "Activity vs. Range", icon: "bolt", iconColor: accent) {
-                Text("Days with more MET minutes track with more time in range.")
+                Text("Days with higher-intensity exercise track with more time in range.")
                     .font(.system(size: 13.5))
                     .foregroundStyle(Theme.ink)
                     .lineSpacing(2)
@@ -43,7 +43,7 @@ struct TrendsView: View {
 
                 HStack(spacing: 9) {
                     AppIconView(name: "activity", color: accent, size: 18)
-                    (Text("Higher MET·min days").fontWeight(.bold).foregroundColor(accent)
+                    (Text("Higher-intensity days").fontWeight(.bold).foregroundColor(accent)
                      + Text(" tend to show more time in range.").foregroundColor(Theme.ink))
                         .font(.system(size: 13, weight: .medium))
                         .lineSpacing(2)

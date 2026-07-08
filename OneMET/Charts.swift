@@ -312,7 +312,7 @@ struct CorrScatter: View {
             let w = size.width, h = size.height
             guard !data.isEmpty else { return }
             let padL: CGFloat = 28, padB: CGFloat = 24, padT: CGFloat = 8, padR: CGFloat = 8
-            let xMin: CGFloat = 80, xMax: CGFloat = 560, yMin: CGFloat = 55, yMax: CGFloat = 95
+            let xMin: CGFloat = 1, xMax: CGFloat = 11, yMin: CGFloat = 55, yMax: CGFloat = 95
             func X(_ v: Double) -> CGFloat { padL + (CGFloat(v) - xMin) / (xMax - xMin) * (w - padL - padR) }
             func Y(_ v: Double) -> CGFloat { padT + (1 - (CGFloat(v) - yMin) / (yMax - yMin)) * (h - padT - padB) }
 
@@ -323,16 +323,72 @@ struct CorrScatter: View {
                 ctx.draw(Text("\(Int(g))%").font(.system(size: 9.5)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: 2, y: Y(g)), anchor: .leading)
             }
-            let sorted = data.sorted { $0.metMin < $1.metMin }
-            let trendPts = sorted.map { CGPoint(x: X($0.metMin), y: Y($0.tirPct)) }
+            // intensity reference lines (moderate 3, vigorous 6)
+            for mv in [3.0, 6.0] {
+                var vline = Path(); vline.move(to: CGPoint(x: X(mv), y: padT)); vline.addLine(to: CGPoint(x: X(mv), y: h - padB))
+                ctx.stroke(vline, with: .color(Theme.hair), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                ctx.draw(Text("\(Int(mv))").font(.system(size: 9)).foregroundColor(Theme.ink3),
+                         at: CGPoint(x: X(mv), y: h - padB + 9), anchor: .center)
+            }
+            let sorted = data.sorted { $0.met < $1.met }
+            let trendPts = sorted.map { CGPoint(x: X($0.met), y: Y($0.tirPct)) }
             ctx.stroke(smoothPath(trendPts), with: .color(accent.opacity(0.35)),
                        style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
             for d in data {
-                ctx.fill(Path(ellipseIn: CGRect(x: X(d.metMin) - 4.5, y: Y(d.tirPct) - 4.5, width: 9, height: 9)),
+                ctx.fill(Path(ellipseIn: CGRect(x: X(d.met) - 4.5, y: Y(d.tirPct) - 4.5, width: 9, height: 9)),
                          with: .color(accent.opacity(0.85)))
             }
-            ctx.draw(Text("MET·min per day →").font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+            ctx.draw(Text("Avg workout MET →").font(.system(size: 9.5)).foregroundColor(Theme.ink3),
                      at: CGPoint(x: (padL + w - padR) / 2, y: h - 4), anchor: .center)
+        }
+        .frame(height: height)
+    }
+}
+
+// MARK: - Workout MET intensity bars (from Apple's per-workout METs)
+
+struct WorkoutMetBars: View {
+    var workouts: [Workout]
+    var height: CGFloat = 104
+    var showLabels: Bool = true
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard !workouts.isEmpty else { return }
+            let w = size.width, h = size.height
+            let padT: CGFloat = 14, padB: CGFloat = showLabels ? 24 : 8
+            let maxMet = max(12, (workouts.map { $0.avgMet }.max() ?? 12))
+            let n = workouts.count
+            let slot = w / CGFloat(n)
+            let bw = min(slot * 0.5, 44)
+            func Y(_ v: Double) -> CGFloat { padT + CGFloat(1 - v / maxMet) * (h - padT - padB) }
+
+            // reference lines: moderate (3) and vigorous (6) MET
+            for (ref, lab) in [(3.0, "moderate"), (6.0, "vigorous")] {
+                var line = Path()
+                line.move(to: CGPoint(x: 0, y: Y(ref))); line.addLine(to: CGPoint(x: w, y: Y(ref)))
+                ctx.stroke(line, with: .color(Theme.ink3.opacity(0.45)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                if showLabels {
+                    ctx.draw(Text("\(Int(ref)) · \(lab)").font(.system(size: 9)).foregroundColor(Theme.ink3),
+                             at: CGPoint(x: 2, y: Y(ref) - 6), anchor: .bottomLeading)
+                }
+            }
+
+            for (i, wo) in workouts.enumerated() {
+                let met = wo.avgMet
+                let bh = CGFloat(met / maxMet) * (h - padT - padB)
+                let cx = CGFloat(i) * slot + slot / 2
+                let color: Color = met >= 6 ? Theme.amber : (met >= 3 ? Theme.green : Theme.ink3)
+                let rect = CGRect(x: cx - bw / 2, y: h - padB - max(bh, 2), width: bw, height: max(bh, 2))
+                ctx.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(color))
+                ctx.draw(Text(fmtNum(met)).font(.system(size: 10, weight: .semibold)).foregroundColor(Theme.ink),
+                         at: CGPoint(x: cx, y: h - padB - bh - 3), anchor: .bottom)
+                if showLabels {
+                    let short = wo.name.split(separator: " ").first.map(String.init) ?? wo.name
+                    ctx.draw(Text(short).font(.system(size: 9.5)).foregroundColor(Theme.ink2),
+                             at: CGPoint(x: cx, y: h - 4), anchor: .center)
+                }
+            }
         }
         .frame(height: height)
     }

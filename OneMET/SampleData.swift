@@ -53,7 +53,7 @@ struct Nutrition {
 
 struct CorrPoint: Identifiable {
     let id = UUID()
-    let metMin: Double
+    let met: Double      // average workout MET intensity for the day
     let tirPct: Double
 }
 
@@ -170,9 +170,9 @@ enum SampleData {
     // 14-day time-in-range trend (% in range)
     static let tirTrend: [Double] = [71, 68, 74, 80, 77, 82, 79, 73, 85, 88, 81, 84, 90, 86]
 
-    // Glucose vs activity correlation scatter (MET-min, TIR %)
+    // Glucose vs activity correlation scatter (avg workout MET intensity, TIR %)
     static let corr: [CorrPoint] = [
-        (120, 64), (180, 70), (240, 72), (300, 78), (360, 80),
-        (420, 83), (486, 86), (540, 88), (200, 68), (330, 76)
-    ].map { CorrPoint(metMin: $0.0, tirPct: $0.1) }
+        (2.6, 64), (3.4, 70), (4.1, 72), (5.0, 78), (5.8, 80),
+        (6.7, 83), (7.5, 86), (8.4, 88), (3.0, 68), (5.3, 76)
+    ].map { CorrPoint(met: $0.0, tirPct: $0.1) }
 }
