@@ -201,7 +201,8 @@ final class HealthDataStore: ObservableObject {
 
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)
-        let massKg = profile.weightKg ?? ((try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))) ?? 70)
+        let hkMass = try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))
+        let massKg = profile.weightKg ?? hkMass ?? 70
 
         var snap = HealthSnapshot(rings: Rings(
             move: RingMetric(value: 0, goal: 500, unit: "KCAL"),
