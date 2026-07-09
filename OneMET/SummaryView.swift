@@ -8,7 +8,6 @@ struct SummaryView: View {
     var mmol: Bool = false
     var onOpenGlucose: () -> Void
     var onGoActivity: () -> Void
-    var onGoTrends: () -> Void
 
     var body: some View {
         let d = store.data
@@ -104,22 +103,6 @@ struct SummaryView: View {
                     HeartChart(height: 62, series: d.heartSeries).padding(.top, 8)
                 }
             }
-
-            // ── Workouts ──
-            if !d.workouts.isEmpty {
-                Card(title: "Workouts", icon: "run", iconColor: accent, right: "Today", onTap: onGoActivity) {
-                    VStack(spacing: 0) {
-                        ForEach(Array(d.workouts.enumerated()), id: \.element.id) { idx, w in
-                            WorkoutRow(w: w, accent: accent, last: idx == d.workouts.count - 1)
-                        }
-                    }
-                }
-            }
-
-            // ── Nutrition ──
-            if !d.nutrition.meals.isEmpty || d.nutrition.carbs > 0 {
-                NutritionCard(nutrition: d.nutrition, accent: accent, onTap: onGoTrends)
-            }
         }
     }
 }
@@ -179,7 +162,7 @@ struct NutritionCard: View {
 #Preview {
     ZStack(alignment: .bottom) {
         Theme.bg.ignoresSafeArea()
-        SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {}, onGoTrends: {})
+        SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {})
             .environmentObject(HealthDataStore())
     }
 }

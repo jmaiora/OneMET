@@ -110,6 +110,7 @@ struct HealthSnapshot {
 
     // Workouts / nutrition / events
     var workouts: [Workout] = []
+    var workoutHistory: [WorkoutWeek] = []
     var nutrition: Nutrition = Nutrition(carbs: 0, carbsGoal: 200, insulinUnits: 0, meals: [])
     var events: [DayEvent] = []
 
@@ -151,6 +152,7 @@ struct HealthSnapshot {
         s.heartLow = SampleData.heart.range.low; s.heartHigh = SampleData.heart.range.high
         s.heartSeries = SampleData.heart.series
         s.workouts = SampleData.workouts
+        s.workoutHistory = SampleData.workoutHistory
         s.nutrition = SampleData.nutrition
         s.tirTrend = SampleData.tirTrend
         s.corr = SampleData.corr
@@ -215,6 +217,7 @@ final class HealthDataStore: ObservableObject {
         await loadActivityToday(&snap, startOfDay: startOfDay, now: now)
         await loadHeartToday(&snap, startOfDay: startOfDay, now: now)
         await loadWorkoutsToday(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
+        await loadWorkoutHistory(&snap, now: now, massKg: massKg)
         await loadNutritionToday(&snap, startOfDay: startOfDay, now: now)
         buildEvents(&snap)
         await loadHistory(&snap, now: now, massKg: massKg)
@@ -388,6 +391,106 @@ final class HealthDataStore: ObservableObject {
         case .yoga: return "Yoga"
         default: return "Workout"
         }
+    }
+
+    private func sportIcon(_ t: HKWorkoutActivityType) -> String {
+        switch t {
+        case .running: return "run"
+        case .walking, .hiking: return "shoe"
+        case .cycling: return "bolt"
+        case .swimming: return "drop"
+        case .traditionalStrengthTraining, .functionalStrengthTraining: return "flame"
+        case .highIntensityIntervalTraining: return "activity"
+        default: return "run"
+        }
+    }
+
+    // MARK: Workout history (last 6 weeks, grouped by week)
+
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "EEE, MMM d"; return f
+    }()
+
+    private func startOfWeek(_ d: Date) -> Date {
+        cal.dateInterval(of: .weekOfYear, for: d)?.start ?? cal.startOfDay(for: d)
+    }
+
+    private func loadWorkoutHistory(_ snap: inout HealthSnapshot, now: Date, massKg: Double) async {
+        let start = cal.date(byAdding: .day, value: -42, to: cal.startOfDay(for: now))!
+        guard let wks = try? await svc.workouts(from: start, to: now), !wks.isEmpty else { return }
+
+        let nowWeek = startOfWeek(now)
+        var buckets: [Int: [(date: Date, session: WorkoutSession)]] = [:]
+
+        for w in wks {
+            let weeksAgo = max(0, (cal.dateComponents([.day], from: startOfWeek(w.startDate), to: nowWeek).day ?? 0) / 7)
+            guard weeksAgo <= 5 else { continue }
+            let session = await buildSession(w, massKg: massKg)
+            buckets[weeksAgo, default: []].append((w.startDate, session))
+        }
+
+        let weeks = buckets.keys.sorted().map { k in
+            WorkoutWeek(label: weekLabel(k),
+                        sessions: buckets[k]!.sorted { $0.date > $1.date }.map { $0.session })
+        }
+        if !weeks.isEmpty { snap.workoutHistory = weeks }
+    }
+
+    private func buildSession(_ w: HKWorkout, massKg: Double) async -> WorkoutSession {
+        let durMin = Int((w.duration / 60).rounded())
+        let kcal = w.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity()?.doubleValue(for: .kilocalorie())
+            ?? (w.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0)
+        let distM = w.statistics(for: HKQuantityType(.distanceWalkingRunning))?.sumQuantity()?.doubleValue(for: .meter())
+            ?? (w.totalDistance?.doubleValue(for: .meter()) ?? 0)
+        let avgMet = workoutMET(w, massKg: massKg)
+        let avgHR = Int((try? await svc.average(.heartRate, unit: HealthKitService.bpm, from: w.startDate, to: w.endDate)) ?? 0)
+
+        // Glucose curve: 30 min before → during → 60 min after, on a 5-min grid.
+        let preMin = 30, postMin = 60
+        let winStart = w.startDate.addingTimeInterval(-Double(preMin) * 60)
+        let winEnd = w.endDate.addingTimeInterval(Double(postMin) * 60)
+        let samples = (try? await svc.samples(.bloodGlucose, from: winStart, to: winEnd, ascending: true)) ?? []
+        let unit = HealthKitService.mgdl
+        let readings = samples.map { (t: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+
+        let totalMin = winEnd.timeIntervalSince(winStart) / 60
+        let count = max(2, Int(totalMin / 5) + 1)
+        var grid = [Double?](repeating: nil, count: count)
+        for r in readings {
+            let idx = max(0, min(count - 1, Int(r.t.timeIntervalSince(winStart) / 300)))
+            grid[idx] = r.v
+        }
+        var last: Double? = readings.first?.v
+        for i in 0..<count { if let v = grid[i] { last = v } else { grid[i] = last } }
+        let curve: [Double] = grid.map { $0 ?? (readings.first?.v ?? 0) }
+
+        let activityStart = min(count - 1, preMin / 5)
+        let activityEnd = min(count - 1, activityStart + max(2, durMin / 5))
+        var delta = 0
+        if !readings.isEmpty {
+            delta = Int((curve[activityEnd] - curve[activityStart]).rounded())
+        }
+
+        let name = workoutName(w.workoutActivityType)
+        return WorkoutSession(
+            id: w.uuid.uuidString,
+            name: name,
+            sportId: name.lowercased(),
+            icon: sportIcon(w.workoutActivityType),
+            day: Self.dayFmt.string(from: w.startDate),
+            time: Self.timeFmt.string(from: w.startDate),
+            dur: "\(durMin) min",
+            durMin: durMin,
+            dist: distM > 0 ? String(format: "%.1f km", distM / 1000) : "—",
+            kcal: Int(kcal.rounded()),
+            avgMet: avgMet,
+            hr: avgHR,
+            glucoseDelta: delta,
+            curve: readings.isEmpty ? [] : curve,
+            activityStart: activityStart,
+            activityEnd: activityEnd,
+            insight: workoutInsight(name: name, durMin: durMin, delta: delta)
+        )
     }
 
     // MARK: Nutrition (today)

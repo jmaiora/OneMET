@@ -21,6 +21,7 @@ enum AppIcon {
         case "person":   return "person.fill"
         case "house":    return "house.fill"
         case "chart":    return "chart.bar.fill"
+        case "calendar": return "calendar"
         default:         return "circle"
         }
     }
@@ -210,21 +211,21 @@ struct Dot: View {
 // MARK: - TabBar
 
 enum AppTab: String, CaseIterable {
-    case summary, activity, trends, profile
+    case summary, workouts, plan, profile
 
     var label: String {
         switch self {
         case .summary:  return "Summary"
-        case .activity: return "Activity"
-        case .trends:   return "Trends"
+        case .workouts: return "Workouts"
+        case .plan:     return "Plan"
         case .profile:  return "Profile"
         }
     }
     var icon: String {
         switch self {
         case .summary:  return "house"
-        case .activity: return "flame"
-        case .trends:   return "chart"
+        case .workouts: return "run"
+        case .plan:     return "calendar"
         case .profile:  return "person"
         }
     }
@@ -262,5 +263,43 @@ struct TabBar: View {
                 .frame(height: 0.5),
             alignment: .top
         )
+    }
+}
+
+// MARK: - Select row (menu-backed, for the Plan tab)
+
+struct SelectRow<T: Hashable>: View {
+    let label: String
+    @Binding var selection: T
+    let options: [(value: T, label: String)]
+    var accent: Color = Theme.accent
+
+    private var currentLabel: String {
+        options.first { $0.value == selection }?.label ?? ""
+    }
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Theme.ink)
+            Spacer()
+            Menu {
+                Picker(label, selection: $selection) {
+                    ForEach(options.indices, id: \.self) { i in
+                        Text(options[i].label).tag(options[i].value)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(currentLabel)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(accent)
+                    AppIconView(name: "chevron", color: Theme.ink3, size: 13)
+                }
+            }
+        }
+        .padding(.vertical, 11)
+        .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
     }
 }

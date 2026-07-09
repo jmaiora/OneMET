@@ -175,4 +175,28 @@ enum SampleData {
         (2.6, 64), (3.4, 70), (4.1, 72), (5.0, 78), (5.8, 80),
         (6.7, 83), (7.5, 86), (8.4, 88), (3.0, 68), (5.3, 76)
     ].map { CorrPoint(met: $0.0, tirPct: $0.1) }
+
+    // Mock workout history for previews / first paint.
+    static let workoutHistory: [WorkoutWeek] = {
+        func session(_ id: String, _ name: String, _ sport: String, _ icon: String,
+                     _ day: String, _ time: String, _ durMin: Int, _ dist: String,
+                     _ kcal: Int, _ met: Double, _ hr: Int, _ delta: Int, _ baseline: Double) -> WorkoutSession {
+            let c = buildWorkoutCurve(baseline: baseline, durMin: durMin, delta: delta)
+            return WorkoutSession(id: id, name: name, sportId: sport, icon: icon, day: day, time: time,
+                                  dur: "\(durMin) min", durMin: durMin, dist: dist, kcal: kcal, avgMet: met,
+                                  hr: hr, glucoseDelta: delta, curve: c.curve,
+                                  activityStart: c.activityStart, activityEnd: c.activityEnd,
+                                  insight: workoutInsight(name: name, durMin: durMin, delta: delta))
+        }
+        return [
+            WorkoutWeek(label: "This Week", sessions: [
+                session("w0", "Outdoor Run", "run", "run", "Fri, Jun 19", "4:08 PM", 32, "5.2 km", 348, 9.1, 152, -38, 138),
+                session("w1", "Walk", "walk", "shoe", "Fri, Jun 19", "8:12 AM", 18, "1.4 km", 72, 3.2, 104, -9, 105)
+            ]),
+            WorkoutWeek(label: "Last Week", sessions: [
+                session("w2", "Cycling", "cycling", "bolt", "Wed, Jun 11", "6:30 PM", 45, "14.2 km", 520, 7.0, 138, -24, 150),
+                session("w3", "Strength", "strength", "flame", "Mon, Jun 9", "7:15 AM", 40, "—", 260, 5.0, 118, -12, 128)
+            ])
+        ]
+    }()
 }

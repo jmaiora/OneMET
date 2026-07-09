@@ -393,3 +393,61 @@ struct WorkoutMetBars: View {
         .frame(height: height)
     }
 }
+
+// MARK: - Single-workout glucose overlay (pre → during → post)
+
+struct WorkoutChart: View {
+    var session: WorkoutSession
+    var accent: Color
+    var height: CGFloat = 168
+
+    var body: some View {
+        Canvas { ctx, size in
+            let data = session.curve
+            let n = data.count
+            guard n > 1 else { return }
+            let w = size.width, h = size.height
+            let padT: CGFloat = 10, padB: CGFloat = 22, padL: CGFloat = 0, padR: CGFloat = 30
+            let gMin: CGFloat = 40, gMax: CGFloat = 240
+
+            func X(_ i: Int) -> CGFloat { padL + CGFloat(i) / CGFloat(n - 1) * (w - padL - padR) }
+            func Y(_ v: CGFloat) -> CGFloat { padT + (1 - (v - gMin) / (gMax - gMin)) * (h - padT - padB) }
+
+            let pts = data.enumerated().map { CGPoint(x: X($0.offset), y: Y(CGFloat($0.element))) }
+            let yLow = Y(70), yHigh = Y(180)
+
+            // target band + thresholds
+            ctx.fill(Path(CGRect(x: padL, y: yHigh, width: w - padL - padR, height: yLow - yHigh)),
+                     with: .color(Theme.green.opacity(0.09)))
+            for yy in [yHigh, yLow] {
+                var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
+                ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+            }
+            ctx.draw(Text("180").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
+            ctx.draw(Text("70").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
+
+            // activity window
+            let rs = X(session.activityStart), re = X(session.activityEnd)
+            if re > rs {
+                ctx.fill(Path(CGRect(x: rs, y: padT, width: re - rs, height: h - padT - padB)), with: .color(accent.opacity(0.06)))
+                ctx.draw(Text(session.name.uppercased()).font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
+                         at: CGPoint(x: (rs + re) / 2, y: padT + 7), anchor: .center)
+            }
+
+            // area + line
+            var area = smoothPath(pts)
+            area.addLine(to: CGPoint(x: X(n - 1), y: h - padB))
+            area.addLine(to: CGPoint(x: X(0), y: h - padB))
+            area.closeSubpath()
+            ctx.fill(area, with: .linearGradient(Gradient(colors: [accent.opacity(0.18), accent.opacity(0)]),
+                                                 startPoint: CGPoint(x: w / 2, y: padT), endPoint: CGPoint(x: w / 2, y: h - padB)))
+            ctx.stroke(smoothPath(pts), with: .color(accent), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+
+            // phase labels
+            ctx.draw(Text("Before").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
+            ctx.draw(Text("Activity").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
+            ctx.draw(Text("After").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
+        }
+        .frame(height: height)
+    }
+}

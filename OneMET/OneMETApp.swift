@@ -9,17 +9,28 @@ struct OneMETApp: App {
     }
 }
 
-// Custom tab container matching the design handoff: a blurred floating TabBar
-// with the active screen behind it and the GlucoseDetail overlay on top.
-// Data comes from HealthDataStore (live HealthKit); SampleData is the preview seed.
+// Custom tab container (v2): Summary / Workouts / Plan / Profile, with a blurred
+// floating TabBar, plus GlucoseDetail (from Summary) and WorkoutDetail (from
+// Workouts) sliding overlays. Data from HealthDataStore; SampleData seeds previews.
 struct RootView: View {
     @StateObject private var store = HealthDataStore()
     @StateObject private var profileStore = ProfileStore()
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
+    @State private var openWorkout: WorkoutSession?
     @State private var mmol = false
     private let accent = Theme.accent
     private let anim = Animation.easeInOut(duration: 0.25)
+
+    private var tabBinding: Binding<AppTab> {
+        Binding(
+            get: { tab },
+            set: { newTab in
+                withAnimation(anim) { showGlucose = false; openWorkout = nil }
+                tab = newTab
+            }
+        )
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -28,8 +39,9 @@ struct RootView: View {
             currentScreen
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            TabBar(active: $tab, accent: accent)
+            TabBar(active: tabBinding, accent: accent)
                 .ignoresSafeArea(edges: .bottom)
+                .zIndex(5)
 
             if showGlucose {
                 GlucoseDetailView(accent: accent, mmol: mmol) {
@@ -38,6 +50,15 @@ struct RootView: View {
                 .background(Theme.bg.ignoresSafeArea())
                 .transition(.move(edge: .trailing))
                 .zIndex(2)
+            }
+
+            if let w = openWorkout {
+                WorkoutDetailView(session: w, accent: accent) {
+                    withAnimation(anim) { openWorkout = nil }
+                }
+                .background(Theme.bg.ignoresSafeArea())
+                .transition(.move(edge: .trailing))
+                .zIndex(3)
             }
         }
         .tint(accent)
@@ -61,13 +82,14 @@ struct RootView: View {
                 accent: accent,
                 mmol: mmol,
                 onOpenGlucose: { withAnimation(anim) { showGlucose = true } },
-                onGoActivity: { tab = .activity },
-                onGoTrends: { tab = .trends }
+                onGoActivity: { tab = .workouts }
             )
-        case .activity:
-            ActivityView(accent: accent)
-        case .trends:
-            TrendsView(accent: accent, mmol: mmol)
+        case .workouts:
+            WorkoutsView(accent: accent, onOpenWorkout: { s in
+                withAnimation(anim) { openWorkout = s }
+            })
+        case .plan:
+            PlanView(accent: accent)
         case .profile:
             ProfileView(accent: accent)
         }
