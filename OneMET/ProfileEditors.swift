@@ -179,3 +179,77 @@ struct EditCarbRatioSheet: View {
         }
     }
 }
+
+// MARK: - Nightscout glucose source
+
+struct NightscoutSheet: View {
+    @ObservedObject var store: GlucoseSourceStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var url: String
+    @State private var secret: String
+    @State private var enabled: Bool
+    @State private var testing = false
+    @State private var testResult: String?
+    @State private var testOK = false
+
+    init(store: GlucoseSourceStore) {
+        self.store = store
+        _url = State(initialValue: store.config.urlString)
+        _secret = State(initialValue: store.config.secret)
+        _enabled = State(initialValue: store.config.enabled)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Nightscout"),
+                        footer: Text("Your Nightscout site URL plus an access token (or API secret). Glucose is read directly from Nightscout for lower latency than Apple Health. Read-only.")) {
+                    TextField("https://your-site.example.com", text: $url)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                    SecureField("Access token or API secret", text: $secret)
+                    Toggle("Use Nightscout for glucose", isOn: $enabled)
+                }
+
+                Section {
+                    Button {
+                        Task {
+                            testing = true; testResult = nil
+                            let cfg = NightscoutConfig(urlString: url, secret: secret, enabled: true)
+                            let ok = await NightscoutClient(config: cfg).test()
+                            testOK = ok
+                            testResult = ok ? "Connected — recent readings found."
+                                            : "Couldn't fetch readings. Check the URL and token."
+                            testing = false
+                        }
+                    } label: {
+                        HStack {
+                            Text("Test Connection")
+                            if testing { Spacer(); ProgressView() }
+                        }
+                    }
+                    .disabled(url.isEmpty || testing)
+
+                    if let testResult {
+                        Text(testResult)
+                            .font(.footnote)
+                            .foregroundStyle(testOK ? Color.green : Color.red)
+                    }
+                }
+            }
+            .navigationTitle("Glucose Source")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        store.config = NightscoutConfig(urlString: url, secret: secret, enabled: enabled)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}

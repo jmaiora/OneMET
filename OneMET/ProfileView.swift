@@ -3,13 +3,14 @@ import SwiftUI
 // ProfileView.swift — OneMET Profile screen with editable personal data.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, glucose, met, carb
+    case identity, glucose, met, carb, nightscout
     var id: Int { rawValue }
 }
 
 struct ProfileView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
+    @EnvironmentObject var glucoseSource: GlucoseSourceStore
     var accent: Color
 
     @State private var editor: ProfileEditor?
@@ -54,6 +55,14 @@ struct ProfileView: View {
                 IOSListRow(title: "Insulin Pen", detail: "Synced 9:41", dot: accent, isLast: true)
             }
 
+            IOSList(header: "Glucose Source") {
+                IOSListRow(title: "Nightscout",
+                           detail: glucoseSource.config.isActive ? "On · live"
+                                 : (glucoseSource.config.isConfigured ? "Configured · off" : "Not set"),
+                           dot: glucoseSource.config.isActive ? Theme.green : Theme.ink3,
+                           isLast: true) { editor = .nightscout }
+            }
+
             IOSList(header: "Personal Targets") {
                 IOSListRow(title: "Glucose Range", detail: p.glucoseRangeText, dot: Theme.green) { editor = .glucose }
                 IOSListRow(title: "Daily MET Goal", detail: p.metGoalText, dot: Theme.ringMet) { editor = .met }
@@ -76,6 +85,7 @@ struct ProfileView: View {
             case .glucose:  EditGlucoseRangeSheet(store: profileStore)
             case .met:      EditMetGoalSheet(store: profileStore)
             case .carb:     EditCarbRatioSheet(store: profileStore)
+            case .nightscout: NightscoutSheet(store: glucoseSource)
             }
         }
     }
@@ -85,5 +95,6 @@ struct ProfileView: View {
     ZStack { Theme.bg.ignoresSafeArea(); ProfileView(accent: Theme.accent)
         .environmentObject(HealthDataStore())
         .environmentObject(ProfileStore())
+        .environmentObject(GlucoseSourceStore())
     }
 }

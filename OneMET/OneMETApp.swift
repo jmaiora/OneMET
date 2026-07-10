@@ -15,6 +15,7 @@ struct OneMETApp: App {
 struct RootView: View {
     @StateObject private var store = HealthDataStore()
     @StateObject private var profileStore = ProfileStore()
+    @StateObject private var glucoseSource = GlucoseSourceStore()
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var openWorkout: WorkoutSession?
@@ -64,12 +65,19 @@ struct RootView: View {
         .tint(accent)
         .environmentObject(store)
         .environmentObject(profileStore)
+        .environmentObject(glucoseSource)
         .task {
             store.profile = profileStore.profile
+            store.glucoseConfig = glucoseSource.config
             await store.load()
         }
         .onChange(of: profileStore.profile) { newValue in
             store.profile = newValue
+            Task { await store.refresh() }
+        }
+        .onChange(of: glucoseSource.config) { newConfig in
+            store.glucoseConfig = newConfig
+            store.startPolling()
             Task { await store.refresh() }
         }
     }

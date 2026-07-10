@@ -175,8 +175,24 @@ final class HealthDataStore: ObservableObject {
     /// The user's personal data; set by the app before loading. Drives mass, MET goal, glucose range.
     var profile = UserProfile()
 
+    /// Glucose source config. When Nightscout is active, glucose comes from there (low latency); HealthKit otherwise.
+    var glucoseConfig = NightscoutConfig()
+
     private let svc = HealthKitService()
     private let cal = Calendar.current
+    private var pollTask: Task<Void, Never>?
+
+    /// Unified glucose read — Nightscout when active (falls back to HealthKit on error), else HealthKit.
+    private func glucoseReadings(from: Date, to: Date) async -> [(date: Date, v: Double)] {
+        if glucoseConfig.isActive {
+            if let r = try? await NightscoutClient(config: glucoseConfig).entries(from: from, to: to), !r.isEmpty {
+                return r
+            }
+        }
+        let samples = (try? await svc.samples(.bloodGlucose, from: from, to: to, ascending: true)) ?? []
+        let unit = HealthKitService.mgdl
+        return samples.map { (date: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+    }
 
     private static let timeFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "h:mm a"; return f
@@ -194,6 +210,7 @@ final class HealthDataStore: ObservableObject {
             statusMessage = "HealthKit authorization failed: \(error.localizedDescription)"
         }
         await refresh()
+        startPolling()
     }
 
     func refresh() async {
@@ -225,13 +242,36 @@ final class HealthDataStore: ObservableObject {
         data = snap
     }
 
+    /// Fast glucose-only refresh, used by the Nightscout poll to keep readings near-real-time.
+    func refreshGlucose() async {
+        let now = Date()
+        var snap = data
+        await loadGlucoseToday(&snap, startOfDay: cal.startOfDay(for: now), now: now)
+        data = snap
+    }
+
+    /// Poll the glucose source about once a minute (only meaningful when Nightscout is active).
+    func startPolling() {
+        pollTask?.cancel()
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                guard let self else { return }
+                if self.glucoseConfig.isActive { await self.refreshGlucose() }
+            }
+        }
+    }
+
+    func stopPolling() {
+        pollTask?.cancel()
+        pollTask = nil
+    }
+
     // MARK: Glucose (today)
 
     private func loadGlucoseToday(_ snap: inout HealthSnapshot, startOfDay: Date, now: Date) async {
-        guard let samples = try? await svc.samples(.bloodGlucose, from: startOfDay, to: now, ascending: true),
-              !samples.isEmpty else { return }
-        let unit = HealthKitService.mgdl
-        let readings = samples.map { (date: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+        let readings = await glucoseReadings(from: startOfDay, to: now)
+        guard !readings.isEmpty else { return }
 
         // Build a 5-min grid from midnight, forward/back filled.
         var grid = [Double?](repeating: nil, count: 288)
@@ -449,9 +489,7 @@ final class HealthDataStore: ObservableObject {
         let preMin = 30, postMin = 60
         let winStart = w.startDate.addingTimeInterval(-Double(preMin) * 60)
         let winEnd = w.endDate.addingTimeInterval(Double(postMin) * 60)
-        let samples = (try? await svc.samples(.bloodGlucose, from: winStart, to: winEnd, ascending: true)) ?? []
-        let unit = HealthKitService.mgdl
-        let readings = samples.map { (t: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+        let readings = await glucoseReadings(from: winStart, to: winEnd).map { (t: $0.date, v: $0.v) }
 
         let totalMin = winEnd.timeIntervalSince(winStart) / 60
         let count = max(2, Int(totalMin / 5) + 1)
@@ -549,12 +587,11 @@ final class HealthDataStore: ObservableObject {
 
     private func loadHistory(_ snap: inout HealthSnapshot, now: Date, massKg: Double) async {
         let start14 = cal.date(byAdding: .day, value: -13, to: cal.startOfDay(for: now))!
-        let unit = HealthKitService.mgdl
 
-        let g14 = (try? await svc.samples(.bloodGlucose, from: start14, to: now, ascending: true)) ?? []
+        let g14 = await glucoseReadings(from: start14, to: now)
         var byDay: [Date: [Double]] = [:]
-        for s in g14 {
-            byDay[cal.startOfDay(for: s.startDate), default: []].append(s.quantity.doubleValue(for: unit))
+        for r in g14 {
+            byDay[cal.startOfDay(for: r.date), default: []].append(r.v)
         }
         let steps14 = (try? await svc.dailySums(.stepCount, unit: .count(), days: 14)) ?? [:]
         let wk14 = (try? await svc.workouts(from: start14, to: now)) ?? []
@@ -607,7 +644,7 @@ final class HealthDataStore: ObservableObject {
         let daysWithWk = metMinPerDay.filter { $0 > 0 }
         snap.avgMet14 = daysWithWk.isEmpty ? 0 : Int((daysWithWk.reduce(0, +) / Double(daysWithWk.count)).rounded())
         snap.avgSteps14 = stepsPerDay.isEmpty ? 0 : Int((stepsPerDay.reduce(0, +) / Double(stepsPerDay.count)).rounded())
-        snap.lowEvents14 = HealthMath.lowEvents(g14.map { $0.quantity.doubleValue(for: unit) }, lowT: profile.glucoseLow)
+        snap.lowEvents14 = HealthMath.lowEvents(g14.map { $0.v }, lowT: profile.glucoseLow)
         snap.workoutCount14 = wk14.count
     }
 }
