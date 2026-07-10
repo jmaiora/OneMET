@@ -90,7 +90,7 @@ struct SummaryView: View {
             }
 
             // ── MET·min trend (full width) ──
-            Card(title: "MET·min", icon: "bolt", iconColor: Theme.ringMet, right: "Last 14 days") {
+            Card(title: "MET·min", icon: "bolt", iconColor: Theme.ringMet, right: "Last 7 days") {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(fmtNum(d.metToday))
                         .font(.system(size: 30, weight: .bold))
@@ -102,7 +102,7 @@ struct SummaryView: View {
                 }
                 .padding(.bottom, 8)
 
-                MetMinTrendBars(data: d.metMinTrend, accent: Theme.ringMet, height: 130)
+                MetMinTrendBars(data: Array(d.metMinTrend.suffix(7)), accent: Theme.ringMet, height: 150)
             }
         }
     }

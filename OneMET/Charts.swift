@@ -455,34 +455,54 @@ struct WorkoutChart: View {
 // MARK: - Daily MET·min trend (full width)
 
 struct MetMinTrendBars: View {
-    var data: [Double]
+    var data: [Double]          // one value per day, last element = today
     var accent: Color
-    var height: CGFloat = 130
+    var height: CGFloat = 150
+
+    private static let wdFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "EEE"; return f
+    }()
 
     var body: some View {
         Canvas { ctx, size in
             guard !data.isEmpty else { return }
             let w = size.width, h = size.height
-            let padB: CGFloat = 18, padT: CGFloat = 6
+            let padT: CGFloat = 18    // room for the value on top of each bar
+            let padB: CGFloat = 20    // room for the weekday label
             let maxV = max(data.max() ?? 1, 1)
+            let peakIdx = data.firstIndex(of: data.max() ?? 0) ?? (data.count - 1)
             let n = data.count
             let slot = w / CGFloat(n)
-            let bw = slot * 0.56
+            let bw = min(slot * 0.5, 30)
+            let cal = Calendar.current
+            let today = Date()
 
             for (i, v) in data.enumerated() {
-                let bh = CGFloat(v / maxV) * (h - padT - padB)
                 let cx = CGFloat(i) * slot + slot / 2
                 let isToday = i == n - 1
-                let barH = max(bh, v > 0 ? 2 : 0)
-                guard barH > 0 else { continue }
-                let rect = CGRect(x: cx - bw / 2, y: h - padB - barH, width: bw, height: barH)
-                ctx.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(accent.opacity(isToday ? 1.0 : 0.45)))
-            }
+                let isPeak = i == peakIdx && v > 0
+                let bh = CGFloat(v / maxV) * (h - padT - padB)
+                let top = h - padB - bh
 
-            let labels: [(Int, String)] = [(0, "\(n)d"), (n / 2, "\(n - n / 2)d"), (n - 1, "Today")]
-            for (i, lab) in labels where i >= 0 && i < n {
-                ctx.draw(Text(lab).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2),
-                         at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 4), anchor: .center)
+                if v > 0 {
+                    let rect = CGRect(x: cx - bw / 2, y: top, width: bw, height: max(bh, 2))
+                    ctx.fill(Path(roundedRect: rect, cornerRadius: 3),
+                             with: .color(accent.opacity((isToday || isPeak) ? 1.0 : 0.5)))
+                    ctx.draw(Text("\(Int(v))")
+                                .font(.system(size: 10.5, weight: isPeak ? .bold : .semibold))
+                                .foregroundColor(isPeak ? accent : Theme.ink),
+                             at: CGPoint(x: cx, y: top - 3), anchor: .bottom)
+                } else {
+                    ctx.draw(Text("–").font(.system(size: 12, weight: .semibold)).foregroundColor(Theme.ink3),
+                             at: CGPoint(x: cx, y: h - padB - 6), anchor: .bottom)
+                }
+
+                let dayDate = cal.date(byAdding: .day, value: -(n - 1 - i), to: today) ?? today
+                let lab = isToday ? "Today" : Self.wdFmt.string(from: dayDate)
+                ctx.draw(Text(lab)
+                            .font(.system(size: 10.5, weight: isToday ? .bold : .medium))
+                            .foregroundColor(isToday ? accent : Theme.ink2),
+                         at: CGPoint(x: cx, y: h - 4), anchor: .center)
             }
         }
         .frame(height: height)
