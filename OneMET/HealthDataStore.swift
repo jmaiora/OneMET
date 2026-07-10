@@ -111,11 +111,13 @@ struct HealthSnapshot {
     // Workouts / nutrition / events
     var workouts: [Workout] = []
     var workoutHistory: [WorkoutWeek] = []
+    var todayWorkout: WorkoutSession? = nil     // primary session recorded today (drives the Summary glucose chart)
     var nutrition: Nutrition = Nutrition(carbs: 0, carbsGoal: 200, insulinUnits: 0, meals: [])
     var events: [DayEvent] = []
 
     // History (14-day)
     var tirTrend: [Double] = []
+    var metMinTrend: [Double] = []    // daily MET·min, last 14 days
     var corr: [CorrPoint] = []
     var avgTir14: Int = 0
     var tirDeltaVsPrior: Int = 0
@@ -153,8 +155,10 @@ struct HealthSnapshot {
         s.heartSeries = SampleData.heart.series
         s.workouts = SampleData.workouts
         s.workoutHistory = SampleData.workoutHistory
+        s.todayWorkout = SampleData.workoutHistory.first?.sessions.first
         s.nutrition = SampleData.nutrition
         s.tirTrend = SampleData.tirTrend
+        s.metMinTrend = [0, 210, 0, 290, 150, 0, 340, 180, 0, 260, 300, 0, 220, 349]
         s.corr = SampleData.corr
         s.avgTir14 = 82; s.tirDeltaVsPrior = 8; s.gmi = 6.4; s.avgGlucose14 = SampleData.avg
         s.avgMet14 = 210; s.lowEvents14 = 3; s.avgSteps14 = 9140; s.workoutCount14 = 9
@@ -461,11 +465,13 @@ final class HealthDataStore: ObservableObject {
 
         let nowWeek = startOfWeek(now)
         var buckets: [Int: [(date: Date, session: WorkoutSession)]] = [:]
+        var todayCandidates: [(dur: Double, session: WorkoutSession)] = []
 
         for w in wks {
             let weeksAgo = max(0, (cal.dateComponents([.day], from: startOfWeek(w.startDate), to: nowWeek).day ?? 0) / 7)
             guard weeksAgo <= 5 else { continue }
             let session = await buildSession(w, massKg: massKg)
+            if cal.isDate(w.startDate, inSameDayAs: now) { todayCandidates.append((w.duration, session)) }
             buckets[weeksAgo, default: []].append((w.startDate, session))
         }
 
@@ -474,6 +480,8 @@ final class HealthDataStore: ObservableObject {
                         sessions: buckets[k]!.sorted { $0.date > $1.date }.map { $0.session })
         }
         if !weeks.isEmpty { snap.workoutHistory = weeks }
+        // Primary (longest) workout today drives the Summary glucose chart.
+        snap.todayWorkout = todayCandidates.max(by: { $0.dur < $1.dur })?.session
     }
 
     private func buildSession(_ w: HKWorkout, massKg: Double) async -> WorkoutSession {
@@ -626,7 +634,9 @@ final class HealthDataStore: ObservableObject {
             }
         }
 
-        guard !g14.isEmpty else { return }   // keep seeded history if there's no CGM history yet
+        snap.metMinTrend = metMinPerDay      // MET·min trend is workout-based, independent of CGM
+
+        guard !g14.isEmpty else { return }   // keep seeded glucose history if there's no CGM history yet
 
         snap.tirTrend = tirTrend
         snap.corr = corr

@@ -451,3 +451,40 @@ struct WorkoutChart: View {
         .frame(height: height)
     }
 }
+
+// MARK: - Daily MET·min trend (full width)
+
+struct MetMinTrendBars: View {
+    var data: [Double]
+    var accent: Color
+    var height: CGFloat = 130
+
+    var body: some View {
+        Canvas { ctx, size in
+            guard !data.isEmpty else { return }
+            let w = size.width, h = size.height
+            let padB: CGFloat = 18, padT: CGFloat = 6
+            let maxV = max(data.max() ?? 1, 1)
+            let n = data.count
+            let slot = w / CGFloat(n)
+            let bw = slot * 0.56
+
+            for (i, v) in data.enumerated() {
+                let bh = CGFloat(v / maxV) * (h - padT - padB)
+                let cx = CGFloat(i) * slot + slot / 2
+                let isToday = i == n - 1
+                let barH = max(bh, v > 0 ? 2 : 0)
+                guard barH > 0 else { continue }
+                let rect = CGRect(x: cx - bw / 2, y: h - padB - barH, width: bw, height: barH)
+                ctx.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(accent.opacity(isToday ? 1.0 : 0.45)))
+            }
+
+            let labels: [(Int, String)] = [(0, "\(n)d"), (n / 2, "\(n - n / 2)d"), (n - 1, "Today")]
+            for (i, lab) in labels where i >= 0 && i < n {
+                ctx.draw(Text(lab).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+                         at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 4), anchor: .center)
+            }
+        }
+        .frame(height: height)
+    }
+}

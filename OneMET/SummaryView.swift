@@ -39,10 +39,15 @@ struct SummaryView: View {
                 }
                 .padding(.bottom, 6)
 
-                GlucoseChart(height: 158, mmol: mmol, accent: accent,
-                             data: d.glucose, currentIdx: d.currentIdx,
-                             runFrom: d.runFrom, runTo: d.runTo,
-                             low: d.targetLow, high: d.targetHigh)
+                if let tw = d.todayWorkout, !tw.curve.isEmpty {
+                    // A workout was recorded today → show its pre/during/post glucose overlay.
+                    WorkoutChart(session: tw, accent: accent, height: 158)
+                } else {
+                    GlucoseChart(height: 158, mmol: mmol, accent: accent,
+                                 data: d.glucose, currentIdx: d.currentIdx,
+                                 runFrom: d.runFrom, runTo: d.runTo,
+                                 low: d.targetLow, high: d.targetHigh)
+                }
 
                 Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 12)
 
@@ -84,24 +89,20 @@ struct SummaryView: View {
                 }
             }
 
-            // ── MET + Heart row ──
-            HStack(spacing: 14) {
-                Card(title: "MET", icon: "bolt", iconColor: Theme.ringMet, pad: 14) {
-                    BigStat(value: d.metPeak > 0 ? fmtNum(d.metPeak) : "—", unit: "MET")
-                    Text(d.metPeak > 0 ? "Peak intensity today" : "No workouts yet")
-                        .font(.system(size: 11.5)).foregroundStyle(Theme.ink2)
-                    if !d.workouts.isEmpty {
-                        WorkoutMetBars(workouts: d.workouts, height: 58, showLabels: false).padding(.top, 8)
-                    } else {
-                        Spacer().frame(height: 8)
-                    }
+            // ── MET·min trend (full width) ──
+            Card(title: "MET·min", icon: "bolt", iconColor: Theme.ringMet, right: "Last 14 days") {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(fmtNum(d.metToday))
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .monospacedDigit()
+                    Text("MET·min today")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.ink2)
                 }
-                Card(title: "Heart", icon: "heart", iconColor: Theme.red, pad: 14) {
-                    BigStat(value: "\(d.heartCurrent)", unit: "BPM")
-                    Text("Range \(d.heartLow)–\(d.heartHigh)")
-                        .font(.system(size: 11.5)).foregroundStyle(Theme.ink2)
-                    HeartChart(height: 62, series: d.heartSeries).padding(.top, 8)
-                }
+                .padding(.bottom, 8)
+
+                MetMinTrendBars(data: d.metMinTrend, accent: Theme.ringMet, height: 130)
             }
         }
     }
