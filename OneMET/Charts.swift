@@ -95,9 +95,9 @@ struct GlucoseChart: View {
             }
             let highLabel = mmol ? String(format: "%.1f", high / 18) : "\(Int(high))"
             let lowLabel = mmol ? String(format: "%.1f", low / 18) : "\(Int(low))"
-            ctx.draw(Text(highLabel).font(.system(size: 10)).foregroundColor(Theme.ink3),
+            ctx.draw(Text(highLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),
                      at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text(lowLabel).font(.system(size: 10)).foregroundColor(Theme.ink3),
+            ctx.draw(Text(lowLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),
                      at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // run highlight
@@ -136,7 +136,7 @@ struct GlucoseChart: View {
                 if idx >= -2 && idx <= n + 2 {
                     let lab = hLab == 0 ? "12A" : hLab == 12 ? "12P" : hLab < 12 ? "\(hLab)A" : "\(hLab - 12)P"
                     let xx = X(max(0, min(n - 1, idx)))
-                    ctx.draw(Text(lab).font(.system(size: 10)).foregroundColor(Theme.ink3),
+                    ctx.draw(Text(lab).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2),
                              at: CGPoint(x: xx, y: h - 5), anchor: .center)
                 }
                 hLab += 6
@@ -423,8 +423,8 @@ struct WorkoutChart: View {
                 var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
                 ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
             }
-            ctx.draw(Text("180").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text("70").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
+            ctx.draw(Text("180").font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
+            ctx.draw(Text("70").font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // activity window
             let rs = X(session.activityStart), re = X(session.activityEnd)
@@ -444,9 +444,9 @@ struct WorkoutChart: View {
             ctx.stroke(smoothPath(pts), with: .color(accent), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
             // phase labels
-            ctx.draw(Text("Before").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
-            ctx.draw(Text("Activity").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
-            ctx.draw(Text("After").font(.system(size: 10)).foregroundColor(Theme.ink3), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
+            ctx.draw(Text("Before").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
+            ctx.draw(Text("Activity").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
+            ctx.draw(Text("After").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
         }
         .frame(height: height)
     }
@@ -481,7 +481,7 @@ struct MetMinTrendBars: View {
 
             let labels: [(Int, String)] = [(0, "\(n)d"), (n / 2, "\(n - n / 2)d"), (n - 1, "Today")]
             for (i, lab) in labels where i >= 0 && i < n {
-                ctx.draw(Text(lab).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+                ctx.draw(Text(lab).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2),
                          at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 4), anchor: .center)
             }
         }
