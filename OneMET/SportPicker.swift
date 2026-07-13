@@ -1,8 +1,7 @@
 import SwiftUI
 
-// SportPicker.swift — 3D swipeable sport card deck for the Plan tab.
-// Ported from cards.jsx (SportCards), enhanced so the swiped top card
-// visibly rotates and sinks to the bottom of the stack.
+// SportPicker.swift — swipeable stacked sport cards for the Plan tab.
+// Ported from the v2 design handoff (cards.jsx: SportCards).
 
 struct SportPicker: View {
     let sports: [Sport]
@@ -13,14 +12,13 @@ struct SportPicker: View {
     @State private var drag: CGFloat = 0
 
     private var n: Int { max(sports.count, 1) }
-    private let maxDepth = 3          // number of distinct depth steps shown
 
     var body: some View {
         VStack(spacing: 14) {
             ZStack {
-                // Render the whole deck; each card's slot is its distance from the front.
-                ForEach(sports.indices, id: \.self) { i in
-                    cardView(sport: sports[i], slot: (i - index + n) % n)
+                // back-to-front: one peek card behind, the front card on top
+                ForEach([1, 0], id: \.self) { offset in
+                    cardView(offset: offset)
                 }
             }
             .frame(height: 236)
@@ -33,7 +31,7 @@ struct SportPicker: View {
                         .frame(width: i == index ? 16 : 6, height: 6)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.78)) { index = i }
+                            withAnimation(.spring(response: 0.34, dampingFraction: 0.85)) { index = i }
                         }
                 }
             }
@@ -41,43 +39,31 @@ struct SportPicker: View {
     }
 
     @ViewBuilder
-    private func cardView(sport s: Sport, slot: Int) -> some View {
-        let isFront = slot == 0
-        let d = CGFloat(min(slot, maxDepth))          // capped depth for transforms
-        let dragX = isFront ? drag : 0
-
+    private func cardView(offset: Int) -> some View {
+        let s = sports[(index + offset) % n]
         let sc = Color(hex: s.color)
-        let scale = 1 - d * 0.06
-        let yOff = d * 14
-        let xOff = dragX + d * 6                       // slight fan for depth
-        let dim = slot == 0 ? 0.0 : min(0.30, 0.10 + d * 0.07)
-        let yAngle = isFront ? Double(dragX / 14) : 0  // tilt toward the drag (perspective)
-        let xAngle = Double(d) * 7                     // deeper cards recline back
-        let visible = slot <= maxDepth
+        let depth = CGFloat(offset)
+        let tx = CGFloat(offset) * 10 + (offset == 0 ? drag : 0)
+        let ty = depth * 8
+        let scale = 1 - depth * 0.05
+        let rot = offset == 0 ? Double(drag / 40) : Double(offset) * 2.5
 
-        let styled = card(s, color: sc, dim: dim)
+        let styled = card(s, color: sc, dim: offset != 0)
             .scaleEffect(scale)
-            .rotation3DEffect(.degrees(xAngle), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.6)
-            .rotation3DEffect(.degrees(yAngle), axis: (x: 0, y: 1, z: 0), perspective: 0.7)
-            .offset(x: xOff, y: yOff)
-            .shadow(color: isFront ? sc.opacity(0.35) : .black.opacity(0.06),
-                    radius: isFront ? 18 : 6, x: 0, y: isFront ? 14 : 5)
-            .opacity(visible ? 1 : 0)
-            .zIndex(Double(n - slot))
+            .rotationEffect(.degrees(rot))
+            .offset(x: tx, y: ty)
+            .shadow(color: offset == 0 ? sc.opacity(0.27) : .clear, radius: 15, x: 0, y: 14)
+            .zIndex(offset == 0 ? 2 : 1)
 
-        if isFront {
+        if offset == 0 {
             styled.gesture(
                 DragGesture()
                     .onChanged { drag = $0.translation.width }
                     .onEnded { value in
-                        if abs(value.translation.width) > 70 {
-                            // top card swoops off in the drag direction and cycles to the bottom
-                            withAnimation(.spring(response: 0.52, dampingFraction: 0.72)) {
-                                index = (index + 1) % n
-                                drag = 0
-                            }
-                        } else {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { drag = 0 }
+                        let w = value.translation.width
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.85)) {
+                            if abs(w) > 60 { index = (index + (w < 0 ? 1 : -1) + n) % n }
+                            drag = 0
                         }
                     }
             )
@@ -86,7 +72,7 @@ struct SportPicker: View {
         }
     }
 
-    private func card(_ s: Sport, color sc: Color, dim: Double) -> some View {
+    private func card(_ s: Sport, color sc: Color, dim: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 HStack(spacing: 18) {
@@ -110,7 +96,7 @@ struct SportPicker: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(sc)
-        .overlay(Color.black.opacity(dim))
+        .overlay(dim ? Color.black.opacity(0.14) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
@@ -130,7 +116,7 @@ struct SportPicker: View {
 #Preview {
     ZStack {
         Theme.bg.ignoresSafeArea()
-        SportPicker(sports: SPORTS, index: .constant(0), accent: Theme.accent, durationLabel: "45 min")
+        SportPicker(sports: SPORTS, index: .constant(1), accent: Theme.accent, durationLabel: "45 min")
             .padding()
     }
 }
