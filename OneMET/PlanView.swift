@@ -5,12 +5,13 @@ import SwiftUI
 struct PlanView: View {
     var accent: Color
 
-    @State private var sportId = "run"
+    @State private var sportIndex = 0
     @State private var duration = 45
     @State private var iob = 1.0
     @State private var recentCarbs = 30
 
     var body: some View {
+        let sportId = SPORTS[sportIndex].id
         let plan = computeCarbPlan(sportId: sportId, durationMin: duration, iob: iob, recentCarbsG: recentCarbs)
         let riskColor: Color = plan.risk == "High" ? Theme.red : (plan.risk == "Moderate" ? Theme.amber : Theme.green)
 
@@ -18,8 +19,9 @@ struct PlanView: View {
             AppHeader(title: "Plan", date: "Workout Planner", accent: accent)
 
             Card(title: "Session Details", icon: "calendar", iconColor: accent) {
-                SelectRow(label: "Sport", selection: $sportId,
-                          options: SPORTS.map { (value: $0.id, label: $0.name) }, accent: accent)
+                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
+                            durationLabel: "\(duration) min")
+                    .padding(.bottom, 2)
                 SelectRow(label: "Planned Duration", selection: $duration,
                           options: [15, 30, 45, 60, 90].map { (value: $0, label: "\($0) min") }, accent: accent)
             }

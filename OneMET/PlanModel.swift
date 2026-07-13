@@ -8,15 +8,24 @@ struct Sport: Identifiable, Hashable {
     let name: String
     let met: Double
     let icon: String
+    let difficulty: String
+    let color: String       // hex
+    let desc: String
 }
 
 let SPORTS: [Sport] = [
-    Sport(id: "run",      name: "Outdoor Run", met: 9.1,  icon: "run"),
-    Sport(id: "walk",     name: "Walk",        met: 3.2,  icon: "shoe"),
-    Sport(id: "cycling",  name: "Cycling",     met: 7.0,  icon: "bolt"),
-    Sport(id: "swim",     name: "Swimming",    met: 8.0,  icon: "drop"),
-    Sport(id: "strength", name: "Strength",    met: 5.0,  icon: "flame"),
-    Sport(id: "hiit",     name: "HIIT",        met: 10.0, icon: "activity")
+    Sport(id: "walk", name: "Walk", met: 3.2, icon: "shoe", difficulty: "Light", color: "#1F8A5B",
+          desc: "An easy walk. Low hypo risk, gentle on glucose across the session."),
+    Sport(id: "run", name: "Outdoor Run", met: 9.1, icon: "run", difficulty: "Vigorous", color: "#E0556E",
+          desc: "A steady outdoor run. Expect a fast glucose drop — fuel up beforehand."),
+    Sport(id: "cycling", name: "Cycling", met: 7.0, icon: "bolt", difficulty: "Moderate", color: "#E8833A",
+          desc: "Sustained cycling effort. Plan a top-up if you ride past 45 minutes."),
+    Sport(id: "swim", name: "Swimming", met: 8.0, icon: "drop", difficulty: "Vigorous", color: "#1FB8C9",
+          desc: "Full-body swim session. Glucose can dip fast — carb up beforehand."),
+    Sport(id: "strength", name: "Strength", met: 5.0, icon: "flame", difficulty: "Moderate", color: "#8E72E8",
+          desc: "Resistance training. Effects on glucose are slower and can extend post-session."),
+    Sport(id: "hiit", name: "HIIT", met: 10.0, icon: "activity", difficulty: "Vigorous", color: "#D6484B",
+          desc: "High-intensity intervals. Sharp swings possible — monitor closely.")
 ]
 
 struct CarbPlan {
