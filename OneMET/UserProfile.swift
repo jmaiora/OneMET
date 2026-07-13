@@ -12,7 +12,15 @@ enum DiabetesType: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
-struct UserProfile: Codable, Equatable {
+enum InsulinDelivery: String, CaseIterable, Codable, Identifiable, Hashable {
+    case pump = "Insulin Pump"
+    case mdi  = "Injections (MDI)"
+    var id: String { rawValue }
+    var isPump: Bool { self == .pump }
+    var short: String { self == .pump ? "pump" : "injections" }
+}
+
+struct UserProfile: Encodable, Equatable {
     var name: String = ""
     var diabetesType: DiabetesType = .type1
     var diagnosisYear: Int? = nil
@@ -21,6 +29,11 @@ struct UserProfile: Codable, Equatable {
     var glucoseHigh: Double = 180
     var dailyMetGoal: Int = 500          // MET·min ring goal
     var carbRatio: Int = 10              // 1 unit : carbRatio g
+    var insulinDelivery: InsulinDelivery = .pump   // drives EXTOD carb rates in the Plan tab
+
+    enum CodingKeys: String, CodingKey {
+        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery
+    }
 
     var isConfigured: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -43,6 +56,25 @@ struct UserProfile: Codable, Equatable {
     var metGoalText: String { "\(dailyMetGoal) MET·min" }
     var carbRatioText: String { "1 : \(carbRatio)" }
     var weightText: String { weightKg.map { String(format: "%.1f kg", $0) } ?? "Not set" }
+    var deliveryText: String { insulinDelivery.rawValue }
+}
+
+// Migration-safe decoding: any key missing from an older saved profile falls back
+// to its default, so adding fields never wipes a user's saved data.
+extension UserProfile: Decodable {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? name
+        diabetesType = try c.decodeIfPresent(DiabetesType.self, forKey: .diabetesType) ?? diabetesType
+        diagnosisYear = try c.decodeIfPresent(Int.self, forKey: .diagnosisYear) ?? diagnosisYear
+        weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg) ?? weightKg
+        glucoseLow = try c.decodeIfPresent(Double.self, forKey: .glucoseLow) ?? glucoseLow
+        glucoseHigh = try c.decodeIfPresent(Double.self, forKey: .glucoseHigh) ?? glucoseHigh
+        dailyMetGoal = try c.decodeIfPresent(Int.self, forKey: .dailyMetGoal) ?? dailyMetGoal
+        carbRatio = try c.decodeIfPresent(Int.self, forKey: .carbRatio) ?? carbRatio
+        insulinDelivery = try c.decodeIfPresent(InsulinDelivery.self, forKey: .insulinDelivery) ?? insulinDelivery
+    }
 }
 
 @MainActor

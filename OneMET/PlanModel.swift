@@ -28,78 +28,112 @@ let SPORTS: [Sport] = [
           desc: "High-intensity intervals. Sharp swings possible — monitor closely.")
 ]
 
-struct CarbPlan {
-    let pre: Int                 // grams before starting
-    let duringPer30: Int         // grams per 30 min during the session
-    let duringPerHour: Int       // grams per hour during the session
-    let needsDuring: Bool
-    let risk: String             // Low / Moderate / High (hypoglycaemia risk)
-    let intensity: String        // low / moderate / high
-    let ratePerKgHr: Double      // during-session carb rate used (g/kg/h)
-    let met: Double
-    let sport: Sport
-    let startNote: String        // glucose-based starting guidance
-    let usedGlucose: Double?     // mg/dL used (nil = no live reading)
-    let usedWeightKg: Double
-    let weightIsDefault: Bool
+// Prevention-first exercise guide. Rather than "eat X g every 20 min", it favours
+// adjusting insulin beforehand and minimising interventions during the run — matched
+// to run duration and driven by glucose trend, not fixed numbers. Grounded in the 2017
+// Lancet consensus (Riddell et al.) and EXTOD, but oriented to recreational practice.
+// Illustrative guidance, NOT medical advice.
+
+enum StartStatus { case go, topUp, wait, stop, unknown }
+
+struct RunGuide {
+    let band: String                 // Easy / Moderate / Long
+    let bandDetail: String
+    let status: StartStatus
+    let startTitle: String
+    let startReason: String
+    let beforeText: String           // insulin-first strategy (no doses)
+    let duringText: String           // carb guidance matched to the band
+    let duringHeadline: String?      // e.g. "~30–60 g/h" (long runs only)
+    let philosophyText: String       // accept 140–200, avoid hypo > perfect
+    let learnText: String            // log & experiment
+    let deliveryIsPump: Bool
+    let usedGlucose: Double?
 }
 
-/// Carbohydrate estimate grounded in the 2017 international consensus on exercise
-/// management in type 1 diabetes (Riddell et al., Lancet Diabetes Endocrinol 2017).
-/// The published guidance gives *ranges*; the exact coefficients below are transparent
-/// choices within those ranges. This is an illustrative estimate, NOT medical advice.
-func computeCarbPlan(sportId: String, durationMin: Int, iob: Double, recentCarbsG: Int,
-                     glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
-                     weightKg: Double?) -> CarbPlan {
+func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG: Int,
+                   glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
+                   deliveryIsPump: Bool) -> RunGuide {
     let sport = SPORTS.first { $0.id == sportId } ?? SPORTS[0]
-    let met = sport.met
-    let intensity = met >= 8 ? "high" : (met >= 5 ? "moderate" : "low")
+    let highIntensity = sport.met >= 8
 
-    let weight = weightKg ?? 70
-    let weightIsDefault = (weightKg == nil)
+    // ── 2. Match advice to run duration ──
+    let band: String, bandDetail: String
+    if durationMin < 45 { band = "Easy"; bandDetail = "Under 45 min · aim to finish without eating" }
+    else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · one top-up at most" }
+    else { band = "Long"; bandDetail = "Over 90 min · fuel for performance" }
 
-    // ── Pre-session carbs from starting glucose (consensus aerobic start targets, mg/dL) ──
-    var startCarbs = 0.0
-    var note = ""
+    // ── 3. Start decision from glucose + trend (not fixed numbers) ──
+    var status: StartStatus = .unknown
+    var title = "Check your glucose first"
+    var reason = "No live CGM / Nightscout reading — head out only when you can see your glucose and trend."
     if let g = glucoseMgdl, g > 0 {
-        switch g {
-        case ..<90:      startCarbs = 15; note = "Glucose \(Int(g)) mg/dL is below the 90 mg/dL start threshold — take ~15 g and recheck before starting."
-        case 90..<126:   startCarbs = 10; note = "Glucose \(Int(g)) mg/dL is in the 90–125 band — ~10 g is advised before aerobic exercise."
-        case 126..<181:  startCarbs = 0;  note = "Glucose \(Int(g)) mg/dL is in the ideal 126–180 mg/dL start range."
-        case 181..<271:  startCarbs = 0;  note = "Glucose \(Int(g)) mg/dL is above target — no pre-carbs; follow your plan for a light correction if needed."
-        default:         startCarbs = 0;  note = "Glucose \(Int(g)) mg/dL is high — check ketones before exercising; intense exercise can raise it further."
+        let gi = Int(g.rounded())
+        let highIOB = iob > 1.2
+        if g < 70 {
+            status = .stop; title = "Treat first — don't start"
+            reason = "You're low (\(gi) mg/dL). Treat, and wait until you've recovered before heading out."
+        } else if g < 90 {
+            status = .wait; title = "Top up ~15 g and wait"
+            reason = "\(gi) mg/dL is below the safe start zone — take ~15 g and re-check before you go."
+        } else if g < 126 {
+            if trendFalling {
+                status = .topUp; title = "Top up ~10–15 g first"
+                reason = "\(gi) and falling — a little carb now heads off an early drop."
+            } else if recentCarbsG >= 30 {
+                status = .go; title = "Likely OK to start"
+                reason = "\(gi) with ~\(recentCarbsG) g eaten recently — those carbs should lift you. Start and watch your trend."
+            } else {
+                status = .topUp; title = "Small top-up, then go"
+                reason = "\(gi) is on the low side — ~10 g, or start and watch your trend closely."
+            }
+        } else if g <= 180 {
+            if trendFalling {
+                status = .topUp; title = "Top up ~10 g first"
+                reason = "\(gi) but drifting down — a small carb steadies the start."
+            } else if highIOB {
+                status = .topUp; title = "Consider ~10 g — insulin on board"
+                reason = "\(gi) is fine, but \(String(format: "%.1f", iob)) U on board will keep pulling you down."
+            } else {
+                status = .go; title = "Good to start"
+                reason = "\(gi) mg/dL is right in the sweet spot — head out."
+            }
+        } else if g <= 250 {
+            status = .go; title = "Good to start"
+            reason = "\(gi) is a little high; easy exercise usually brings it down. No carbs needed."
+        } else {
+            status = .wait; title = "Check ketones first"
+            reason = "\(gi) is high — if it's unexpected, check ketones and don't run if they're raised. Otherwise start gently."
         }
-        if trendFalling && g < 180 { startCarbs += 10; note += " It's falling, so ~10 g extra is included." }
-        else if trendRising && startCarbs > 0 { startCarbs = max(0, startCarbs - 5) }
-    } else {
-        note = "No live glucose reading — check your CGM / Nightscout before starting."
     }
 
-    // ── Insulin-on-board buffer (consensus: high circulating insulin → larger pre-snack) ──
-    let iobBuffer = min(30, max(0, iob) * 10)        // ~10 g per unit of active insulin, capped at 30 g
-    let recentCover = Double(recentCarbsG) * 0.15    // recent carbs already provide some cover
-
-    var pre = startCarbs + iobBuffer - recentCover
-    pre = max(0, (pre / 5).rounded() * 5)
-
-    // ── During-session carbs: g/kg/h by intensity (consensus ~0.3–1.0 g/kg/h) ──
-    let rate = intensity == "high" ? 0.9 : (intensity == "moderate" ? 0.6 : 0.3)
-    let perHour = rate * weight
-    let needsDuring = durationMin > 45 || (durationMin > 30 && intensity != "low")
-    let per30 = needsDuring ? max(5, (perHour / 2 / 5).rounded() * 5) : 0
-
-    // ── Hypoglycaemia risk ──
-    var risk = "Low"
-    if let g = glucoseMgdl, g > 0 {
-        if g < 90 || (iob > 1.2 && intensity != "low") || (trendFalling && g < 126) { risk = "High" }
-        else if g < 126 || iob > 0.5 || intensity == "high" || trendFalling { risk = "Moderate" }
+    // ── 1. Prevent rather than treat (insulin-first; strategy only, no doses) ──
+    let before: String
+    if deliveryIsPump {
+        before = "Prevent rather than treat. The most reliable lever is easing insulin ahead of time — a pump basal reduction 60–90 min before, or a smaller bolus if you ate recently. The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
     } else {
-        if iob > 1.2 || intensity == "high" { risk = "High" }
-        else if iob > 0.5 { risk = "Moderate" }
+        before = "Prevent rather than treat. On injections the main lever is a smaller meal bolus if you're running within ~2–3 h of eating (basal is hard to change mid-day). The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
     }
 
-    return CarbPlan(pre: Int(pre), duringPer30: Int(per30), duringPerHour: Int(perHour.rounded()),
-                    needsDuring: needsDuring, risk: risk, intensity: intensity, ratePerKgHr: rate,
-                    met: met, sport: sport, startNote: note, usedGlucose: glucoseMgdl,
-                    usedWeightKg: weight, weightIsDefault: weightIsDefault)
+    // During — matched to the band
+    let during: String
+    var duringHeadline: String? = nil
+    switch band {
+    case "Easy":
+        during = "Aim to finish without eating. Carry fast-acting carbs and take 10–15 g only if you fall toward your target or your CGM arrow shows a rapid drop."
+    case "Moderate":
+        during = "Plan for one top-up at most: ~10–20 g around 30–45 min, and only if you're trending down. Easing insulin beforehand beats repeated gels."
+    default:
+        duringHeadline = highIntensity ? "~60–90 g/h" : "~30–60 g/h"
+        during = "Now carbohydrate is performance fuel, not just hypo cover: aim \(highIntensity ? "60–90" : "30–60") g/h, spread through the run with insulin adjusted. This is where the EXTOD / consensus feeding rates genuinely apply."
+    }
+
+    // ── 4 & 5. Accept imperfect glucose; learn progressively ──
+    let philosophy = "Most runners feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs."
+    let learn = "Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy."
+
+    return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
+                    startReason: reason, beforeText: before, duringText: during,
+                    duringHeadline: duringHeadline, philosophyText: philosophy, learnText: learn,
+                    deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl)
 }
