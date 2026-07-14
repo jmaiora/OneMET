@@ -180,6 +180,40 @@ struct EditCarbRatioSheet: View {
     }
 }
 
+// MARK: - Insulin delivery
+
+struct EditInsulinDeliverySheet: View {
+    @ObservedObject var store: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var delivery: InsulinDelivery
+
+    init(store: ProfileStore) {
+        self.store = store
+        _delivery = State(initialValue: store.profile.insulinDelivery)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(footer: Text("How you take insulin. This tailors the Plan tab's before-workout strategy — basal reductions for a pump, meal-bolus timing on injections.")) {
+                    Picker("Delivery", selection: $delivery) {
+                        ForEach(InsulinDelivery.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                }
+            }
+            .navigationTitle("Insulin Delivery")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { store.profile.insulinDelivery = delivery; dismiss() }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Nightscout glucose source
 
 struct NightscoutSheet: View {

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SummaryView: View {
     @EnvironmentObject var store: HealthDataStore
+    @EnvironmentObject var profileStore: ProfileStore
     var accent: Color
     var mmol: Bool = false
     var onOpenGlucose: () -> Void
@@ -75,6 +76,23 @@ struct SummaryView: View {
 
             // ── Insight banner ──
             InsightBanner(text: d.insight, accent: accent)
+
+            // ── Before workout (generic prep summary; full guide lives in Plan) ──
+            Card(title: "Before workout", icon: "bolt", iconColor: accent) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump))
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.ink)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Illustrative guidance, not medical advice. See the Plan tab for a session-specific start decision.")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(Theme.ink3)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             // ── Activity rings ──
             Card(title: "Activity", icon: "flame", iconColor: Theme.ringMove, onTap: onGoActivity) {
@@ -165,5 +183,6 @@ struct NutritionCard: View {
         Theme.bg.ignoresSafeArea()
         SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {})
             .environmentObject(HealthDataStore())
+            .environmentObject(ProfileStore())
     }
 }

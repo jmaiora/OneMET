@@ -3,7 +3,7 @@ import SwiftUI
 // ProfileView.swift — OneMET Profile screen with editable personal data.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, glucose, met, carb, nightscout
+    case identity, glucose, met, carb, insulin, nightscout
     var id: Int { rawValue }
 }
 
@@ -66,7 +66,8 @@ struct ProfileView: View {
             IOSList(header: "Personal Targets") {
                 IOSListRow(title: "Glucose Range", detail: p.glucoseRangeText, dot: Theme.green) { editor = .glucose }
                 IOSListRow(title: "Daily MET Goal", detail: p.metGoalText, dot: Theme.ringMet) { editor = .met }
-                IOSListRow(title: "Carb Ratio", detail: p.carbRatioText, dot: Theme.amber, isLast: true) { editor = .carb }
+                IOSListRow(title: "Carb Ratio", detail: p.carbRatioText, dot: Theme.amber) { editor = .carb }
+                IOSListRow(title: "Insulin Delivery", detail: p.deliveryText, dot: accent, isLast: true) { editor = .insulin }
             }
 
             IOSList(header: "Body") {
@@ -85,6 +86,7 @@ struct ProfileView: View {
             case .glucose:  EditGlucoseRangeSheet(store: profileStore)
             case .met:      EditMetGoalSheet(store: profileStore)
             case .carb:     EditCarbRatioSheet(store: profileStore)
+            case .insulin:  EditInsulinDeliverySheet(store: profileStore)
             case .nightscout: NightscoutSheet(store: glucoseSource)
             }
         }

@@ -34,6 +34,17 @@ let SPORTS: [Sport] = [
 // Lancet consensus (Riddell et al.) and EXTOD, but oriented to recreational practice.
 // Illustrative guidance, NOT medical advice.
 
+// Generic "before workout" strategy — the insulin-first principle. Depends only on
+// the user's insulin-delivery method (a Profile setting), not on any live session
+// input, so it can be shown as a standalone summary on the Summary tab.
+func beforeWorkoutSummary(deliveryIsPump: Bool) -> String {
+    if deliveryIsPump {
+        return "Prevent rather than treat. The most reliable lever is easing insulin ahead of time — a pump basal reduction 60–90 min before, or a smaller bolus if you ate recently. The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
+    } else {
+        return "Prevent rather than treat. On injections the main lever is a smaller meal bolus if you're running within ~2–3 h of eating (basal is hard to change mid-day). The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
+    }
+}
+
 enum StartStatus { case go, topUp, wait, stop, unknown }
 
 struct RunGuide {
@@ -108,12 +119,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     }
 
     // ── 1. Prevent rather than treat (insulin-first; strategy only, no doses) ──
-    let before: String
-    if deliveryIsPump {
-        before = "Prevent rather than treat. The most reliable lever is easing insulin ahead of time — a pump basal reduction 60–90 min before, or a smaller bolus if you ate recently. The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
-    } else {
-        before = "Prevent rather than treat. On injections the main lever is a smaller meal bolus if you're running within ~2–3 h of eating (basal is hard to change mid-day). The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
-    }
+    let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump)
 
     // During — matched to the band
     let during: String

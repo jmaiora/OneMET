@@ -54,10 +54,6 @@ struct PlanView: View {
                 .padding(.vertical, 11)
                 .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
 
-                SelectRow(label: "Insulin Delivery",
-                          selection: Binding(get: { profileStore.profile.insulinDelivery },
-                                             set: { profileStore.profile.insulinDelivery = $0 }),
-                          options: InsulinDelivery.allCases.map { (value: $0, label: $0.rawValue) }, accent: accent)
                 SelectRow(label: "Insulin on Board", selection: $iob,
                           options: [0, 0.5, 1.0, 1.5, 2.0, 3.0].map { (value: $0, label: String(format: "%.1f U", $0)) }, accent: accent)
                 SelectRow(label: "Carbs, Last 2h", selection: $recentCarbs,
@@ -65,8 +61,6 @@ struct PlanView: View {
             }
 
             startBanner(guide)
-
-            infoCard(icon: "bolt", color: accent, title: "Before you run", text: guide.beforeText)
 
             infoCard(icon: "fork", color: Theme.ringMet, title: "During · \(guide.band) run",
                      text: guide.duringText, headline: guide.duringHeadline, subtitle: guide.bandDetail)

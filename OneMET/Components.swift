@@ -211,7 +211,7 @@ struct Dot: View {
 // MARK: - TabBar
 
 enum AppTab: String, CaseIterable {
-    case summary, workouts, plan, profile
+    case summary, plan, workouts, profile
 
     var label: String {
         switch self {
