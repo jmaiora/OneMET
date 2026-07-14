@@ -35,8 +35,26 @@ struct PlanView: View {
                     .padding(.bottom, 2)
                 SelectRow(label: "Planned Duration", selection: $duration,
                           options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map { (value: $0, label: "\($0) min") }, accent: accent)
-                SelectRow(label: "Difficulty", selection: $difficulty,
-                          options: WorkoutDifficulty.allCases.map { (value: $0, label: $0.rawValue) }, accent: accent)
+                HStack {
+                    Text("Difficulty")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Theme.ink)
+                    Spacer()
+                    Menu {
+                        ForEach(WorkoutDifficulty.allCases) { d in
+                            Button(d.rawValue) { difficulty = d }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(difficulty.rawValue)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(accent)
+                            AppIconView(name: "chevron", color: Theme.ink3, size: 13)
+                        }
+                    }
+                }
+                .padding(.vertical, 11)
+                .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
             }
 
             Card(title: "Current State", icon: "bolt", iconColor: Theme.amber) {
