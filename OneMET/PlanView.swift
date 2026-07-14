@@ -62,8 +62,7 @@ struct PlanView: View {
 
             startBanner(guide)
 
-            infoCard(icon: "fork", color: Theme.ringMet, title: "During · \(guide.band) run",
-                     text: guide.duringText, headline: guide.duringHeadline, subtitle: guide.bandDetail)
+            duringBanner(guide)
 
             Card(title: "Good to know") {
                 VStack(alignment: .leading, spacing: 12) {
@@ -114,29 +113,46 @@ struct PlanView: View {
 
     // MARK: - Guidance cards
 
-    private func infoCard(icon: String, color: Color, title: String, text: String,
-                          headline: String? = nil, subtitle: String? = nil) -> some View {
-        Card(title: title, icon: icon, iconColor: color) {
-            VStack(alignment: .leading, spacing: 8) {
-                if let subtitle {
-                    Text(subtitle.uppercased())
-                        .font(.system(size: 11.5, weight: .semibold))
-                        .foregroundStyle(Theme.ink2)
-                        .tracking(0.2)
-                }
-                if let headline {
-                    Text(headline)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                }
-                Text(text)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.ink)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
+    private func duringBanner(_ g: RunGuide) -> some View {
+        let c = Theme.ringMet
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                AppIconView(name: "fork", color: .white, size: 16)
+                Text("During \u{00B7} \(g.band) run")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                Spacer(minLength: 8)
+                Text(g.bandDetail.uppercased())
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .tracking(0.2)
+                    .multilineTextAlignment(.trailing)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            if let hl = g.duringHeadline {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(hl)
+                        .font(.system(size: 30, weight: .heavy))
+                        .foregroundStyle(.white)
+                    if g.duringTotalG > 0 {
+                        Text("\u{2248} \(g.duringTotalG) g \u{00B7} \(g.duringFeeds) feed\(g.duringFeeds == 1 ? "" : "s")")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                }
+                .padding(.top, 2)
+            }
+            Text(g.duringText)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white.opacity(0.95))
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(c)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+        .shadow(color: c.opacity(0.28), radius: 9, x: 0, y: 6)
     }
 
     private func goodLine(_ systemIcon: String, _ color: Color, _ text: String) -> some View {

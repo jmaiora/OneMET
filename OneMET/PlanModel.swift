@@ -39,9 +39,9 @@ let SPORTS: [Sport] = [
 // input, so it can be shown as a standalone summary on the Summary tab.
 func beforeWorkoutSummary(deliveryIsPump: Bool) -> String {
     if deliveryIsPump {
-        return "Prevent rather than treat. The most reliable lever is easing insulin ahead of time — a pump basal reduction 60–90 min before, or a smaller bolus if you ate recently. The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
+        return "Prevent rather than treat: ease insulin ahead of time — a pump basal cut 60–90 min before, or a smaller bolus if you ate recently. Aim to start around 140–180 mg/dL and carry fast carbs for safety."
     } else {
-        return "Prevent rather than treat. On injections the main lever is a smaller meal bolus if you're running within ~2–3 h of eating (basal is hard to change mid-day). The amount is personal; set it with your clinician. Aim to start around 140–180 mg/dL and carry fast carbs for safety, not as a plan."
+        return "Prevent rather than treat: your main lever is a smaller meal bolus if you're running within ~2–3 h of eating. Aim to start around 140–180 mg/dL and carry fast carbs for safety."
     }
 }
 
@@ -55,7 +55,11 @@ struct RunGuide {
     let startReason: String
     let beforeText: String           // insulin-first strategy (no doses)
     let duringText: String           // carb guidance matched to the band
-    let duringHeadline: String?      // e.g. "~30–60 g/h" (long runs only)
+    let duringHeadline: String?      // e.g. "45 g every 45 min" (nil when no feeding)
+    let duringPerFeedG: Int          // carbs per feed (0 = finish without eating)
+    let duringFeeds: Int             // number of feeds across the session
+    let duringTotalG: Int            // total carbs across the session
+    let duringIntervalMin: Int       // feed interval (minutes)
     let philosophyText: String       // accept 140–200, avoid hypo > perfect
     let learnText: String            // log & experiment
     let deliveryIsPump: Bool
@@ -121,17 +125,33 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     // ── 1. Prevent rather than treat (insulin-first; strategy only, no doses) ──
     let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump)
 
-    // During — matched to the band
+    // During — Riddell-style fuelling, computed per feed and capped for the hardest runs.
+    // Rate scales with intensity/duration; the toughest sessions are held to 45 g every
+    // 45 min (~60 g/h) — the top of the Riddell/EXTOD consensus range.
+    let feedIntervalMin = 45
+    let perFeedG: Int
+    switch band {
+    case "Easy":      perFeedG = 0
+    case "Moderate":  perFeedG = highIntensity ? 30 : 20
+    default:          perFeedG = highIntensity ? 45 : 30   // Long: hardest cap 45 g / 45 min
+    }
+    let duringFeeds = perFeedG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
+    let duringTotalG = perFeedG * duringFeeds
+    let gPerHour = feedIntervalMin > 0 ? perFeedG * 60 / feedIntervalMin : 0
+
     let during: String
     var duringHeadline: String? = nil
-    switch band {
-    case "Easy":
-        during = "Aim to finish without eating. Carry fast-acting carbs and take 10–15 g only if you fall toward your target or your CGM arrow shows a rapid drop."
-    case "Moderate":
-        during = "Plan for one top-up at most: ~10–20 g around 30–45 min, and only if you're trending down. Easing insulin beforehand beats repeated gels."
-    default:
-        duringHeadline = highIntensity ? "~60–90 g/h" : "~30–60 g/h"
-        during = "Now carbohydrate is performance fuel, not just hypo cover: aim \(highIntensity ? "60–90" : "30–60") g/h, spread through the run with insulin adjusted. This is where the EXTOD / consensus feeding rates genuinely apply."
+    if perFeedG == 0 || duringFeeds == 0 {
+        during = "Aim to finish without eating. Carry ~15 g of fast carbs and take them only if you fall toward your target or your CGM arrow shows a rapid drop."
+    } else if band == "Moderate" {
+        duringHeadline = "\(perFeedG) g every \(feedIntervalMin) min"
+        during = "A Riddell-style top-up: about \(perFeedG) g at the \(feedIntervalMin)-min mark (~\(duringTotalG) g total) if you're trending down. Easing insulin beforehand beats repeated gels."
+    } else {
+        duringHeadline = "\(perFeedG) g every \(feedIntervalMin) min"
+        let capNote = highIntensity
+            ? "For the hardest sessions this is capped at 45 g every 45 min (~60 g/h) — the top of the Riddell/EXTOD consensus range — enough to fuel performance without GI upset."
+            : "That works out to ~\(gPerHour) g/h, within the Riddell/EXTOD consensus range."
+        during = "Fuel for performance: \(perFeedG) g every \(feedIntervalMin) min — about \(duringTotalG) g across \(duringFeeds) feeds, taken with insulin adjusted. \(capNote)"
     }
 
     // ── 4 & 5. Accept imperfect glucose; learn progressively ──
@@ -140,6 +160,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
 
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
                     startReason: reason, beforeText: before, duringText: during,
-                    duringHeadline: duringHeadline, philosophyText: philosophy, learnText: learn,
+                    duringHeadline: duringHeadline, duringPerFeedG: perFeedG, duringFeeds: duringFeeds,
+                    duringTotalG: duringTotalG, duringIntervalMin: feedIntervalMin,
+                    philosophyText: philosophy, learnText: learn,
                     deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl)
 }
