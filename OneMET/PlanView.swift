@@ -13,6 +13,7 @@ struct PlanView: View {
     @State private var duration = 45
     @State private var iob = 1.0
     @State private var recentCarbs = 30
+    @State private var difficulty: WorkoutDifficulty = .moderate
 
     var body: some View {
         let d = store.data
@@ -23,7 +24,8 @@ struct PlanView: View {
         let guide = buildRunGuide(sportId: sport.id, durationMin: duration, iob: iob,
                                   recentCarbsG: recentCarbs, glucoseMgdl: glucose,
                                   trendFalling: trend == .down, trendRising: trend == .up,
-                                  deliveryIsPump: profileStore.profile.insulinDelivery.isPump)
+                                  deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
+                                  difficulty: difficulty)
 
         ScreenScaffold {
             AppHeader(title: "Plan", date: "Run Guide", accent: accent)
@@ -32,7 +34,9 @@ struct PlanView: View {
                 SportPicker(sports: SPORTS, index: $sportIndex, accent: accent, durationLabel: "\(duration) min")
                     .padding(.bottom, 2)
                 SelectRow(label: "Planned Duration", selection: $duration,
-                          options: [15, 30, 45, 60, 75, 90, 120].map { (value: $0, label: "\($0) min") }, accent: accent)
+                          options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map { (value: $0, label: "\($0) min") }, accent: accent)
+                SelectRow(label: "Difficulty", selection: $difficulty,
+                          options: WorkoutDifficulty.allCases.map { (value: $0, label: $0.rawValue) }, accent: accent)
             }
 
             Card(title: "Current State", icon: "bolt", iconColor: Theme.amber) {
@@ -134,7 +138,7 @@ struct PlanView: View {
                         .font(.system(size: 30, weight: .heavy))
                         .foregroundStyle(.white)
                     if g.duringTotalG > 0 {
-                        Text("\u{2248} \(g.duringTotalG) g \u{00B7} \(g.duringFeeds) feed\(g.duringFeeds == 1 ? "" : "s")")
+                        Text("\u{2248} \(g.duringTotalG) g total")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.9))
                     }
