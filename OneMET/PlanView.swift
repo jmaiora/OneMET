@@ -119,10 +119,10 @@ struct PlanView: View {
 
     private func duringBanner(_ g: RunGuide) -> some View {
         let c = Theme.ringMet
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 AppIconView(name: "fork", color: .white, size: 16)
-                Text("During \u{00B7} \(g.band) run")
+                Text("During · \(difficulty.rawValue)")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer(minLength: 8)
@@ -132,31 +132,42 @@ struct PlanView: View {
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
             }
-            if let hl = g.duringHeadline {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(hl)
-                        .font(.system(size: 30, weight: .heavy))
-                        .foregroundStyle(.white)
-                    if g.duringTotalG > 0 {
-                        Text("\u{2248} \(g.duringTotalG) g total")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
+            if g.duringTotalG > 0 {
+                HStack(alignment: .top, spacing: 22) {
+                    if g.duringStartG > 0 {
+                        duringStat(big: "~\(g.duringStartG) g", small: "AT START")
+                    }
+                    if g.duringFeeds > 0 {
+                        duringStat(big: "~\(g.duringPerFeedG) g", small: "EVERY \(g.duringIntervalMin) MIN")
                     }
                 }
-                .padding(.top, 2)
+                Text("~\(g.duringPerHourG) g/h · ~\(g.duringTotalG) g total")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
             }
             Text(g.duringText)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13.5, weight: .medium))
                 .foregroundStyle(.white.opacity(0.95))
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(c)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
         .shadow(color: c.opacity(0.28), radius: 9, x: 0, y: 6)
+    }
+
+    private func duringStat(big: String, small: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(big)
+                .font(.system(size: 27, weight: .heavy))
+                .foregroundStyle(.white)
+            Text(small)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.8))
+                .tracking(0.3)
+        }
     }
 
     private func goodLine(_ systemIcon: String, _ color: Color, _ text: String) -> some View {

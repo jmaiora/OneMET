@@ -101,7 +101,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     // ── 2. Match advice to run duration ──
     let band: String, bandDetail: String
     if durationMin < 45 { band = "Easy"; bandDetail = "Under 45 min · aim to finish without eating" }
-    else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · one top-up at most" }
+    else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · fuel as needed" }
     else { band = "Long"; bandDetail = "Over 90 min · fuel for performance" }
 
     // ── 3. Start decision from glucose + trend (not fixed numbers) ──
@@ -167,11 +167,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
         during = "Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop."
     } else {
         duringHeadline = "~\(duringPerHourG) g/h"
-        var steps: [String] = []
-        if duringStartG > 0 { steps.append("~\(duringStartG) g at the start") }
-        if duringFeeds > 0 { steps.append("~\(perFeedG) g every \(feedIntervalMin) min") }
-        let plan = steps.joined(separator: ", then ")
-        during = "\(difficulty.rawValue) effort follows the Riddell/EXTOD rate of ~\(duringPerHourG) g/h: \(plan). About \(duringTotalG) g total across the session, taken with insulin adjusted rather than skipped."
+        during = "Fuel to the Riddell/EXTOD rate for \(difficulty.rawValue.lowercased()) effort — carbs taken with insulin adjusted rather than skipped. No cap: longer sessions simply add more feeds."
     }
 
     // ── 4 & 5. Accept imperfect glucose; learn progressively ──
