@@ -233,38 +233,99 @@ function buildWorkoutHistory() {
   return weeks;
 }
 
-// ── Carb planning heuristic (Plan tab) ─────────────────────────
-// sportId: SPORTS id | durationMin: number | iob: units on board | recentCarbsG: carbs eaten last 2h
-function computeCarbPlan({ sportId, durationMin, iob, recentCarbsG }) {
-  const sport = SPORTS.find(s => s.id === sportId) || SPORTS[0];
-  const met = sport.met;
-  const intensity = met >= 8 ? 'high' : met >= 5 ? 'moderate' : 'low';
-  const intensityFactor = intensity === 'high' ? 0.62 : intensity === 'moderate' ? 0.4 : 0.2;
+// ── Difficulty catalog + prevention-first run guide (Plan tab) ─────────────────
+// Ported from the Swift PlanModel: WorkoutDifficulty (Riddell/EXTOD fuelling rates),
+// beforeWorkoutSummary, and buildRunGuide (start decision + During fuelling).
+const DIFFICULTIES = [
+  { id: 'light',    label: 'Light',    carbsPerHour: 15, startCarbG: 0 },
+  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startCarbG: 10 },
+  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startCarbG: 15 },
+  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startCarbG: 20 },
+];
 
-  // baseline grams scale with duration & intensity
-  let pre = intensityFactor * durationMin * 0.55;
-  // active insulin drives glucose down further during exercise — add buffer
-  pre += iob * 7;
-  // recent carbs already provide some buffer, offset partially
-  pre -= recentCarbsG * 0.18;
-  pre = Math.max(0, Math.round(pre / 5) * 5);
+function beforeWorkoutSummary(isPump) {
+  return isPump
+    ? "Prevent, don't treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near 140–180 mg/dL, carry fast carbs."
+    : "Prevent, don't treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near 140–180 mg/dL, carry fast carbs.";
+}
 
-  // during-session top-ups only needed for longer / harder sessions
-  const needsDuring = durationMin > 45 || (durationMin > 30 && intensity !== 'low');
-  const duringPer30 = needsDuring ? Math.max(5, Math.round(pre * 0.35 / 5) * 5) : 0;
+function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, difficulty, isPump }) {
+  const T = window.TOKENS;
+  const diff = difficulty || DIFFICULTIES[1];
 
-  let risk = 'Low';
-  if (iob > 1.2 && intensity !== 'low') risk = 'High';
-  else if (iob > 0.5 || intensity === 'high') risk = 'Moderate';
+  let band, bandDetail;
+  if (durationMin < 45) { band = 'Easy'; bandDetail = 'Under 45 min · aim to finish without eating'; }
+  else if (durationMin <= 90) { band = 'Moderate'; bandDetail = '45–90 min · fuel as needed'; }
+  else { band = 'Long'; bandDetail = 'Over 90 min · fuel for performance'; }
 
-  return { pre, duringPer30, needsDuring, risk, intensity, met, sport };
+  const trendFalling = trend < 0;
+  let status = 'unknown', title = 'Check your glucose first';
+  let reason = 'No live CGM / Nightscout reading — head out only when you can see your glucose and trend.';
+  if (glucoseMgdl && glucoseMgdl > 0) {
+    const gi = Math.round(glucoseMgdl), highIOB = iob > 1.2;
+    if (glucoseMgdl < 70) { status = 'stop'; title = "Treat first — don't start";
+      reason = `You're low (${gi} mg/dL). Treat, and wait until you've recovered before heading out.`; }
+    else if (glucoseMgdl < 90) { status = 'wait'; title = 'Top up ~15 g and wait';
+      reason = `${gi} mg/dL is below the safe start zone — take ~15 g and re-check before you go.`; }
+    else if (glucoseMgdl < 126) {
+      if (trendFalling) { status = 'topUp'; title = 'Top up ~10–15 g first'; reason = `${gi} and falling — a little carb now heads off an early drop.`; }
+      else if (recentCarbsG >= 30) { status = 'go'; title = 'Likely OK to start'; reason = `${gi} with ~${recentCarbsG} g eaten recently — those carbs should lift you. Start and watch your trend.`; }
+      else { status = 'topUp'; title = 'Small top-up, then go'; reason = `${gi} is on the low side — ~10 g, or start and watch your trend closely.`; }
+    } else if (glucoseMgdl <= 180) {
+      if (trendFalling) { status = 'topUp'; title = 'Top up ~10 g first'; reason = `${gi} but drifting down — a small carb steadies the start.`; }
+      else if (highIOB) { status = 'topUp'; title = 'Consider ~10 g — insulin on board'; reason = `${gi} is fine, but ${iob.toFixed(1)} U on board will keep pulling you down.`; }
+      else { status = 'go'; title = 'Good to start'; reason = `${gi} mg/dL is right in the sweet spot — head out.`; }
+    } else if (glucoseMgdl <= 250) { status = 'go'; title = 'Good to start'; reason = `${gi} is a little high; easy exercise usually brings it down. No carbs needed.`; }
+    else { status = 'wait'; title = 'Check ketones first'; reason = `${gi} is high — if it's unexpected, check ketones and don't run if they're raised. Otherwise start gently.`; }
+  }
+  const statusStyle = {
+    go:      { color: T.green,   icon: 'check' },
+    topUp:   { color: T.amber,   icon: 'plus' },
+    wait:    { color: T.amber,   icon: 'alert' },
+    stop:    { color: T.red,     icon: 'stop' },
+    unknown: { color: '#8E8E93', icon: 'q' },
+  }[status];
+
+  const feedIntervalMin = 45;
+  const perHour = diff.carbsPerHour, startG = diff.startCarbG;
+  const perFeed = Math.round(perHour * feedIntervalMin / 60);
+  const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
+  const total = startG + perFeed * feeds;
+  let duringText, duringHeadline = null;
+  if (total === 0) {
+    duringText = 'Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop.';
+  } else {
+    duringHeadline = `~${perHour} g/h`;
+    duringText = `Fuel to the Riddell/EXTOD rate for ${diff.label.toLowerCase()} effort — carbs taken with insulin adjusted rather than skipped. No cap: longer sessions simply add more feeds.`;
+  }
+
+  return {
+    band, bandDetail,
+    status, statusColor: statusStyle.color, statusIcon: statusStyle.icon, startTitle: title, startReason: reason,
+    before: beforeWorkoutSummary(isPump),
+    during: { headline: duringHeadline, text: duringText, perHour, startG, perFeed, feeds, total, intervalMin: feedIntervalMin, difficultyLabel: diff.label },
+    philosophy: 'Most people feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs.',
+    learn: "Log your start glucose, insulin on board, carbs, and end glucose. After 3–5 similar sessions you'll usually settle on a repeatable strategy.",
+  };
 }
 
 // Workout history, grouped by week, most recent first — attached after
 // SPORTS/buildWorkoutCurve are defined above.
 DATA.workoutHistory = buildWorkoutHistory();
 
+// 7-day MET·min trend (last value = today, peak highlighted in the Summary card)
+DATA.metMinTrend = [312, 180, 486, 240, 360, 132, 486];
+DATA.todayWorkout = (DATA.workoutHistory && DATA.workoutHistory[0]) ? DATA.workoutHistory[0].workouts[0] : null;
+
+// User profile (drives Before-workout copy + Profile screen). insulinDelivery: 'pump' | 'mdi'
+const PROFILE = {
+  name: 'Alex Moreno', initials: 'AM', diabetesType: 'Type 1', diagnosisYear: 2014,
+  weightKg: 74, glucoseLow: 70, glucoseHigh: 180, dailyMetGoal: 500, carbRatio: 10,
+  insulinDelivery: 'pump',
+};
+PROFILE.isPump = PROFILE.insulinDelivery === 'pump';
+
 Object.assign(window, {
   TOKENS, glucoseStatus, DATA, fmtGlucose, TARGET_LOW, TARGET_HIGH,
-  SPORTS, computeCarbPlan, buildWorkoutCurve,
+  SPORTS, buildWorkoutCurve, DIFFICULTIES, PROFILE, beforeWorkoutSummary, buildRunGuide,
 });

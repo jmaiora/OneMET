@@ -1,4 +1,4 @@
-// screens.jsx — OneMET screens (Summary, Activity, Trends, Profile, GlucoseDetail)
+// screens.jsx — OneMET screens (Summary, Plan, Workouts, WorkoutDetail, Profile, GlucoseDetail)
 
 const SCROLL = {
   height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
@@ -18,18 +18,19 @@ function Arrow({ dir, color }) {
 
 // ── SUMMARY ───────────────────────────────────────────────────
 function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
-  const T = window.TOKENS;
+  const T = window.TOKENS, P = window.PROFILE;
   const st = glucoseStatus(DATA.current);
   const val = fmtGlucose(DATA.current, mmol);
   const unit = mmol ? 'mmol/L' : 'mg/dL';
   const r = DATA.rings;
+  const tw = DATA.todayWorkout;
 
   return (
     <div style={SCROLL}>
       <Header title="Summary" date="Friday, Jun 19" accent={accent} />
 
-      {/* GLUCOSE HERO */}
-      <Card icon="drop" iconColor={T.green} title="Glucose" right="Updated 2 min ago" onClick={onOpenGlucose}>
+      {/* GLUCOSE HERO — swaps to the per-workout curve when a workout is logged today */}
+      <Card icon="drop" iconColor={T.green} title="Glucose" right="Now" onClick={onOpenGlucose}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 52, fontWeight: 700, color: T.ink, letterSpacing: -1.5, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{val}</span>
@@ -38,11 +39,11 @@ function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
           </div>
           <Chip color={st.color}><span style={{ width: 6, height: 6, borderRadius: 3, background: st.color, display: 'inline-block' }} />{st.label}</Chip>
         </div>
-        <GlucoseChart accent={accent} mmol={mmol} height={158} />
+        {tw ? <WorkoutChart workout={tw} accent={accent} height={158} /> : <GlucoseChart accent={accent} mmol={mmol} height={158} />}
         <div style={{ height: 1, background: T.hair, margin: '12px 0 12px' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2, whiteSpace: 'nowrap' }}>Time in Range</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: T.green, flexShrink: 0, marginLeft: 8 }}>{DATA.tir.inRange}%</span>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2 }}>Time in Range</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.green }}>{DATA.tir.inRange}%</span>
         </div>
         <TIRBar />
         <div style={{ display: 'flex', gap: 14, marginTop: 9 }}>
@@ -55,16 +56,23 @@ function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
       </Card>
 
       {/* INSIGHT */}
-      <div style={{ background: accent, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff',
-        boxShadow: '0 6px 18px ' + accent + '40' }}>
+      <div style={{ background: accent, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + accent + '40' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
           <Icon name="bolt" color="#fff" size={15} />
           <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', opacity: 0.92 }}>Activity Insight</span>
         </div>
-        <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.35, letterSpacing: -0.2, textWrap: 'pretty' }}>
+        <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.35, letterSpacing: -0.2 }}>
           Your 4:08 PM run lowered glucose by <span style={{ fontWeight: 800 }}>38 mg/dL</span> over 32 min — consider 15g carbs before similar sessions.
         </div>
       </div>
+
+      {/* BEFORE WORKOUT (generic; full session guide lives on the Plan tab) */}
+      <Card icon="bolt" iconColor={accent} title="Before workout">
+        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.5 }}>{beforeWorkoutSummary(P.isPump)}</div>
+        <div style={{ fontSize: 11.5, fontWeight: 500, color: T.ink3, lineHeight: 1.4, marginTop: 10 }}>
+          Illustrative guidance, not medical advice. See the Plan tab for a session-specific start decision.
+        </div>
+      </Card>
 
       {/* ACTIVITY RINGS */}
       <Card icon="flame" iconColor={T.ringMove} title="Activity" onClick={onGoActivity}>
@@ -78,26 +86,14 @@ function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
         </div>
       </Card>
 
-      {/* MET + HEART row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <Card icon="bolt" iconColor={T.ringMet} title="MET" pad={14}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-            <span style={{ fontSize: 30, fontWeight: 700, color: T.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums' }}>486</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}>MET·min</span>
-          </div>
-          <span style={{ fontSize: 11.5, color: T.ink2, fontWeight: 500 }}>Peak 9.1 on your run</span>
-          <div style={{ marginTop: 8 }}><MetBars accent={T.ringMet} height={62} /></div>
-        </Card>
-        <Card icon="heart" iconColor={T.red} title="Heart" pad={14}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-            <span style={{ fontSize: 30, fontWeight: 700, color: T.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums' }}>{DATA.heart.current}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}>BPM</span>
-          </div>
-          <span style={{ fontSize: 11.5, color: T.ink2, fontWeight: 500 }}>Range {DATA.heart.range[0]}–{DATA.heart.range[1]}</span>
-          <div style={{ marginTop: 8 }}><HeartChart height={62} /></div>
-        </Card>
-      </div>
-
+      {/* MET·MIN TREND (full width) */}
+      <Card icon="bolt" iconColor={T.ringMet} title="MET·min" right="Last 7 days">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 30, fontWeight: 700, color: T.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums' }}>{r.met.value}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}>MET·min today</span>
+        </div>
+        <MetMinTrend accent={T.ringMet} height={150} />
+      </Card>
     </div>
   );
 }
@@ -255,89 +251,123 @@ function WorkoutDetailScreen({ workout, accent, onBack }) {
 
 // ── PLAN ──────────────────────────────────────────────────────
 function PlanScreen({ accent }) {
-  const T = window.TOKENS;
+  const T = window.TOKENS, P = window.PROFILE;
   const [sportIndex, setSportIndex] = React.useState(0);
-  const sportId = SPORTS[sportIndex].id;
   const [duration, setDuration] = React.useState(45);
   const [iob, setIob] = React.useState(1.0);
   const [recentCarbs, setRecentCarbs] = React.useState(30);
+  const [difficultyId, setDifficultyId] = React.useState(SPORTS[0].difficulty.toLowerCase());
+  const difficulty = DIFFICULTIES.find(d => d.id === difficultyId) || DIFFICULTIES[1];
 
-  const plan = computeCarbPlan({ sportId, durationMin: Number(duration), iob: Number(iob), recentCarbsG: Number(recentCarbs) });
-  const riskColor = plan.risk === 'High' ? T.red : plan.risk === 'Moderate' ? T.amber : T.green;
+  const guide = buildRunGuide({
+    durationMin: Number(duration), iob: Number(iob), recentCarbsG: Number(recentCarbs),
+    glucoseMgdl: DATA.current, trend: DATA.currentTrend, difficulty, isPump: P.isPump,
+  });
+  const g = guide.during;
+  const st = glucoseStatus(DATA.current);
 
-  const sportOptions = SPORTS.map(s => ({ value: s.id, label: s.name }));
-  const durationOptions = [15, 30, 45, 60, 90].map(d => ({ value: d, label: `${d} min` }));
+  const durationOptions = [15, 30, 45, 60, 75, 90, 120, 150, 180].map(d => ({ value: d, label: `${d} min` }));
   const iobOptions = [0, 0.5, 1.0, 1.5, 2.0, 3.0].map(v => ({ value: v, label: `${v.toFixed(1)} U` }));
   const carbOptions = [0, 15, 30, 45, 60, 90].map(v => ({ value: v, label: `${v} g` }));
+  const diffOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.label }));
 
   return (
     <div style={SCROLL}>
-      <Header title="Plan" date="Workout Planner" accent={accent} />
+      <Header title="Plan" date="Run Guide" accent={accent} />
 
       <Card icon="calendar" iconColor={accent} title="Session Details">
-        <SportCards sports={SPORTS} index={sportIndex} onChange={setSportIndex} accent={accent}
-          durationLabel={`${duration} min`} />
+        <SportCards sports={SPORTS} index={sportIndex} onChange={(i) => { setSportIndex(i); setDifficultyId(SPORTS[i].difficulty.toLowerCase()); }} accent={accent} durationLabel={`${duration} min`} />
         <div style={{ marginTop: 6 }}>
-          <Select label="Planned Duration" value={duration} onChange={v => setDuration(Number(v))} accent={accent}
-            options={durationOptions} />
+          <Select label="Planned Duration" value={duration} onChange={v => setDuration(Number(v))} accent={accent} options={durationOptions} />
+          <Select label="Difficulty" value={difficultyId} onChange={setDifficultyId} accent={accent} options={diffOptions} />
         </div>
       </Card>
 
       <Card icon="bolt" iconColor={T.amber} title="Current State">
-        <Select label="Insulin on Board" value={iob} onChange={v => setIob(Number(v))} accent={accent}
-          options={iobOptions} render={v => `${Number(v).toFixed(1)} U`} />
-        <Select label="Carbs, Last 2h" value={recentCarbs} onChange={v => setRecentCarbs(Number(v))} accent={accent}
-          options={carbOptions} render={v => `${v} g`} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: `0.5px solid ${T.sep}` }}>
+          <span style={{ fontSize: 15, color: T.ink, fontWeight: 500 }}>Current Glucose</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{DATA.current}</span>
+            <span style={{ fontSize: 13, color: T.ink2 }}>mg/dL</span>
+            <Arrow dir="down" color={st.color} />
+          </span>
+        </div>
+        <Select label="Insulin on Board" value={iob} onChange={v => setIob(Number(v))} accent={accent} options={iobOptions} render={v => `${Number(v).toFixed(1)} U`} />
+        <Select label="Carbs, Last 2h" value={recentCarbs} onChange={v => setRecentCarbs(Number(v))} accent={accent} options={carbOptions} render={v => `${v} g`} />
       </Card>
 
-      <div style={{ background: accent, borderRadius: 'var(--radius, 20px)', padding: 18, color: '#fff',
-        boxShadow: '0 6px 18px ' + accent + '40' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
-          <Icon name="fork" color="#fff" size={16} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', opacity: 0.92 }}>Carb Recommendation</span>
-        </div>
-        <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.2 }}>Before</div>
-            <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.8 }}>{plan.pre}<span style={{ fontSize: 15, fontWeight: 600 }}> g</span></div>
-          </div>
-          {plan.needsDuring && (
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.2 }}>Every 30 min</div>
-              <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: -0.8 }}>{plan.duringPer30}<span style={{ fontSize: 15, fontWeight: 600 }}> g</span></div>
-            </div>
-          )}
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.4, letterSpacing: -0.1, textWrap: 'pretty' }}>
-          {plan.pre === 0
-            ? `Low hypo risk for this ${plan.sport.name.toLowerCase()} session — no pre-carbs needed given current IOB and recent intake.`
-            : `Eat ${plan.pre}g of fast carbs 15–20 min before your ${plan.sport.name.toLowerCase()}${plan.needsDuring ? `, then ${plan.duringPer30}g every 30 min during the session` : ''}. Based on ${plan.sport.met} MET intensity, ${iob.toFixed(1)}U IOB, and ${recentCarbs}g eaten in the last 2h.`}
-        </div>
+      {/* START DECISION */}
+      <div style={{ background: guide.statusColor, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + guide.statusColor + '47' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 5, letterSpacing: -0.2 }}>{guide.startTitle}</div>
+        <div style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.4, opacity: 0.96 }}>{guide.startReason}</div>
       </div>
 
-      <Card title="Hypo Risk">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 10, height: 10, borderRadius: 5, background: riskColor, flexShrink: 0 }} />
-          <span style={{ fontSize: 17, fontWeight: 700, color: riskColor }}>{plan.risk}</span>
-          <span style={{ fontSize: 13, color: T.ink2 }}>· {plan.intensity} intensity · {plan.met} MET</span>
+      {/* DURING (highlighted) */}
+      <div style={{ background: T.ringMet, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + T.ringMet + '47' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Icon name="fork" color="#fff" size={16} />
+          <span style={{ fontSize: 16, fontWeight: 700 }}>During · {g.difficultyLabel}</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.2, textAlign: 'right' }}>{guide.bandDetail}</span>
+        </div>
+        {g.total > 0 && (
+          <div>
+            <div style={{ display: 'flex', gap: 22, marginBottom: 6 }}>
+              {g.startG > 0 && (
+                <div>
+                  <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: -0.5 }}>~{g.startG} g</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.3 }}>At Start</div>
+                </div>
+              )}
+              {g.feeds > 0 && (
+                <div>
+                  <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: -0.5 }}>~{g.perFeed} g</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.3 }}>Every {g.intervalMin} min</div>
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, marginBottom: 8 }}>{g.headline} · ~{g.total} g total</div>
+          </div>
+        )}
+        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.45, opacity: 0.96 }}>{g.text}</div>
+      </div>
+
+      <Card title="Good to know">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+            <span style={{ color: T.green, fontWeight: 700, fontSize: 15 }}>✓</span>
+            <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.4 }}>{guide.philosophy}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+            <span style={{ color: accent, fontWeight: 700, fontSize: 15 }}>↗</span>
+            <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.4 }}>{guide.learn}</span>
+          </div>
         </div>
       </Card>
+
+      <div style={{ background: T.amber + '1a', borderRadius: 14, padding: 14, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <span style={{ color: T.amber, fontWeight: 700 }}>⚠</span>
+        <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink2, lineHeight: 1.4 }}>Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, padding: '0 4px' }}>
+        Approach: a prevention-first reading of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD, oriented to recreational training.
+      </div>
     </div>
   );
 }
 
 // ── PROFILE ───────────────────────────────────────────────────
 function ProfileScreen({ accent }) {
-  const T = window.TOKENS;
+  const T = window.TOKENS, P = window.PROFILE;
+  const delivery = P.insulinDelivery === 'pump' ? 'Insulin Pump' : 'Injections (MDI)';
   return (
     <div style={{ ...SCROLL, gap: 18 }}>
       <Header title="Profile" date="Account" accent={accent} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 16px 6px' }}>
-        <div style={{ width: 60, height: 60, borderRadius: 30, background: accent, color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 600 }}>AM</div>
+        <div style={{ width: 60, height: 60, borderRadius: 30, background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 600 }}>{P.initials}</div>
         <div>
-          <div style={{ fontSize: 21, fontWeight: 700, color: T.ink }}>Alex Moreno</div>
-          <div style={{ fontSize: 14, color: T.ink2 }}>Type 1 · since 2014</div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: T.ink }}>{P.name}</div>
+          <div style={{ fontSize: 14, color: T.ink2 }}>{P.diabetesType} · since {P.diagnosisYear}</div>
         </div>
       </div>
 
@@ -347,10 +377,19 @@ function ProfileScreen({ accent }) {
         <IOSListRow title="Insulin Pen" detail="Synced 9:41" icon={accent} isLast />
       </IOSList>
 
-      <IOSList header="Targets">
-        <IOSListRow title="Glucose Range" detail="70–180 mg/dL" icon={T.green} />
-        <IOSListRow title="Daily MET Goal" detail="500 MET·min" icon={T.ringMet} />
-        <IOSListRow title="Carb Ratio" detail="1 : 10" icon={T.amber} isLast />
+      <IOSList header="Glucose Source">
+        <IOSListRow title="Nightscout" detail="On · live" icon={T.green} isLast />
+      </IOSList>
+
+      <IOSList header="Personal Targets">
+        <IOSListRow title="Glucose Range" detail={`${P.glucoseLow}–${P.glucoseHigh} mg/dL`} icon={T.green} />
+        <IOSListRow title="Daily MET Goal" detail={`${P.dailyMetGoal} MET·min`} icon={T.ringMet} />
+        <IOSListRow title="Carb Ratio" detail={`1 : ${P.carbRatio}`} icon={T.amber} />
+        <IOSListRow title="Insulin Delivery" detail={delivery} icon={accent} isLast />
+      </IOSList>
+
+      <IOSList header="Body">
+        <IOSListRow title="Weight" detail={`${P.weightKg.toFixed(1)} kg`} icon={T.teal} isLast />
       </IOSList>
 
       <IOSList header="Data">

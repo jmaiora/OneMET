@@ -13,7 +13,7 @@ struct PlanView: View {
     @State private var duration = 45
     @State private var iob = 1.0
     @State private var recentCarbs = 30
-    @State private var difficulty: WorkoutDifficulty = .moderate
+    @State private var difficulty: WorkoutDifficulty = WorkoutDifficulty(sportDifficulty: SPORTS[0].difficulty)
 
     var body: some View {
         let d = store.data
@@ -95,6 +95,9 @@ struct PlanView: View {
 
             disclaimer
             sources
+        }
+        .onChange(of: sportIndex) { newIndex in
+            difficulty = WorkoutDifficulty(sportDifficulty: SPORTS[newIndex].difficulty)
         }
     }
 

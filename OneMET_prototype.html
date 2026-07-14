@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneMET — Design Prototype</title>
+<style>
+  :root { --radius: 20px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #2A6FDB; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; -webkit-font-smoothing: antialiased; }
+  .phone { width: 390px; height: 844px; max-height: calc(100vh - 40px); background: #EFEFF4;
+           border-radius: 46px; overflow: hidden; position: relative; border: 11px solid #0b0b0d;
+           box-shadow: 0 30px 80px rgba(0,0,0,0.45); }
+  #root, .screen { width: 100%; height: 100%; position: relative; }
+  .screen { overflow: hidden; }
+  .overlay { position: absolute; inset: 0; background: #EFEFF4; z-index: 60; }
+  #loading { position: fixed; bottom: 16px; right: 16px; font: 12px -apple-system, sans-serif; color: #fff; opacity: .8; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+</head>
+<body>
+<div class="phone"><div id="root"></div></div>
+<div id="loading">Compiling prototype…</div>
+<script>window.addEventListener('load', () => { const l = document.getElementById('loading'); if (l) setTimeout(() => l.remove(), 1200); });</script>
+<!-- data.jsx -->
+<script type="text/babel" data-presets="react">
+// data.jsx — OneMET design tokens + mock health data
+// Exports to window: TOKENS, glucoseStatus, DATA, fmtGlucose
+
+const TOKENS = {
+  bg:    '#EFEFF4',
+  card:  '#FFFFFF',
+  ink:   '#1C1C1E',
+  ink2:  'rgba(60,60,67,0.60)',
+  ink3:  'rgba(60,60,67,0.32)',
+  sep:   'rgba(60,60,67,0.13)',
+  hair:  'rgba(60,60,67,0.07)',
+  // semantic
+  green: '#30B85C',   // in-range
+  amber: '#F5A02A',   // high
+  red:   '#FF3B30',   // low / heart
+  // activity ring hues (shared chroma, varied hue)
+  ringMove: '#FF5A4D', // calories
+  ringExer: '#5BD15B', // exercise minutes
+  ringMet:  '#2A8FE0', // MET
+  teal:  '#1FB8C9',
+  violet:'#8E72E8',
+};
+
+const TARGET_LOW = 70;
+const TARGET_HIGH = 180;
+
+function glucoseStatus(mgdl) {
+  if (mgdl < TARGET_LOW) return { label: 'Low', color: TOKENS.red };
+  if (mgdl > TARGET_HIGH) return { label: 'High', color: TOKENS.amber };
+  return { label: 'In Range', color: TOKENS.green };
+}
+
+// Build a realistic Type-1 glucose curve across the day (mg/dL).
+// 5-min cadence → 288 pts. Key beats: dawn rise, breakfast spike + correction,
+// lunch, afternoon run causing a dip toward low, recovery, dinner spike, settle.
+function buildGlucose() {
+  const pts = [];
+  const seg = (from, to, a, b, noise = 4) => {
+    const n = to - from;
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      // smoothstep
+      const s = t * t * (3 - 2 * t);
+      const v = a + (b - a) * s + (Math.sin(i * 1.7) + Math.cos(i * 0.9)) * noise * 0.5;
+      pts.push(Math.round(v));
+    }
+  };
+  // index = minutes/5 ; 0 = 00:00
+  seg(0, 36, 118, 104);     // 0–3h  overnight settle
+  seg(36, 72, 104, 96);     // 3–6h  dawn dip
+  seg(72, 84, 96, 132);     // 6–7h  dawn rise
+  seg(84, 108, 132, 191);   // 7–9h  breakfast spike
+  seg(108, 144, 191, 124);  // 9–12h correction
+  seg(144, 168, 124, 168);  // 12–14h lunch
+  seg(168, 192, 168, 138);  // 14–16h settle
+  seg(192, 204, 138, 96);   // 16–17h run begins, drop
+  seg(204, 216, 96, 68);    // 17–18h run low
+  seg(216, 240, 68, 122);   // 18–20h carb recovery
+  seg(240, 264, 122, 174);  // 20–22h dinner spike
+  seg(264, 288, 174, 120);  // 22–24h settle
+  return pts;
+}
+
+const GLUCOSE = buildGlucose();
+const CURRENT_IDX = 210; // ~17:30, just after the run dip recovering
+const CURRENT = GLUCOSE[CURRENT_IDX];
+
+// time-in-range for today
+function computeTIR(arr) {
+  let low = 0, inr = 0, high = 0;
+  arr.forEach(v => {
+    if (v < TARGET_LOW) low++;
+    else if (v > TARGET_HIGH) high++;
+    else inr++;
+  });
+  const n = arr.length;
+  return {
+    low: Math.round((low / n) * 100),
+    inRange: Math.round((inr / n) * 100),
+    high: Math.round((high / n) * 100),
+  };
+}
+
+const DATA = {
+  TARGET_LOW, TARGET_HIGH,
+  glucose: GLUCOSE,
+  currentIdx: CURRENT_IDX,
+  current: CURRENT,
+  currentTrend: -2, // mg/dL per 5 min → falling slowly
+  avg: Math.round(GLUCOSE.reduce((a, b) => a + b, 0) / GLUCOSE.length),
+  tir: computeTIR(GLUCOSE),
+  rings: {
+    move:  { value: 540, goal: 620, unit: 'KCAL' },
+    exer:  { value: 42,  goal: 45,  unit: 'MIN' },
+    met:   { value: 486, goal: 500, unit: 'MET·MIN' },
+  },
+  steps: 8432,
+  stepsGoal: 10000,
+  // MET-min accumulated by 2h bucket
+  metByHour: [0, 0, 0, 12, 64, 28, 18, 30, 196, 84, 38, 16],
+  heart: {
+    current: 64,
+    resting: 58,
+    range: [52, 158],
+    // bpm over day sampled (range band low/high per bucket)
+    series: [58,57,56,58,72,88,76,70,74,150,96,74],
+  },
+  workouts: [
+    { name: 'Outdoor Run', time: '4:08 PM', dur: '32 min', dist: '5.2 km',
+      kcal: 348, avgMet: 9.1, hr: 152, glucoseDelta: -38 },
+    { name: 'Walk', time: '8:12 AM', dur: '18 min', dist: '1.4 km',
+      kcal: 72, avgMet: 3.2, hr: 104, glucoseDelta: -9 },
+  ],
+  nutrition: {
+    carbs: 168, carbsGoal: 200, insulinUnits: 24,
+    meals: [
+      { name: 'Breakfast', carbs: 62, time: '7:30 AM' },
+      { name: 'Lunch',     carbs: 48, time: '12:15 PM' },
+      { name: 'Snack',     carbs: 22, time: '5:55 PM' },
+      { name: 'Dinner',    carbs: 36, time: '8:00 PM' },
+    ],
+  },
+  // 14-day time-in-range trend (% in range)
+  tirTrend: [71, 68, 74, 80, 77, 82, 79, 73, 85, 88, 81, 84, 90, 86],
+  // glucose vs activity correlation scatter (metMin, tirPct)
+  corr: [
+    [120, 64], [180, 70], [240, 72], [300, 78], [360, 80],
+    [420, 83], [486, 86], [540, 88], [200, 68], [330, 76],
+  ],
+};
+
+function fmtGlucose(mgdl, mmol) {
+  return mmol ? (mgdl / 18).toFixed(1) : String(Math.round(mgdl));
+}
+
+// ── Sport catalog (MET intensity used across Workouts + Plan) ─
+const SPORTS = [
+  { id: 'walk',     name: 'Walk',         met: 3.2,  icon: 'shoe',     difficulty: 'Light', color: '#1F8A5B',
+    desc: 'An easy walk. Low hypo risk, gentle on glucose across the session.' },
+  { id: 'run',      name: 'Outdoor Run',  met: 9.1,  icon: 'run',      difficulty: 'Vigorous', color: '#E0556E',
+    desc: 'A steady outdoor run. Expect a fast glucose drop — fuel up beforehand.' },
+  { id: 'cycling',  name: 'Cycling',      met: 7.0,  icon: 'bolt',     difficulty: 'Moderate', color: '#E8833A',
+    desc: 'Sustained cycling effort. Plan a top-up if you ride past 45 minutes.' },
+  { id: 'swim',     name: 'Swimming',     met: 8.0,  icon: 'drop',     difficulty: 'Vigorous', color: '#1FB8C9',
+    desc: 'Full-body swim session. Glucose can dip fast — carb up beforehand.' },
+  { id: 'strength', name: 'Strength',     met: 5.0,  icon: 'flame',    difficulty: 'Moderate', color: '#8E72E8',
+    desc: 'Resistance training. Effects on glucose are slower and can extend post-session.' },
+  { id: 'hiit',     name: 'HIIT',         met: 10.0, icon: 'activity', difficulty: 'Vigorous', color: '#D6484B',
+    desc: 'High-intensity intervals. Sharp swings possible — monitor closely.' },
+];
+
+// Build a plausible pre/during/post glucose curve for a single workout,
+// used by the Workouts tab detail overlay. 5-min cadence.
+// preMin/postMin default cover 30 min before / 60 min after.
+function buildWorkoutCurve(baseline, durMin, delta, preMin = 30, postMin = 60) {
+  const pts = [];
+  const step = 5;
+  const seg = (n, a, b, noise = 3) => {
+    for (let i = 0; i < n; i++) {
+      const t = i / Math.max(1, n - 1);
+      const s = t * t * (3 - 2 * t);
+      pts.push(Math.round(a + (b - a) * s + Math.sin(i * 1.3) * noise));
+    }
+  };
+  const preN = Math.round(preMin / step);
+  const durN = Math.max(2, Math.round(durMin / step));
+  const postN = Math.round(postMin / step);
+  const low = baseline + delta;
+  seg(preN, baseline - 4, baseline);          // lead-in, roughly flat
+  seg(durN, baseline, low);                    // during activity → delta applied
+  seg(postN, low, low + Math.abs(delta) * 0.55); // partial recovery after
+  return { curve: pts, activityStart: preN, activityEnd: preN + durN };
+}
+
+function weekLabel(weeksAgo) {
+  if (weeksAgo === 0) return 'This Week';
+  if (weeksAgo === 1) return 'Last Week';
+  return `${weeksAgo} Weeks Ago`;
+}
+
+function buildWorkoutHistory() {
+  // deterministic pseudo-random so the list looks varied but stable across renders
+  let seed = 42;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed % 1000) / 1000; };
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weeks = [];
+  let idCounter = 0;
+
+  for (let w = 0; w < 6; w++) {
+    const count = w === 0 ? 2 : 2 + Math.floor(rnd() * 2); // this week matches today's 2 logged workouts
+    const workouts = [];
+    for (let i = 0; i < count; i++) {
+      let sport, durMin, delta, baseline, time, dayLabel;
+      if (w === 0 && i === 0) {
+        sport = SPORTS[0]; durMin = 32; delta = -38; baseline = 138; time = '4:08 PM'; dayLabel = 'Fri, Jun 19';
+      } else if (w === 0 && i === 1) {
+        sport = SPORTS[1]; durMin = 18; delta = -9; baseline = 105; time = '8:12 AM'; dayLabel = 'Fri, Jun 19';
+      } else {
+        sport = SPORTS[Math.floor(rnd() * SPORTS.length)];
+        durMin = [20, 30, 40, 45, 60][Math.floor(rnd() * 5)];
+        const intensity = sport.met >= 8 ? 1 : sport.met >= 5 ? 0.65 : 0.35;
+        delta = -Math.round((8 + rnd() * 30) * intensity);
+        baseline = 110 + Math.round(rnd() * 60);
+        const hr = 6 + Math.floor(rnd() * 13);
+        const min = Math.floor(rnd() * 60);
+        const ampm = hr >= 12 ? 'PM' : 'AM';
+        const h12 = hr % 12 === 0 ? 12 : hr % 12;
+        time = `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
+        dayLabel = `${days[Math.floor(rnd() * 7)]}, ${['Jun', 'Jul'][w > 3 ? 0 : 0]} ${Math.max(1, 19 - w * 7 - Math.floor(rnd() * 7))}`;
+      }
+      const { curve, activityStart, activityEnd } = buildWorkoutCurve(baseline, durMin, delta);
+      const dist = sport.id === 'run' ? (3 + rnd() * 4).toFixed(1) + ' km'
+        : sport.id === 'walk' ? (1 + rnd() * 2).toFixed(1) + ' km'
+        : sport.id === 'cycling' ? (8 + rnd() * 12).toFixed(1) + ' km'
+        : sport.id === 'swim' ? (0.5 + rnd() * 1.2).toFixed(1) + ' km' : null;
+      const kcal = Math.round(sport.met * durMin * 1.1);
+      const hrAvg = Math.round(90 + sport.met * 7);
+      const insight = delta < -25
+        ? `This ${sport.name.toLowerCase()} lowered glucose by ${Math.abs(delta)} mg/dL over ${durMin} min — consider ${Math.round(Math.abs(delta) * 0.4)}g carbs before similar sessions.`
+        : delta < -12
+        ? `Moderate drop of ${Math.abs(delta)} mg/dL during this session — a small snack beforehand can help keep you in range.`
+        : `Glucose stayed steady, dropping only ${Math.abs(delta)} mg/dL — low risk activity at this intensity.`;
+      workouts.push({
+        id: 'w' + (idCounter++), name: sport.name, sportId: sport.id, icon: sport.icon,
+        day: dayLabel, time, dur: `${durMin} min`, durMin, dist: dist || '—',
+        kcal, avgMet: sport.met, hr: hrAvg, glucoseDelta: delta,
+        curve, activityStart, activityEnd, baseline, insight,
+      });
+    }
+    weeks.push({ label: weekLabel(w), workouts });
+  }
+  return weeks;
+}
+
+// ── Difficulty catalog + prevention-first run guide (Plan tab) ─────────────────
+// Ported from the Swift PlanModel: WorkoutDifficulty (Riddell/EXTOD fuelling rates),
+// beforeWorkoutSummary, and buildRunGuide (start decision + During fuelling).
+const DIFFICULTIES = [
+  { id: 'light',    label: 'Light',    carbsPerHour: 15, startCarbG: 0 },
+  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startCarbG: 10 },
+  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startCarbG: 15 },
+  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startCarbG: 20 },
+];
+
+function beforeWorkoutSummary(isPump) {
+  return isPump
+    ? "Prevent, don't treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near 140–180 mg/dL, carry fast carbs."
+    : "Prevent, don't treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near 140–180 mg/dL, carry fast carbs.";
+}
+
+function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, difficulty, isPump }) {
+  const T = window.TOKENS;
+  const diff = difficulty || DIFFICULTIES[1];
+
+  let band, bandDetail;
+  if (durationMin < 45) { band = 'Easy'; bandDetail = 'Under 45 min · aim to finish without eating'; }
+  else if (durationMin <= 90) { band = 'Moderate'; bandDetail = '45–90 min · fuel as needed'; }
+  else { band = 'Long'; bandDetail = 'Over 90 min · fuel for performance'; }
+
+  const trendFalling = trend < 0;
+  let status = 'unknown', title = 'Check your glucose first';
+  let reason = 'No live CGM / Nightscout reading — head out only when you can see your glucose and trend.';
+  if (glucoseMgdl && glucoseMgdl > 0) {
+    const gi = Math.round(glucoseMgdl), highIOB = iob > 1.2;
+    if (glucoseMgdl < 70) { status = 'stop'; title = "Treat first — don't start";
+      reason = `You're low (${gi} mg/dL). Treat, and wait until you've recovered before heading out.`; }
+    else if (glucoseMgdl < 90) { status = 'wait'; title = 'Top up ~15 g and wait';
+      reason = `${gi} mg/dL is below the safe start zone — take ~15 g and re-check before you go.`; }
+    else if (glucoseMgdl < 126) {
+      if (trendFalling) { status = 'topUp'; title = 'Top up ~10–15 g first'; reason = `${gi} and falling — a little carb now heads off an early drop.`; }
+      else if (recentCarbsG >= 30) { status = 'go'; title = 'Likely OK to start'; reason = `${gi} with ~${recentCarbsG} g eaten recently — those carbs should lift you. Start and watch your trend.`; }
+      else { status = 'topUp'; title = 'Small top-up, then go'; reason = `${gi} is on the low side — ~10 g, or start and watch your trend closely.`; }
+    } else if (glucoseMgdl <= 180) {
+      if (trendFalling) { status = 'topUp'; title = 'Top up ~10 g first'; reason = `${gi} but drifting down — a small carb steadies the start.`; }
+      else if (highIOB) { status = 'topUp'; title = 'Consider ~10 g — insulin on board'; reason = `${gi} is fine, but ${iob.toFixed(1)} U on board will keep pulling you down.`; }
+      else { status = 'go'; title = 'Good to start'; reason = `${gi} mg/dL is right in the sweet spot — head out.`; }
+    } else if (glucoseMgdl <= 250) { status = 'go'; title = 'Good to start'; reason = `${gi} is a little high; easy exercise usually brings it down. No carbs needed.`; }
+    else { status = 'wait'; title = 'Check ketones first'; reason = `${gi} is high — if it's unexpected, check ketones and don't run if they're raised. Otherwise start gently.`; }
+  }
+  const statusStyle = {
+    go:      { color: T.green,   icon: 'check' },
+    topUp:   { color: T.amber,   icon: 'plus' },
+    wait:    { color: T.amber,   icon: 'alert' },
+    stop:    { color: T.red,     icon: 'stop' },
+    unknown: { color: '#8E8E93', icon: 'q' },
+  }[status];
+
+  const feedIntervalMin = 45;
+  const perHour = diff.carbsPerHour, startG = diff.startCarbG;
+  const perFeed = Math.round(perHour * feedIntervalMin / 60);
+  const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
+  const total = startG + perFeed * feeds;
+  let duringText, duringHeadline = null;
+  if (total === 0) {
+    duringText = 'Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop.';
+  } else {
+    duringHeadline = `~${perHour} g/h`;
+    duringText = `Fuel to the Riddell/EXTOD rate for ${diff.label.toLowerCase()} effort — carbs taken with insulin adjusted rather than skipped. No cap: longer sessions simply add more feeds.`;
+  }
+
+  return {
+    band, bandDetail,
+    status, statusColor: statusStyle.color, statusIcon: statusStyle.icon, startTitle: title, startReason: reason,
+    before: beforeWorkoutSummary(isPump),
+    during: { headline: duringHeadline, text: duringText, perHour, startG, perFeed, feeds, total, intervalMin: feedIntervalMin, difficultyLabel: diff.label },
+    philosophy: 'Most people feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs.',
+    learn: "Log your start glucose, insulin on board, carbs, and end glucose. After 3–5 similar sessions you'll usually settle on a repeatable strategy.",
+  };
+}
+
+// Workout history, grouped by week, most recent first — attached after
+// SPORTS/buildWorkoutCurve are defined above.
+DATA.workoutHistory = buildWorkoutHistory();
+
+// 7-day MET·min trend (last value = today, peak highlighted in the Summary card)
+DATA.metMinTrend = [312, 180, 486, 240, 360, 132, 486];
+DATA.todayWorkout = (DATA.workoutHistory && DATA.workoutHistory[0]) ? DATA.workoutHistory[0].workouts[0] : null;
+
+// User profile (drives Before-workout copy + Profile screen). insulinDelivery: 'pump' | 'mdi'
+const PROFILE = {
+  name: 'Alex Moreno', initials: 'AM', diabetesType: 'Type 1', diagnosisYear: 2014,
+  weightKg: 74, glucoseLow: 70, glucoseHigh: 180, dailyMetGoal: 500, carbRatio: 10,
+  insulinDelivery: 'pump',
+};
+PROFILE.isPump = PROFILE.insulinDelivery === 'pump';
+
+Object.assign(window, {
+  TOKENS, glucoseStatus, DATA, fmtGlucose, TARGET_LOW, TARGET_HIGH,
+  SPORTS, buildWorkoutCurve, DIFFICULTIES, PROFILE, beforeWorkoutSummary, buildRunGuide,
+});
+
+</script>
+<!-- cards.jsx -->
+<script type="text/babel" data-presets="react">
+// cards.jsx — OneMET UI shell components
+// Exports: Icon, Card, CardHead, Header, TabBar, StatBlock, Chip
+
+function Icon({ name, color = 'currentColor', size = 17, stroke = 1.9 }) {
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+    stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const fillCommon = { width: size, height: size, viewBox: '0 0 24 24', fill: color };
+  switch (name) {
+    case 'drop': return <svg {...fillCommon}><path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0014 0c0-5-7-12.5-7-12.5z"/></svg>;
+    case 'heart': return <svg {...fillCommon}><path d="M12 20.5l-1.4-1.27C5.4 14.5 2.5 11.9 2.5 8.6 2.5 6 4.5 4 7 4c1.7 0 3.3.9 4.1 2.3h1.8C13.7 4.9 15.3 4 17 4c2.5 0 4.5 2 4.5 4.6 0 3.3-2.9 5.9-8.1 10.63L12 20.5z"/></svg>;
+    case 'flame': return <svg {...fillCommon}><path d="M12 2c.5 4-2.5 5-2.5 8 0 1 .5 2 1.5 2.4C10.3 11 11 9.5 11 9.5s.5 3.5 2.5 4.5c.3-.7.2-1.6.2-1.6s2.3 1.7 2.3 4.1A6 6 0 016 16.5C6 11 11 9 12 2z"/></svg>;
+    case 'run': return <svg {...common}><circle cx="14.5" cy="4.5" r="1.8" fill={color} stroke="none"/><path d="M8 21l2.5-5 3-2-1.5-4-3 2-2 2.5M13.5 10l3 1.5 1 4M11 10l3.5-1.5"/></svg>;
+    case 'shoe': return <svg {...common}><path d="M4 16v-5l3-1 2 3 3 .5 5 1.5c1 .3 2 1 2 2.5v.5H4v-2z"/></svg>;
+    case 'fork': return <svg {...common}><path d="M7 3v7M5 3v4a2 2 0 002 2M9 3v4a2 2 0 01-2 2M7 11v10M17 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4 2.5-1 2.5-4-1-5-2.5-5zM17 12v9"/></svg>;
+    case 'bolt': return <svg {...fillCommon}><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>;
+    case 'activity': return <svg {...common}><path d="M3 12h4l2.5-7 4 16 2.5-9h5"/></svg>;
+    case 'chevron': return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7"/></svg>;
+    case 'person': return <svg {...common}><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>;
+    case 'house': return <svg {...common}><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></svg>;
+    case 'chart': return <svg {...common}><path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-7"/></svg>;
+    case 'calendar': return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8 3v4M16 3v4"/></svg>;
+    default: return null;
+  }
+}
+
+function Card({ title, icon, iconColor, right, onClick, children, style = {}, pad = 16 }) {
+  const T = window.TOKENS;
+  return (
+    <div onClick={onClick} style={{
+      background: T.card, borderRadius: `var(--radius, 20px)`,
+      padding: pad, boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.035)',
+      cursor: onClick ? 'pointer' : 'default', ...style,
+    }}>
+      {title && <CardHead title={title} icon={icon} iconColor={iconColor} right={right} clickable={!!onClick} />}
+      {children}
+    </div>
+  );
+}
+
+function CardHead({ title, icon, iconColor, right, clickable }) {
+  const T = window.TOKENS;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {icon && <Icon name={icon} color={iconColor} size={15} />}
+        <span style={{ fontSize: 15, fontWeight: 600, color: iconColor || T.ink, letterSpacing: -0.2 }}>{title}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {right && <span style={{ fontSize: 13, color: T.ink2, fontVariantNumeric: 'tabular-nums' }}>{right}</span>}
+        {clickable && <Icon name="chevron" color={T.ink3} size={15} />}
+      </div>
+    </div>
+  );
+}
+
+function Header({ title, date, accent }) {
+  const T = window.TOKENS;
+  return (
+    <div style={{ padding: '4px 16px 8px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink2, letterSpacing: 0.2, textTransform: 'uppercase' }}>{date}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, color: T.ink, letterSpacing: 0.36, lineHeight: 1.1, marginTop: 2 }}>{title}</div>
+      </div>
+      <div style={{ width: 36, height: 36, borderRadius: 18, background: accent,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#fff', fontSize: 15, fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>AM</div>
+    </div>
+  );
+}
+
+function StatBlock({ label, value, unit, color }) {
+  const T = window.TOKENS;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2, letterSpacing: 0.2, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+        <span style={{ fontSize: 22, fontWeight: 700, color: color || T.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>{value}</span>
+        {unit && <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}>{unit}</span>}
+      </span>
+    </div>
+  );
+}
+
+function Chip({ children, color }) {
+  const T = window.TOKENS;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '3px 9px', borderRadius: 100, background: (color || T.green) + '1f',
+      fontSize: 12.5, fontWeight: 600, color: color || T.green, letterSpacing: -0.1 }}>{children}</span>
+  );
+}
+
+function TabBar({ active, onChange, accent }) {
+  const T = window.TOKENS;
+  const tabs = [
+    { id: 'summary', label: 'Summary', icon: 'house' },
+    { id: 'plan', label: 'Plan', icon: 'calendar' },
+    { id: 'workouts', label: 'Workouts', icon: 'run' },
+    { id: 'profile', label: 'Profile', icon: 'person' },
+  ];
+  return (
+    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40,
+      paddingBottom: 22, paddingTop: 9,
+      background: 'linear-gradient(to top, rgba(248,248,250,0.96) 60%, rgba(248,248,250,0))',
+      backdropFilter: 'blur(18px) saturate(180%)', WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+      borderTop: `0.5px solid ${T.sep}`,
+      display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start' }}>
+      {tabs.map(t => {
+        const on = active === t.id;
+        return (
+          <div key={t.id} onClick={() => onChange(t.id)}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer', flex: 1, paddingTop: 2 }}>
+            <Icon name={t.icon} color={on ? accent : T.ink3} size={24} stroke={on ? 2.2 : 1.9} />
+            <span style={{ fontSize: 10.5, fontWeight: on ? 700 : 500, color: on ? accent : T.ink2 }}>{t.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Select({ label, value, options, onChange, accent, render }) {
+  const T = window.TOKENS;
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '11px 0', borderBottom: `0.5px solid ${T.sep}`, cursor: 'pointer' }}>
+      <span style={{ fontSize: 15, color: T.ink, fontWeight: 500 }}>{label}</span>
+      <span style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 15, color: accent, fontWeight: 600 }}>
+          {render ? render(value) : (options.find(o => o.value === value)?.label ?? String(value))}
+        </span>
+        <Icon name="chevron" color={T.ink3} size={13} />
+        <select value={value} onChange={e => onChange(e.target.value)}
+          style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}>
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </span>
+    </label>
+  );
+}
+
+// ── Sport picker: swipeable card stack ─────────────────────────
+function SportCards({ sports, index, onChange, accent, durationLabel }) {
+  const T = window.TOKENS;
+  const [drag, setDrag] = React.useState(0);
+  const startX = React.useRef(null);
+  const n = sports.length;
+
+  const onDown = (e) => { startX.current = (e.touches ? e.touches[0].clientX : e.clientX); };
+  const onMove = (e) => {
+    if (startX.current === null) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    setDrag(x - startX.current);
+  };
+  const onUp = () => {
+    if (Math.abs(drag) > 60) {
+      onChange((index + (drag < 0 ? 1 : -1) + n) % n);
+    }
+    setDrag(0); startX.current = null;
+  };
+
+  const cardAt = (offset) => {
+    const s = sports[(index + offset + n) % n];
+    const sc = s.color || accent;
+    const depth = Math.abs(offset);
+    const dragShift = offset === 0 ? drag : 0;
+    const tx = offset * 10 + dragShift;
+    const ty = depth * 8;
+    const scale = 1 - depth * 0.05;
+    const rot = offset === 0 ? drag / 40 : offset * 2.5;
+    return (
+      <div key={offset + '-' + s.id} onPointerDown={offset === 0 ? onDown : undefined}
+        onPointerMove={offset === 0 ? onMove : undefined}
+        onPointerUp={offset === 0 ? onUp : undefined}
+        onPointerLeave={offset === 0 ? onUp : undefined}
+        style={{
+          position: 'absolute', inset: 0, margin: 'auto', width: '100%', height: '100%',
+          transform: `translate(${tx}px, ${ty}px) scale(${scale}) rotate(${rot}deg)`,
+          transition: dragShift ? 'none' : 'transform 0.32s cubic-bezier(.2,.8,.2,1)',
+          zIndex: 10 - depth, touchAction: 'pan-y', cursor: offset === 0 ? 'grab' : 'default',
+          borderRadius: 24, padding: 20, color: '#fff', display: 'flex', flexDirection: 'column',
+          background: `linear-gradient(150deg, ${sc} 0%, ${sc} 55%, ${sc} 100%)`,
+          boxShadow: offset === 0 ? `0 14px 30px ${sc}45` : 'none',
+          opacity: depth > 1 ? 0 : 1, overflow: 'hidden',
+        }}>
+        {depth > 0 && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.14)' }} />}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: 18 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: 0.3 }}>Time</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{durationLabel}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: 0.3 }}>Difficulty</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{s.difficulty}</div>
+            </div>
+          </div>
+          <Icon name={s.icon} color="#fff" size={26} stroke={2} />
+        </div>
+        <div style={{ flex: 1 }} />
+        <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, lineHeight: 1.15, marginBottom: 8 }}>{s.name}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, opacity: 0.92, textWrap: 'pretty' }}>{s.desc}</div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ position: 'relative', height: 236, marginBottom: 14 }}>
+        {[2, 1, 0].map(cardAt)}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+        {sports.map((s, i) => (
+          <span key={s.id} onClick={() => onChange(i)} style={{
+            width: i === index ? 16 : 6, height: 6, borderRadius: 3, cursor: 'pointer',
+            background: i === index ? (s.color || accent) : T.ink3, transition: 'width 0.2s' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Icon, Card, CardHead, Header, StatBlock, Chip, TabBar, Select, SportCards });
+
+</script>
+<!-- charts.jsx -->
+<script type="text/babel" data-presets="react">
+// charts.jsx — OneMET chart + list primitives (SVG). Design-source companion to
+// data.jsx / cards.jsx / screens.jsx. Exports to window so later scripts can use
+// bare names: GlucoseChart, TIRBar, ActivityRings, MetMinTrend, WorkoutChart,
+// IOSList, IOSListRow.
+
+function GlucoseChart({ accent, mmol, height = 158, data }) {
+  const T = window.TOKENS, D = window.DATA;
+  const arr = data || D.glucose;
+  const W = 320, H = height, lo = 50, hi = 210;
+  const x = i => (i / (arr.length - 1)) * W;
+  const y = v => H - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * H;
+  const path = arr.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const yHigh = y(D.TARGET_HIGH), yLow = y(D.TARGET_LOW), idx = D.currentIdx;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
+      <rect x="0" y={yHigh} width={W} height={yLow - yHigh} fill={T.green + '14'} />
+      <line x1="0" y1={yHigh} x2={W} y2={yHigh} stroke={T.green + '55'} strokeWidth="1" strokeDasharray="3 3" />
+      <line x1="0" y1={yLow} x2={W} y2={yLow} stroke={T.red + '55'} strokeWidth="1" strokeDasharray="3 3" />
+      <path d={path} fill="none" stroke={accent} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <circle cx={x(idx)} cy={y(arr[idx])} r="3.5" fill={accent} stroke="#fff" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function TIRBar({ height = 8 }) {
+  const T = window.TOKENS, tir = window.DATA.tir;
+  const seg = (w, c) => <div style={{ width: w + '%', background: c, height: '100%' }} />;
+  return (
+    <div style={{ display: 'flex', width: '100%', height, borderRadius: height / 2, overflow: 'hidden', background: T.hair }}>
+      {seg(tir.low, T.red)}{seg(tir.inRange, T.green)}{seg(tir.high, T.amber)}
+    </div>
+  );
+}
+
+function ActivityRings({ size = 118, stroke = 12, fractions }) {
+  const T = window.TOKENS, r = window.DATA.rings;
+  const fr = fractions || [r.move.value / r.move.goal, r.exer.value / r.exer.goal, r.met.value / r.met.goal];
+  const colors = [T.ringMove, T.ringExer, T.ringMet];
+  const cx = size / 2, cy = size / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {fr.map((f, i) => {
+        const rad = size / 2 - stroke / 2 - i * (stroke + 3);
+        const c = 2 * Math.PI * rad;
+        const frac = Math.max(0, Math.min(1, f));
+        return (
+          <g key={i} transform={`rotate(-90 ${cx} ${cy})`}>
+            <circle cx={cx} cy={cy} r={rad} fill="none" stroke={colors[i] + '26'} strokeWidth={stroke} />
+            <circle cx={cx} cy={cy} r={rad} fill="none" stroke={colors[i]} strokeWidth={stroke}
+              strokeDasharray={`${(c * frac).toFixed(1)} ${c.toFixed(1)}`} strokeLinecap="round" />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function MetMinTrend({ data, accent, height = 150 }) {
+  const T = window.TOKENS;
+  const arr = (data || window.DATA.metMinTrend).slice(-7);
+  const max = Math.max(...arr, 1);
+  const peak = Math.max(...arr);
+  const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height }}>
+      {arr.map((v, i) => {
+        const isPeak = v === peak, isToday = i === arr.length - 1;
+        const hi = isPeak || isToday;
+        const h = Math.max(4, (v / max) * (height - 26));
+        return (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: 9.5, fontWeight: 700, color: hi ? T.ink : T.ink3, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+            <div style={{ width: '100%', height: h, background: hi ? accent : accent + '55', borderRadius: 5 }} />
+            <span style={{ fontSize: 9.5, color: isToday ? accent : T.ink3, fontWeight: isToday ? 700 : 500 }}>{labels[i]}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function WorkoutChart({ workout, accent, height = 168 }) {
+  const T = window.TOKENS, D = window.DATA;
+  const arr = workout.curve || [];
+  const W = 320, H = height, lo = 50, hi = 200;
+  const x = i => (i / Math.max(1, arr.length - 1)) * W;
+  const y = v => H - ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo)) * H;
+  const path = arr.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const aS = x(workout.activityStart), aE = x(workout.activityEnd);
+  const yHigh = y(D.TARGET_HIGH), yLow = y(D.TARGET_LOW);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
+      <rect x="0" y={yHigh} width={W} height={yLow - yHigh} fill={T.green + '12'} />
+      <rect x={aS} y="0" width={aE - aS} height={H} fill={accent + '12'} />
+      <line x1={aS} y1="0" x2={aS} y2={H} stroke={accent + '55'} strokeWidth="1" strokeDasharray="3 3" />
+      <line x1={aE} y1="0" x2={aE} y2={H} stroke={accent + '55'} strokeWidth="1" strokeDasharray="3 3" />
+      <path d={path} fill="none" stroke={accent} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+function IOSList({ header, children }) {
+  const T = window.TOKENS;
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2, padding: '0 4px 6px' }}>{header}</div>
+      <div style={{ background: T.card, borderRadius: 'var(--radius, 20px)', overflow: 'hidden' }}>{children}</div>
+    </div>
+  );
+}
+
+function IOSListRow({ title, detail, icon, isLast, onClick }) {
+  const T = window.TOKENS;
+  return (
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+      borderBottom: isLast ? 'none' : `0.5px solid ${T.sep}`, cursor: onClick ? 'pointer' : 'default' }}>
+      <span style={{ width: 10, height: 10, borderRadius: 5, background: icon, flexShrink: 0 }} />
+      <span style={{ fontSize: 15, color: T.ink, flex: 1 }}>{title}</span>
+      {detail && <span style={{ fontSize: 14, color: T.ink2 }}>{detail}</span>}
+      {onClick && <Icon name="chevron" color={T.ink3} size={14} />}
+    </div>
+  );
+}
+
+Object.assign(window, { GlucoseChart, TIRBar, ActivityRings, MetMinTrend, WorkoutChart, IOSList, IOSListRow });
+
+</script>
+<!-- screens.jsx -->
+<script type="text/babel" data-presets="react">
+// screens.jsx — OneMET screens (Summary, Plan, Workouts, WorkoutDetail, Profile, GlucoseDetail)
+
+const SCROLL = {
+  height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+  display: 'flex', flexDirection: 'column', gap: 14,
+  padding: '56px 16px 120px',
+};
+
+function Arrow({ dir, color }) {
+  // trend arrow: dir = 'up' | 'down' | 'flat'
+  const rot = dir === 'up' ? -45 : dir === 'down' ? 45 : 0;
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ transform: `rotate(${rot}deg)` }}>
+      <path d="M4 12h16M14 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+// ── SUMMARY ───────────────────────────────────────────────────
+function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
+  const T = window.TOKENS, P = window.PROFILE;
+  const st = glucoseStatus(DATA.current);
+  const val = fmtGlucose(DATA.current, mmol);
+  const unit = mmol ? 'mmol/L' : 'mg/dL';
+  const r = DATA.rings;
+  const tw = DATA.todayWorkout;
+
+  return (
+    <div style={SCROLL}>
+      <Header title="Summary" date="Friday, Jun 19" accent={accent} />
+
+      {/* GLUCOSE HERO — swaps to the per-workout curve when a workout is logged today */}
+      <Card icon="drop" iconColor={T.green} title="Glucose" right="Now" onClick={onOpenGlucose}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 52, fontWeight: 700, color: T.ink, letterSpacing: -1.5, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{val}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: T.ink2 }}>{unit}</span>
+            <span style={{ marginLeft: 2 }}><Arrow dir="down" color={st.color} /></span>
+          </div>
+          <Chip color={st.color}><span style={{ width: 6, height: 6, borderRadius: 3, background: st.color, display: 'inline-block' }} />{st.label}</Chip>
+        </div>
+        {tw ? <WorkoutChart workout={tw} accent={accent} height={158} /> : <GlucoseChart accent={accent} mmol={mmol} height={158} />}
+        <div style={{ height: 1, background: T.hair, margin: '12px 0 12px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2 }}>Time in Range</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.green }}>{DATA.tir.inRange}%</span>
+        </div>
+        <TIRBar />
+        <div style={{ display: 'flex', gap: 14, marginTop: 9 }}>
+          {[['Low', DATA.tir.low, T.red], ['In Range', DATA.tir.inRange, T.green], ['High', DATA.tir.high, T.amber]].map(([l, v, c]) => (
+            <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: T.ink2, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 4, background: c }} />{l} {v}%
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      {/* INSIGHT */}
+      <div style={{ background: accent, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + accent + '40' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+          <Icon name="bolt" color="#fff" size={15} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', opacity: 0.92 }}>Activity Insight</span>
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.35, letterSpacing: -0.2 }}>
+          Your 4:08 PM run lowered glucose by <span style={{ fontWeight: 800 }}>38 mg/dL</span> over 32 min — consider 15g carbs before similar sessions.
+        </div>
+      </div>
+
+      {/* BEFORE WORKOUT (generic; full session guide lives on the Plan tab) */}
+      <Card icon="bolt" iconColor={accent} title="Before workout">
+        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.5 }}>{beforeWorkoutSummary(P.isPump)}</div>
+        <div style={{ fontSize: 11.5, fontWeight: 500, color: T.ink3, lineHeight: 1.4, marginTop: 10 }}>
+          Illustrative guidance, not medical advice. See the Plan tab for a session-specific start decision.
+        </div>
+      </Card>
+
+      {/* ACTIVITY RINGS */}
+      <Card icon="flame" iconColor={T.ringMove} title="Activity" onClick={onGoActivity}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <ActivityRings size={118} stroke={12} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
+            <RingStat color={T.ringMove} label="Move" value={r.move.value} goal={r.move.goal} unit="kcal" />
+            <RingStat color={T.ringExer} label="Exercise" value={r.exer.value} goal={r.exer.goal} unit="min" />
+            <RingStat color={T.ringMet} label="MET" value={r.met.value} goal={r.met.goal} unit="MET·min" />
+          </div>
+        </div>
+      </Card>
+
+      {/* MET·MIN TREND (full width) */}
+      <Card icon="bolt" iconColor={T.ringMet} title="MET·min" right="Last 7 days">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 30, fontWeight: 700, color: T.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums' }}>{r.met.value}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: T.ink2 }}>MET·min today</span>
+        </div>
+        <MetMinTrend accent={T.ringMet} height={150} />
+      </Card>
+    </div>
+  );
+}
+
+function RingStat({ color, label, value, goal, unit }) {
+  const T = window.TOKENS;
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color }}>{label}</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: T.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>{value}</span>
+        <span style={{ fontSize: 11.5, color: T.ink2, fontWeight: 500 }}>/ {goal} {unit}</span>
+      </div>
+      <div style={{ height: 4, borderRadius: 2, background: color + '24', marginTop: 4, overflow: 'hidden' }}>
+        <div style={{ width: Math.min(100, (value / goal) * 100) + '%', height: '100%', background: color, borderRadius: 2 }} />
+      </div>
+    </div>
+  );
+}
+
+function WorkoutRow({ w, accent, last }) {
+  const T = window.TOKENS;
+  const dropColor = w.glucoseDelta < 0 ? T.green : T.amber;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+      borderBottom: last ? 'none' : `0.5px solid ${T.sep}` }}>
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: accent + '16',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name="run" color={accent} size={20} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: T.ink }}>{w.name}</div>
+        <div style={{ fontSize: 12.5, color: T.ink2 }}>{w.time} · {w.dist} · {w.dur}</div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <Chip color={dropColor}>{w.glucoseDelta > 0 ? '+' : ''}{w.glucoseDelta} mg/dL</Chip>
+        <div style={{ fontSize: 11, color: T.ink3, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{w.avgMet} MET avg</div>
+      </div>
+    </div>
+  );
+}
+
+// ── WORKOUTS (history + detail) ──────────────────────────────
+function HistoryRow({ w, accent, last, onClick }) {
+  const T = window.TOKENS;
+  const dropColor = w.glucoseDelta < 0 ? T.green : T.amber;
+  return (
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+      borderBottom: last ? 'none' : `0.5px solid ${T.sep}`, cursor: 'pointer' }}>
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: accent + '16',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name={w.icon || 'run'} color={accent} size={20} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: T.ink }}>{w.name}</div>
+        <div style={{ fontSize: 12.5, color: T.ink2 }}>{w.day} · {w.time} · {w.dur}</div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <Chip color={dropColor}>{w.glucoseDelta > 0 ? '+' : ''}{w.glucoseDelta} mg/dL</Chip>
+        <div style={{ fontSize: 11, color: T.ink3, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{w.avgMet} MET avg</div>
+      </div>
+      <Icon name="chevron" color={T.ink3} size={14} />
+    </div>
+  );
+}
+
+function WorkoutsScreen({ accent, onOpenWorkout }) {
+  const T = window.TOKENS;
+  const [visibleWeeks, setVisibleWeeks] = React.useState(2);
+  const weeks = DATA.workoutHistory.slice(0, visibleWeeks);
+  const totalCount = DATA.workoutHistory.reduce((n, wk) => n + wk.workouts.length, 0);
+  const shownCount = weeks.reduce((n, wk) => n + wk.workouts.length, 0);
+
+  return (
+    <div style={SCROLL}>
+      <Header title="Workouts" date="History" accent={accent} />
+
+      <Card style={{ padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <ActivityRings size={140} stroke={14} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <RingStat color={T.ringMove} label="Move" value={DATA.rings.move.value} goal={DATA.rings.move.goal} unit="kcal" />
+          <RingStat color={T.ringExer} label="Exercise" value={DATA.rings.exer.value} goal={DATA.rings.exer.goal} unit="min" />
+          <RingStat color={T.ringMet} label="MET" value={DATA.rings.met.value} goal={DATA.rings.met.goal} unit="MET·min" />
+        </div>
+      </Card>
+
+      {weeks.map((wk, wi) => (
+        <Card key={wi} icon="run" iconColor={accent} title={wk.label} right={`${wk.workouts.length} workout${wk.workouts.length === 1 ? '' : 's'}`}>
+          {wk.workouts.map((w, i) => (
+            <HistoryRow key={w.id} w={w} accent={accent} last={i === wk.workouts.length - 1}
+              onClick={() => onOpenWorkout(w)} />
+          ))}
+        </Card>
+      ))}
+
+      {shownCount < totalCount && (
+        <div onClick={() => setVisibleWeeks(v => v + 2)}
+          style={{ textAlign: 'center', padding: '13px 0', fontSize: 15, fontWeight: 600, color: accent, cursor: 'pointer' }}>
+          Load Past Weeks
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkoutDetailScreen({ workout, accent, onBack }) {
+  const T = window.TOKENS;
+  const w = workout;
+  const dropColor = w.glucoseDelta < 0 ? T.green : T.amber;
+  return (
+    <div style={{ ...SCROLL, gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 2px', cursor: 'pointer' }} onClick={onBack}>
+        <svg width="12" height="20" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke={accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <span style={{ fontSize: 17, color: accent, fontWeight: 500 }}>Workouts</span>
+      </div>
+      <div style={{ padding: '0 0 2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2 }}>{w.day} · {w.time}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: T.ink, letterSpacing: 0.2, lineHeight: 1.15 }}>{w.name}</div>
+        </div>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: accent + '16',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name={w.icon || 'run'} color={accent} size={24} />
+        </div>
+      </div>
+
+      <Card>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px 8px', marginBottom: 14 }}>
+          <StatBlock label="Duration" value={w.durMin} unit="min" />
+          <StatBlock label="Distance" value={w.dist} />
+          <StatBlock label="Calories" value={w.kcal} unit="kcal" />
+          <StatBlock label="Avg MET" value={w.avgMet} />
+          <StatBlock label="Avg HR" value={w.hr} unit="bpm" color={T.red} />
+          <StatBlock label="Glucose Δ" value={`${w.glucoseDelta > 0 ? '+' : ''}${w.glucoseDelta}`} unit="mg/dL" color={dropColor} />
+        </div>
+        <WorkoutChart workout={w} accent={accent} height={168} />
+      </Card>
+
+      {/* Activity Insight — in blue as specified */}
+      <div style={{ background: '#2A6FDB', borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff',
+        boxShadow: '0 6px 18px #2A6FDB40' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+          <Icon name="bolt" color="#fff" size={15} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', opacity: 0.92 }}>Activity Insight</span>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.35, letterSpacing: -0.2, textWrap: 'pretty' }}>
+          {w.insight}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PLAN ──────────────────────────────────────────────────────
+function PlanScreen({ accent }) {
+  const T = window.TOKENS, P = window.PROFILE;
+  const [sportIndex, setSportIndex] = React.useState(0);
+  const [duration, setDuration] = React.useState(45);
+  const [iob, setIob] = React.useState(1.0);
+  const [recentCarbs, setRecentCarbs] = React.useState(30);
+  const [difficultyId, setDifficultyId] = React.useState(SPORTS[0].difficulty.toLowerCase());
+  const difficulty = DIFFICULTIES.find(d => d.id === difficultyId) || DIFFICULTIES[1];
+
+  const guide = buildRunGuide({
+    durationMin: Number(duration), iob: Number(iob), recentCarbsG: Number(recentCarbs),
+    glucoseMgdl: DATA.current, trend: DATA.currentTrend, difficulty, isPump: P.isPump,
+  });
+  const g = guide.during;
+  const st = glucoseStatus(DATA.current);
+
+  const durationOptions = [15, 30, 45, 60, 75, 90, 120, 150, 180].map(d => ({ value: d, label: `${d} min` }));
+  const iobOptions = [0, 0.5, 1.0, 1.5, 2.0, 3.0].map(v => ({ value: v, label: `${v.toFixed(1)} U` }));
+  const carbOptions = [0, 15, 30, 45, 60, 90].map(v => ({ value: v, label: `${v} g` }));
+  const diffOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.label }));
+
+  return (
+    <div style={SCROLL}>
+      <Header title="Plan" date="Run Guide" accent={accent} />
+
+      <Card icon="calendar" iconColor={accent} title="Session Details">
+        <SportCards sports={SPORTS} index={sportIndex} onChange={(i) => { setSportIndex(i); setDifficultyId(SPORTS[i].difficulty.toLowerCase()); }} accent={accent} durationLabel={`${duration} min`} />
+        <div style={{ marginTop: 6 }}>
+          <Select label="Planned Duration" value={duration} onChange={v => setDuration(Number(v))} accent={accent} options={durationOptions} />
+          <Select label="Difficulty" value={difficultyId} onChange={setDifficultyId} accent={accent} options={diffOptions} />
+        </div>
+      </Card>
+
+      <Card icon="bolt" iconColor={T.amber} title="Current State">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: `0.5px solid ${T.sep}` }}>
+          <span style={{ fontSize: 15, color: T.ink, fontWeight: 500 }}>Current Glucose</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{DATA.current}</span>
+            <span style={{ fontSize: 13, color: T.ink2 }}>mg/dL</span>
+            <Arrow dir="down" color={st.color} />
+          </span>
+        </div>
+        <Select label="Insulin on Board" value={iob} onChange={v => setIob(Number(v))} accent={accent} options={iobOptions} render={v => `${Number(v).toFixed(1)} U`} />
+        <Select label="Carbs, Last 2h" value={recentCarbs} onChange={v => setRecentCarbs(Number(v))} accent={accent} options={carbOptions} render={v => `${v} g`} />
+      </Card>
+
+      {/* START DECISION */}
+      <div style={{ background: guide.statusColor, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + guide.statusColor + '47' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 5, letterSpacing: -0.2 }}>{guide.startTitle}</div>
+        <div style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.4, opacity: 0.96 }}>{guide.startReason}</div>
+      </div>
+
+      {/* DURING (highlighted) */}
+      <div style={{ background: T.ringMet, borderRadius: 'var(--radius, 20px)', padding: 16, color: '#fff', boxShadow: '0 6px 18px ' + T.ringMet + '47' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Icon name="fork" color="#fff" size={16} />
+          <span style={{ fontSize: 16, fontWeight: 700 }}>During · {g.difficultyLabel}</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.85, textTransform: 'uppercase', letterSpacing: 0.2, textAlign: 'right' }}>{guide.bandDetail}</span>
+        </div>
+        {g.total > 0 && (
+          <div>
+            <div style={{ display: 'flex', gap: 22, marginBottom: 6 }}>
+              {g.startG > 0 && (
+                <div>
+                  <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: -0.5 }}>~{g.startG} g</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.3 }}>At Start</div>
+                </div>
+              )}
+              {g.feeds > 0 && (
+                <div>
+                  <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: -0.5 }}>~{g.perFeed} g</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.3 }}>Every {g.intervalMin} min</div>
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, marginBottom: 8 }}>{g.headline} · ~{g.total} g total</div>
+          </div>
+        )}
+        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.45, opacity: 0.96 }}>{g.text}</div>
+      </div>
+
+      <Card title="Good to know">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+            <span style={{ color: T.green, fontWeight: 700, fontSize: 15 }}>✓</span>
+            <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.4 }}>{guide.philosophy}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+            <span style={{ color: accent, fontWeight: 700, fontSize: 15 }}>↗</span>
+            <span style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.4 }}>{guide.learn}</span>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ background: T.amber + '1a', borderRadius: 14, padding: 14, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <span style={{ color: T.amber, fontWeight: 700 }}>⚠</span>
+        <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink2, lineHeight: 1.4 }}>Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, padding: '0 4px' }}>
+        Approach: a prevention-first reading of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD, oriented to recreational training.
+      </div>
+    </div>
+  );
+}
+
+// ── PROFILE ───────────────────────────────────────────────────
+function ProfileScreen({ accent }) {
+  const T = window.TOKENS, P = window.PROFILE;
+  const delivery = P.insulinDelivery === 'pump' ? 'Insulin Pump' : 'Injections (MDI)';
+  return (
+    <div style={{ ...SCROLL, gap: 18 }}>
+      <Header title="Profile" date="Account" accent={accent} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 16px 6px' }}>
+        <div style={{ width: 60, height: 60, borderRadius: 30, background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 600 }}>{P.initials}</div>
+        <div>
+          <div style={{ fontSize: 21, fontWeight: 700, color: T.ink }}>{P.name}</div>
+          <div style={{ fontSize: 14, color: T.ink2 }}>{P.diabetesType} · since {P.diagnosisYear}</div>
+        </div>
+      </div>
+
+      <IOSList header="Connected Devices">
+        <IOSListRow title="CGM Sensor" detail="Connected" icon={T.green} />
+        <IOSListRow title="Apple Watch" detail="Series 9" icon={T.red} />
+        <IOSListRow title="Insulin Pen" detail="Synced 9:41" icon={accent} isLast />
+      </IOSList>
+
+      <IOSList header="Glucose Source">
+        <IOSListRow title="Nightscout" detail="On · live" icon={T.green} isLast />
+      </IOSList>
+
+      <IOSList header="Personal Targets">
+        <IOSListRow title="Glucose Range" detail={`${P.glucoseLow}–${P.glucoseHigh} mg/dL`} icon={T.green} />
+        <IOSListRow title="Daily MET Goal" detail={`${P.dailyMetGoal} MET·min`} icon={T.ringMet} />
+        <IOSListRow title="Carb Ratio" detail={`1 : ${P.carbRatio}`} icon={T.amber} />
+        <IOSListRow title="Insulin Delivery" detail={delivery} icon={accent} isLast />
+      </IOSList>
+
+      <IOSList header="Body">
+        <IOSListRow title="Weight" detail={`${P.weightKg.toFixed(1)} kg`} icon={T.teal} isLast />
+      </IOSList>
+
+      <IOSList header="Data">
+        <IOSListRow title="Export Health Report" icon={accent} />
+        <IOSListRow title="Share with Clinician" icon={T.teal} />
+        <IOSListRow title="Notifications" icon={T.violet} isLast />
+      </IOSList>
+    </div>
+  );
+}
+
+// ── GLUCOSE DETAIL (overlay) ──────────────────────────────────
+function GlucoseDetail({ accent, mmol, onBack }) {
+  const T = window.TOKENS;
+  const st = glucoseStatus(DATA.current);
+  return (
+    <div style={{ ...SCROLL, gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 2px', cursor: 'pointer' }} onClick={onBack}>
+        <svg width="12" height="20" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke={accent} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <span style={{ fontSize: 17, color: accent, fontWeight: 500 }}>Summary</span>
+      </div>
+      <div style={{ padding: '0 0 2px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2 }}>Friday, Jun 19</div>
+        <div style={{ fontSize: 32, fontWeight: 700, color: T.ink, letterSpacing: 0.36, lineHeight: 1.1 }}>Glucose</div>
+      </div>
+
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 52, fontWeight: 700, color: T.ink, letterSpacing: -1.5, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{fmtGlucose(DATA.current, mmol)}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: T.ink2 }}>{mmol ? 'mmol/L' : 'mg/dL'}</span>
+          </div>
+          <Chip color={st.color}><span style={{ width: 6, height: 6, borderRadius: 3, background: st.color, display: 'inline-block' }} />{st.label} · falling</Chip>
+        </div>
+        <GlucoseChart accent={accent} mmol={mmol} height={184} />
+      </Card>
+
+      <Card title="Today">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 14px' }}>
+          <StatBlock label="Average" value={fmtGlucose(DATA.avg, mmol)} unit={mmol ? 'mmol/L' : 'mg/dL'} />
+          <StatBlock label="Time in Range" value={DATA.tir.inRange} unit="%" color={T.green} />
+          <StatBlock label="Lowest" value={fmtGlucose(68, mmol)} color={T.red} />
+          <StatBlock label="Highest" value={fmtGlucose(191, mmol)} color={T.amber} />
+          <StatBlock label="Std. Dev" value={mmol ? '1.8' : '32'} />
+          <StatBlock label="GMI" value="6.4" unit="%" />
+        </div>
+        <div style={{ height: 1, background: T.hair, margin: '16px 0 14px' }} />
+        <div style={{ marginBottom: 8, fontSize: 12.5, fontWeight: 600, color: T.ink2, textTransform: 'uppercase', letterSpacing: 0.2 }}>Range Distribution</div>
+        <TIRBar height={16} />
+        <div style={{ display: 'flex', gap: 14, marginTop: 9 }}>
+          {[['Low', DATA.tir.low, T.red], ['In Range', DATA.tir.inRange, T.green], ['High', DATA.tir.high, T.amber]].map(([l, v, c]) => (
+            <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: T.ink2, fontWeight: 500 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 4, background: c }} />{l} {v}%
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      <Card icon="bolt" iconColor={accent} title="Events">
+        {[
+          { t: '7:30 AM', d: 'Breakfast · 62g carbs', c: T.amber },
+          { t: '8:12 AM', d: 'Walk · −9 mg/dL', c: T.green },
+          { t: '12:15 PM', d: 'Lunch · 48g carbs', c: T.amber },
+          { t: '4:08 PM', d: 'Run · −38 mg/dL', c: T.green },
+          { t: '5:55 PM', d: 'Snack · 22g (low treatment)', c: T.red },
+        ].map((e, i, a) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i === a.length - 1 ? 'none' : `0.5px solid ${T.sep}` }}>
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: e.c, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: T.ink2, width: 64, fontVariantNumeric: 'tabular-nums' }}>{e.t}</span>
+            <span style={{ fontSize: 14, color: T.ink, fontWeight: 500 }}>{e.d}</span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+Object.assign(window, { SummaryScreen, WorkoutsScreen, WorkoutDetailScreen, PlanScreen, ProfileScreen, GlucoseDetail });
+
+</script>
+<!-- app root -->
+<script type="text/babel" data-presets="react">
+// app — root: phone frame, tab state (Plan is 2nd), slide-over overlays.
+function App() {
+  const accent = '#2A6FDB';
+  const [tab, setTab] = React.useState('summary');
+  const [showGlucose, setShowGlucose] = React.useState(false);
+  const [openWorkout, setOpenWorkout] = React.useState(null);
+  const mmol = false;
+
+  let screen;
+  if (tab === 'summary') screen = <SummaryScreen accent={accent} mmol={mmol} onOpenGlucose={() => setShowGlucose(true)} onGoActivity={() => setTab('workouts')} />;
+  else if (tab === 'plan') screen = <PlanScreen accent={accent} />;
+  else if (tab === 'workouts') screen = <WorkoutsScreen accent={accent} onOpenWorkout={setOpenWorkout} />;
+  else screen = <ProfileScreen accent={accent} />;
+
+  const changeTab = (t) => { setShowGlucose(false); setOpenWorkout(null); setTab(t); };
+
+  return (
+    <div className="screen">
+      {screen}
+      <TabBar active={tab} onChange={changeTab} accent={accent} />
+      {showGlucose && <div className="overlay"><GlucoseDetail accent={accent} mmol={mmol} onBack={() => setShowGlucose(false)} /></div>}
+      {openWorkout && <div className="overlay"><WorkoutDetailScreen workout={openWorkout} accent={accent} onBack={() => setOpenWorkout(null)} /></div>}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>

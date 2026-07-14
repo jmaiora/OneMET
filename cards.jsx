@@ -94,8 +94,8 @@ function TabBar({ active, onChange, accent }) {
   const T = window.TOKENS;
   const tabs = [
     { id: 'summary', label: 'Summary', icon: 'house' },
-    { id: 'workouts', label: 'Workouts', icon: 'run' },
     { id: 'plan', label: 'Plan', icon: 'calendar' },
+    { id: 'workouts', label: 'Workouts', icon: 'run' },
     { id: 'profile', label: 'Profile', icon: 'person' },
   ];
   return (

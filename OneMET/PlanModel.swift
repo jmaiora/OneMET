@@ -54,6 +54,18 @@ enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
     case maximal = "Maximal"
     var id: String { rawValue }
 
+    // Map a sport's inherent difficulty label to a fuelling level — used when the
+    // user swipes to a different sport in the Plan tab (still manually overridable).
+    init(sportDifficulty: String) {
+        switch sportDifficulty.lowercased() {
+        case "light":    self = .light
+        case "moderate": self = .moderate
+        case "vigorous": self = .vigorous
+        case "maximal":  self = .maximal
+        default:         self = .moderate
+        }
+    }
+
     // Riddell/EXTOD carbohydrate fuelling rate during exercise (grams per hour).
     var carbsPerHour: Int {
         switch self {
