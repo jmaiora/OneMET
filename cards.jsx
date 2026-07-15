@@ -140,7 +140,7 @@ function Select({ label, value, options, onChange, accent, render }) {
 }
 
 // ── Sport picker: swipeable card stack ─────────────────────────
-function SportCards({ sports, index, onChange, accent, durationLabel }) {
+function SportCards({ sports, index, onChange, accent, durationLabel, difficultyLabel }) {
   const T = window.TOKENS;
   const [drag, setDrag] = React.useState(0);
   const startX = React.useRef(null);
@@ -192,7 +192,7 @@ function SportCards({ sports, index, onChange, accent, durationLabel }) {
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: 0.3 }}>Difficulty</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{s.difficulty}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>{offset === 0 && difficultyLabel ? difficultyLabel : s.difficulty}</div>
             </div>
           </div>
           <Icon name={s.icon} color="#fff" size={26} stroke={2} />

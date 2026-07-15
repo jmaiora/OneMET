@@ -31,7 +31,7 @@ struct PlanView: View {
             AppHeader(title: "Plan", date: "Run Guide", accent: accent)
 
             Card(title: "Session Details", icon: "calendar", iconColor: accent) {
-                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent, durationLabel: "\(duration) min")
+                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent, durationLabel: "\(duration) min", difficultyLabel: difficulty.rawValue)
                     .padding(.bottom, 2)
                 SelectRow(label: "Planned Duration", selection: $duration,
                           options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map { (value: $0, label: "\($0) min") }, accent: accent)

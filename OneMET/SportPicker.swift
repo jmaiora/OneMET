@@ -8,6 +8,7 @@ struct SportPicker: View {
     @Binding var index: Int
     var accent: Color
     var durationLabel: String
+    var difficultyLabel: String
 
     @State private var drag: CGFloat = 0
 
@@ -48,7 +49,8 @@ struct SportPicker: View {
         let scale = 1 - depth * 0.05
         let rot = offset == 0 ? Double(drag / 40) : Double(offset) * 2.5
 
-        let styled = card(s, color: sc, dim: offset != 0)
+        let styled = card(s, color: sc, dim: offset != 0,
+                          difficultyText: offset == 0 ? difficultyLabel : s.difficulty)
             .scaleEffect(scale)
             .rotationEffect(.degrees(rot))
             .offset(x: tx, y: ty)
@@ -72,12 +74,12 @@ struct SportPicker: View {
         }
     }
 
-    private func card(_ s: Sport, color sc: Color, dim: Bool) -> some View {
+    private func card(_ s: Sport, color sc: Color, dim: Bool, difficultyText: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 HStack(spacing: 18) {
                     cardStat("Time", durationLabel)
-                    cardStat("Difficulty", s.difficulty)
+                    cardStat("Difficulty", difficultyText)
                 }
                 Spacer()
                 AppIconView(name: s.icon, color: .white, size: 26, weight: .bold)
@@ -116,7 +118,7 @@ struct SportPicker: View {
 #Preview {
     ZStack {
         Theme.bg.ignoresSafeArea()
-        SportPicker(sports: SPORTS, index: .constant(1), accent: Theme.accent, durationLabel: "45 min")
+        SportPicker(sports: SPORTS, index: .constant(1), accent: Theme.accent, durationLabel: "45 min", difficultyLabel: "Moderate")
             .padding()
     }
 }

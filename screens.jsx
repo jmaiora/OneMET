@@ -276,7 +276,7 @@ function PlanScreen({ accent }) {
       <Header title="Plan" date="Run Guide" accent={accent} />
 
       <Card icon="calendar" iconColor={accent} title="Session Details">
-        <SportCards sports={SPORTS} index={sportIndex} onChange={(i) => { setSportIndex(i); setDifficultyId(SPORTS[i].difficulty.toLowerCase()); }} accent={accent} durationLabel={`${duration} min`} />
+        <SportCards sports={SPORTS} index={sportIndex} onChange={(i) => { setSportIndex(i); setDifficultyId(SPORTS[i].difficulty.toLowerCase()); }} accent={accent} durationLabel={`${duration} min`} difficultyLabel={difficulty.label} />
         <div style={{ marginTop: 6 }}>
           <Select label="Planned Duration" value={duration} onChange={v => setDuration(Number(v))} accent={accent} options={durationOptions} />
           <Select label="Difficulty" value={difficultyId} onChange={setDifficultyId} accent={accent} options={diffOptions} />
