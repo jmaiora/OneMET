@@ -16,7 +16,7 @@ struct WorkoutsView: View {
         let total = d.workoutHistory.reduce(0) { $0 + $1.sessions.count }
         let shown = weeks.reduce(0) { $0 + $1.sessions.count }
 
-        ScreenScaffold {
+        ScreenScaffold(onRefresh: { await store.refresh() }) {
             AppHeader(title: "Workouts", date: "History", accent: accent)
 
             // Rings hero

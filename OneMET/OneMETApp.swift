@@ -16,6 +16,7 @@ struct RootView: View {
     @StateObject private var store = HealthDataStore()
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var glucoseSource = GlucoseSourceStore()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var openWorkout: WorkoutSession?
@@ -79,6 +80,9 @@ struct RootView: View {
             store.glucoseConfig = newConfig
             store.startPolling()
             Task { await store.refresh() }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { Task { await store.refresh() } }
         }
     }
 

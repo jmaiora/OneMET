@@ -16,7 +16,7 @@ struct SummaryView: View {
         let unit = mmol ? "mmol/L" : "mg/dL"
         let r = d.rings
 
-        ScreenScaffold {
+        ScreenScaffold(onRefresh: { await store.refresh() }) {
             AppHeader(title: "Summary", date: Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()), accent: accent)
 
             // ── Glucose hero ──

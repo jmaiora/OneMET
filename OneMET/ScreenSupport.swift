@@ -12,14 +12,20 @@ func fmtNum(_ v: Double) -> String {
 
 struct ScreenScaffold<Content: View>: View {
     var spacing: CGFloat = 14
+    var onRefresh: (() async -> Void)? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        let scroll = ScrollView(showsIndicators: false) {
             VStack(spacing: spacing) { content() }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 110)   // clear the floating tab bar
+        }
+        if let onRefresh {
+            scroll.refreshable { await onRefresh() }
+        } else {
+            scroll
         }
     }
 }
