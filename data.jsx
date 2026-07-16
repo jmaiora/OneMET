@@ -264,7 +264,7 @@ function beforeWorkoutSummary(isPump) {
     : "Prevent, don't treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near 140–180 mg/dL, carry fast carbs.";
 }
 
-function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, difficulty, isPump }) {
+function buildRunGuide({ durationMin, iob, glucoseMgdl, trend, difficulty, isPump }) {
   const T = window.TOKENS;
   const diff = difficulty || DIFFICULTIES[1];
 
@@ -274,21 +274,21 @@ function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, dif
   else { band = 'Long'; bandDetail = 'Over 90 min · fuel for performance'; }
 
   const trendFalling = trend < 0;
+  const startG = startCarbGrams(glucoseMgdl, diff);
   let status = 'unknown', title = 'Check your glucose first';
   let reason = 'No live CGM / Nightscout reading — head out only when you can see your glucose and trend.';
   if (glucoseMgdl && glucoseMgdl > 0) {
     const gi = Math.round(glucoseMgdl), highIOB = iob > 1.2;
     if (glucoseMgdl < 70) { status = 'stop'; title = "Treat first — don't start";
       reason = `You're low (${gi} mg/dL). Treat, and wait until you've recovered before heading out.`; }
-    else if (glucoseMgdl < 90) { status = 'wait'; title = 'Top up ~15 g and wait';
-      reason = `${gi} mg/dL is below the safe start zone — take ~15 g and re-check before you go.`; }
+    else if (glucoseMgdl < 90) { status = 'wait'; title = `Top up ~${startG} g and wait`;
+      reason = `${gi} mg/dL is below the safe start zone — take ~${startG} g and re-check before you go.`; }
     else if (glucoseMgdl < 126) {
-      if (trendFalling) { status = 'topUp'; title = 'Top up ~10–15 g first'; reason = `${gi} and falling — a little carb now heads off an early drop.`; }
-      else if (recentCarbsG >= 30) { status = 'go'; title = 'Likely OK to start'; reason = `${gi} with ~${recentCarbsG} g eaten recently — those carbs should lift you. Start and watch your trend.`; }
-      else { status = 'topUp'; title = 'Small top-up, then go'; reason = `${gi} is on the low side — ~10 g, or start and watch your trend closely.`; }
+      if (trendFalling) { status = 'topUp'; title = `Top up ~${startG} g first`; reason = `${gi} and falling — take ~${startG} g now to head off an early drop.`; }
+      else { status = 'topUp'; title = `Top up ~${startG} g, then go`; reason = `${gi} is on the low side — take ~${startG} g and start, watching your trend.`; }
     } else if (glucoseMgdl <= 180) {
-      if (trendFalling) { status = 'topUp'; title = 'Top up ~10 g first'; reason = `${gi} but drifting down — a small carb steadies the start.`; }
-      else if (highIOB) { status = 'topUp'; title = 'Consider ~10 g — insulin on board'; reason = `${gi} is fine, but ${iob.toFixed(1)} U on board will keep pulling you down.`; }
+      if (trendFalling) { status = 'topUp'; title = `Top up ~${startG} g first`; reason = `${gi} but drifting down — ~${startG} g steadies the start.`; }
+      else if (highIOB) { status = 'topUp'; title = `Consider ~${startG} g — insulin on board`; reason = `${gi} is fine, but ${iob.toFixed(1)} U on board will keep pulling you down — ~${startG} g covers it.`; }
       else { status = 'go'; title = 'Good to start'; reason = `${gi} mg/dL is right in the sweet spot — head out.`; }
     } else if (glucoseMgdl <= 250) { status = 'go'; title = 'Good to start'; reason = `${gi} is a little high; easy exercise usually brings it down. No carbs needed.`; }
     else { status = 'wait'; title = 'Check ketones first'; reason = `${gi} is high — if it's unexpected, check ketones and don't run if they're raised. Otherwise start gently.`; }
@@ -303,7 +303,6 @@ function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, dif
 
   const feedIntervalMin = 45;
   const perHour = diff.carbsPerHour;
-  const startG = startCarbGrams(glucoseMgdl, diff);
   const perFeed = Math.round(perHour * feedIntervalMin / 60);
   const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
   const total = startG + perFeed * feeds;

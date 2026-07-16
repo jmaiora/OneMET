@@ -255,12 +255,11 @@ function PlanScreen({ accent }) {
   const [sportIndex, setSportIndex] = React.useState(0);
   const [duration, setDuration] = React.useState(45);
   const [iob, setIob] = React.useState(1.0);
-  const [recentCarbs, setRecentCarbs] = React.useState(30);
   const [difficultyId, setDifficultyId] = React.useState(SPORTS[0].difficulty.toLowerCase());
   const difficulty = DIFFICULTIES.find(d => d.id === difficultyId) || DIFFICULTIES[1];
 
   const guide = buildRunGuide({
-    durationMin: Number(duration), iob: Number(iob), recentCarbsG: Number(recentCarbs),
+    durationMin: Number(duration), iob: Number(iob),
     glucoseMgdl: DATA.current, trend: DATA.currentTrend, difficulty, isPump: P.isPump,
   });
   const g = guide.during;
@@ -268,7 +267,6 @@ function PlanScreen({ accent }) {
 
   const durationOptions = [15, 30, 45, 60, 75, 90, 120, 150, 180].map(d => ({ value: d, label: `${d} min` }));
   const iobOptions = [0, 0.5, 1.0, 1.5, 2.0, 3.0].map(v => ({ value: v, label: `${v.toFixed(1)} U` }));
-  const carbOptions = [0, 15, 30, 45, 60, 90].map(v => ({ value: v, label: `${v} g` }));
   const diffOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.label }));
 
   return (
@@ -293,7 +291,6 @@ function PlanScreen({ accent }) {
           </span>
         </div>
         <Select label="Insulin on Board" value={iob} onChange={v => setIob(Number(v))} accent={accent} options={iobOptions} render={v => `${Number(v).toFixed(1)} U`} />
-        <Select label="Carbs, Last 2h" value={recentCarbs} onChange={v => setRecentCarbs(Number(v))} accent={accent} options={carbOptions} render={v => `${v} g`} />
       </Card>
 
       {/* START DECISION */}

@@ -12,7 +12,6 @@ struct PlanView: View {
     @State private var sportIndex = 0
     @State private var duration = 45
     @State private var iob = 1.0
-    @State private var recentCarbs = 30
     @State private var difficulty: WorkoutDifficulty = WorkoutDifficulty(sportDifficulty: SPORTS[0].difficulty)
 
     var body: some View {
@@ -22,7 +21,7 @@ struct PlanView: View {
         let trend = d.currentTrend
         let gStatus = glucose.map { glucoseStatus($0, low: d.targetLow, high: d.targetHigh) }
         let guide = buildRunGuide(sportId: sport.id, durationMin: duration, iob: iob,
-                                  recentCarbsG: recentCarbs, glucoseMgdl: glucose,
+                                  glucoseMgdl: glucose,
                                   trendFalling: trend == .down, trendRising: trend == .up,
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
                                   difficulty: difficulty)
@@ -78,8 +77,6 @@ struct PlanView: View {
 
                 SelectRow(label: "Insulin on Board", selection: $iob,
                           options: [0, 0.5, 1.0, 1.5, 2.0, 3.0].map { (value: $0, label: String(format: "%.1f U", $0)) }, accent: accent)
-                SelectRow(label: "Carbs, Last 2h", selection: $recentCarbs,
-                          options: [0, 15, 30, 45, 60, 90].map { (value: $0, label: "\($0) g") }, accent: accent)
             }
 
             startBanner(guide)

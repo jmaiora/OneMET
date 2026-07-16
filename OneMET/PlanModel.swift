@@ -125,7 +125,7 @@ struct RunGuide {
     let usedGlucose: Double?
 }
 
-func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG: Int,
+func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
                    deliveryIsPump: Bool, difficulty: WorkoutDifficulty) -> RunGuide {
     // ── 2. Match advice to run duration ──
@@ -134,7 +134,11 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · fuel as needed" }
     else { band = "Long"; bandDetail = "Over 90 min · fuel for performance" }
 
-    // ── 3. Start decision from glucose + trend (not fixed numbers) ──
+    // Carbs to take before starting — the same value the During card shows "at start",
+    // so the banner's top-up amount always matches the During section.
+    let duringStartG = startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)
+
+    // ── 3. Start decision from glucose + trend; top-up grams = the During "at start" ──
     var status: StartStatus = .unknown
     var title = "Check your glucose first"
     var reason = "No live CGM / Nightscout reading — head out only when you can see your glucose and trend."
@@ -145,26 +149,23 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
             status = .stop; title = "Treat first — don't start"
             reason = "You're low (\(gi) mg/dL). Treat, and wait until you've recovered before heading out."
         } else if g < 90 {
-            status = .wait; title = "Top up ~15 g and wait"
-            reason = "\(gi) mg/dL is below the safe start zone — take ~15 g and re-check before you go."
+            status = .wait; title = "Top up ~\(duringStartG) g and wait"
+            reason = "\(gi) mg/dL is below the safe start zone — take ~\(duringStartG) g and re-check before you go."
         } else if g < 126 {
             if trendFalling {
-                status = .topUp; title = "Top up ~10–15 g first"
-                reason = "\(gi) and falling — a little carb now heads off an early drop."
-            } else if recentCarbsG >= 30 {
-                status = .go; title = "Likely OK to start"
-                reason = "\(gi) with ~\(recentCarbsG) g eaten recently — those carbs should lift you. Start and watch your trend."
+                status = .topUp; title = "Top up ~\(duringStartG) g first"
+                reason = "\(gi) and falling — take ~\(duringStartG) g now to head off an early drop."
             } else {
-                status = .topUp; title = "Small top-up, then go"
-                reason = "\(gi) is on the low side — ~10 g, or start and watch your trend closely."
+                status = .topUp; title = "Top up ~\(duringStartG) g, then go"
+                reason = "\(gi) is on the low side — take ~\(duringStartG) g and start, watching your trend."
             }
         } else if g <= 180 {
             if trendFalling {
-                status = .topUp; title = "Top up ~10 g first"
-                reason = "\(gi) but drifting down — a small carb steadies the start."
+                status = .topUp; title = "Top up ~\(duringStartG) g first"
+                reason = "\(gi) but drifting down — ~\(duringStartG) g steadies the start."
             } else if highIOB {
-                status = .topUp; title = "Consider ~10 g — insulin on board"
-                reason = "\(gi) is fine, but \(String(format: "%.1f", iob)) U on board will keep pulling you down."
+                status = .topUp; title = "Consider ~\(duringStartG) g — insulin on board"
+                reason = "\(gi) is fine, but \(String(format: "%.1f", iob)) U on board will keep pulling you down — ~\(duringStartG) g covers it."
             } else {
                 status = .go; title = "Good to start"
                 reason = "\(gi) mg/dL is right in the sweet spot — head out."
@@ -186,7 +187,6 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     // A recommended intake at the start, then refuels every 45 min.
     let feedIntervalMin = 45
     let duringPerHourG = difficulty.carbsPerHour
-    let duringStartG = startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
     let duringTotalG = duringStartG + perFeedG * duringFeeds
