@@ -50,7 +50,27 @@ workflows:
     scripts:
       - name: Generate Xcode project from project.yml
         script: |
-          brew install xcodegen
+          set -e
+          # XcodeGen install occasionally fails on the runner's Homebrew with
+          # "Cellar/xcodegen/<v> is not a directory" during the bottle pour, leaving
+          # xcodegen off PATH (exit 127). Clean any broken Cellar entry and retry;
+          # if brew still can't produce a working binary, fall back to XcodeGen's
+          # official release archive so the build never depends on the brew pour.
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            CELLAR="$(brew --cellar 2>/dev/null || true)"
+            [ -n "$CELLAR" ] && rm -rf "$CELLAR/xcodegen" 2>/dev/null || true
+            brew install xcodegen || brew reinstall xcodegen || true
+          fi
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            echo "Homebrew install unavailable — fetching XcodeGen release binary"
+            XCODEGEN_VERSION=2.46.0
+            curl -fsSL -o /tmp/xcodegen.zip \
+              "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+            unzip -q -o /tmp/xcodegen.zip -d /tmp/xcodegen-dist
+            XCG_BIN="$(find /tmp/xcodegen-dist -type f -name xcodegen -path '*/bin/*' | head -1)"
+            export PATH="$(dirname "$XCG_BIN"):$PATH"
+          fi
+          xcodegen --version
           xcodegen generate
       - name: Initialize the keychain
         script: keychain initialize
