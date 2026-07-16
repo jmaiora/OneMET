@@ -267,11 +267,26 @@ function buildWorkoutHistory() {
 // Ported from the Swift PlanModel: WorkoutDifficulty (Riddell/EXTOD fuelling rates),
 // beforeWorkoutSummary, and buildRunGuide (start decision + During fuelling).
 const DIFFICULTIES = [
-  { id: 'light',    label: 'Light',    carbsPerHour: 15, startCarbG: 0 },
-  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startCarbG: 10 },
-  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startCarbG: 15 },
-  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startCarbG: 20 },
+  { id: 'light',    label: 'Light',    carbsPerHour: 15, startBumpG: 0 },
+  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startBumpG: 5 },
+  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startBumpG: 5 },
+  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startBumpG: 10 },
 ];
+
+// Start carbs = glucose base (Riddell pre-exercise bands) + difficulty bump; 0 when high.
+function startCarbGrams(glucoseMgdl, difficulty) {
+  let base;
+  if (glucoseMgdl && glucoseMgdl > 0) {
+    if (glucoseMgdl < 90) base = 20;
+    else if (glucoseMgdl < 126) base = 15;
+    else if (glucoseMgdl <= 180) base = 10;
+    else base = 0;
+  } else {
+    base = 10;
+  }
+  if (base === 0) return 0;
+  return base + difficulty.startBumpG;
+}
 
 function beforeWorkoutSummary(isPump) {
   return isPump
@@ -317,7 +332,8 @@ function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, dif
   }[status];
 
   const feedIntervalMin = 45;
-  const perHour = diff.carbsPerHour, startG = diff.startCarbG;
+  const perHour = diff.carbsPerHour;
+  const startG = startCarbGrams(glucoseMgdl, diff);
   const perFeed = Math.round(perHour * feedIntervalMin / 60);
   const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
   const total = startG + perFeed * feeds;
@@ -1193,22 +1209,18 @@ Object.assign(window, { SummaryScreen, WorkoutsScreen, WorkoutDetailScreen, Plan
 </script>
 <!-- app root -->
 <script type="text/babel" data-presets="react">
-// app — root: phone frame, tab state (Plan is 2nd), slide-over overlays.
 function App() {
   const accent = '#2A6FDB';
   const [tab, setTab] = React.useState('summary');
   const [showGlucose, setShowGlucose] = React.useState(false);
   const [openWorkout, setOpenWorkout] = React.useState(null);
   const mmol = false;
-
   let screen;
   if (tab === 'summary') screen = <SummaryScreen accent={accent} mmol={mmol} onOpenGlucose={() => setShowGlucose(true)} onGoActivity={() => setTab('workouts')} />;
   else if (tab === 'plan') screen = <PlanScreen accent={accent} />;
   else if (tab === 'workouts') screen = <WorkoutsScreen accent={accent} onOpenWorkout={setOpenWorkout} />;
   else screen = <ProfileScreen accent={accent} />;
-
   const changeTab = (t) => { setShowGlucose(false); setOpenWorkout(null); setTab(t); };
-
   return (
     <div className="screen">
       {screen}

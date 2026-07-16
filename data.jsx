@@ -237,11 +237,26 @@ function buildWorkoutHistory() {
 // Ported from the Swift PlanModel: WorkoutDifficulty (Riddell/EXTOD fuelling rates),
 // beforeWorkoutSummary, and buildRunGuide (start decision + During fuelling).
 const DIFFICULTIES = [
-  { id: 'light',    label: 'Light',    carbsPerHour: 15, startCarbG: 0 },
-  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startCarbG: 10 },
-  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startCarbG: 15 },
-  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startCarbG: 20 },
+  { id: 'light',    label: 'Light',    carbsPerHour: 15, startBumpG: 0 },
+  { id: 'moderate', label: 'Moderate', carbsPerHour: 30, startBumpG: 5 },
+  { id: 'vigorous', label: 'Vigorous', carbsPerHour: 45, startBumpG: 5 },
+  { id: 'maximal',  label: 'Maximal',  carbsPerHour: 60, startBumpG: 10 },
 ];
+
+// Start carbs = glucose base (Riddell pre-exercise bands) + difficulty bump; 0 when high.
+function startCarbGrams(glucoseMgdl, difficulty) {
+  let base;
+  if (glucoseMgdl && glucoseMgdl > 0) {
+    if (glucoseMgdl < 90) base = 20;
+    else if (glucoseMgdl < 126) base = 15;
+    else if (glucoseMgdl <= 180) base = 10;
+    else base = 0;
+  } else {
+    base = 10;
+  }
+  if (base === 0) return 0;
+  return base + difficulty.startBumpG;
+}
 
 function beforeWorkoutSummary(isPump) {
   return isPump
@@ -287,7 +302,8 @@ function buildRunGuide({ durationMin, iob, recentCarbsG, glucoseMgdl, trend, dif
   }[status];
 
   const feedIntervalMin = 45;
-  const perHour = diff.carbsPerHour, startG = diff.startCarbG;
+  const perHour = diff.carbsPerHour;
+  const startG = startCarbGrams(glucoseMgdl, diff);
   const perFeed = Math.round(perHour * feedIntervalMin / 60);
   const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
   const total = startG + perFeed * feeds;

@@ -75,15 +75,33 @@ enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
         case .maximal:  return 60
         }
     }
-    // Recommended carbohydrate to take at the start of the session (grams).
-    var startCarbG: Int {
+    // Extra start carbs for harder efforts, added on top of the glucose-based base
+    // (see startCarbGrams). Harder sessions drop glucose faster, so pre-fuel a little more.
+    var startBumpG: Int {
         switch self {
         case .light:    return 0
-        case .moderate: return 10
-        case .vigorous: return 15
-        case .maximal:  return 20
+        case .moderate: return 5
+        case .vigorous: return 5
+        case .maximal:  return 10
         }
     }
+}
+
+// Carbs to take at the start of a session — a glucose-based base (Riddell-style
+// pre-exercise bands) plus a small bump for harder efforts. Returns 0 when glucose is
+// already high (> 180), regardless of intensity. No live reading → assume in-range.
+func startCarbGrams(glucoseMgdl: Double?, difficulty: WorkoutDifficulty) -> Int {
+    let base: Int
+    if let g = glucoseMgdl, g > 0 {
+        if g < 90 { base = 20 }
+        else if g < 126 { base = 15 }
+        else if g <= 180 { base = 10 }
+        else { base = 0 }
+    } else {
+        base = 10
+    }
+    guard base > 0 else { return 0 }
+    return base + difficulty.startBumpG
 }
 
 struct RunGuide {
@@ -168,7 +186,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double, recentCarbsG:
     // A recommended intake at the start, then refuels every 45 min.
     let feedIntervalMin = 45
     let duringPerHourG = difficulty.carbsPerHour
-    let duringStartG = difficulty.startCarbG
+    let duringStartG = startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
     let duringTotalG = duringStartG + perFeedG * duringFeeds
