@@ -185,9 +185,18 @@ final class HealthDataStore: ObservableObject {
     private let svc = HealthKitService()
     private let cal = Calendar.current
     private var pollTask: Task<Void, Never>?
+    /// One glucose fetch per refresh, shared by the day chart and every workout curve.
+    private var glucoseCache: (from: Date, to: Date, readings: [(date: Date, v: Double)])?
 
     /// Unified glucose read — Nightscout when active (falls back to HealthKit on error), else HealthKit.
     private func glucoseReadings(from: Date, to: Date) async -> [(date: Date, v: Double)] {
+        // Serve from the per-refresh cache when the window is already covered. Each workout
+        // used to issue its own Nightscout request; any that failed were swallowed by `try?`
+        // and fell back to (hours-lagging) HealthKit, which left the during-workout stretch
+        // stale while the rest of the day — a single successful request — looked correct.
+        if let c = glucoseCache, c.from <= from, c.to >= to {
+            return c.readings.filter { $0.date >= from && $0.date <= to }
+        }
         if glucoseConfig.isActive {
             if let r = try? await NightscoutClient(config: glucoseConfig).entries(from: from, to: to), !r.isEmpty {
                 return r
@@ -196,6 +205,20 @@ final class HealthDataStore: ObservableObject {
         let samples = (try? await svc.samples(.bloodGlucose, from: from, to: to, ascending: true)) ?? []
         let unit = HealthKitService.mgdl
         return samples.map { (date: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+    }
+
+    /// Fetch a glucose span once and cache it for this refresh, so the day chart and every
+    /// workout curve slice the same dataset instead of each issuing its own request.
+    private func primeGlucose(from: Date, to: Date) async {
+        if glucoseConfig.isActive,
+           let r = try? await NightscoutClient(config: glucoseConfig).entries(from: from, to: to), !r.isEmpty {
+            glucoseCache = (from, to, r)
+            return
+        }
+        let samples = (try? await svc.samples(.bloodGlucose, from: from, to: to, ascending: true)) ?? []
+        let unit = HealthKitService.mgdl
+        let mapped = samples.map { (date: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
+        if !mapped.isEmpty { glucoseCache = (from, to, mapped) }
     }
 
     private static let timeFmt: DateFormatter = {
@@ -220,6 +243,7 @@ final class HealthDataStore: ObservableObject {
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
+        glucoseCache = nil          // always re-read the source on an explicit refresh
 
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)
@@ -246,12 +270,44 @@ final class HealthDataStore: ObservableObject {
         data = snap
     }
 
-    /// Fast glucose-only refresh, used by the Nightscout poll to keep readings near-real-time.
+    /// Fast refresh used by the Nightscout poll: today's glucose *and* today's workout
+    /// curves. The curves matter — the poll previously refreshed only the day chart, so the
+    /// during-workout stretch stayed frozen at the last full refresh while the rest of the
+    /// day kept updating every minute.
     func refreshGlucose() async {
         let now = Date()
+        let startOfDay = cal.startOfDay(for: now)
         var snap = data
-        await loadGlucoseToday(&snap, startOfDay: cal.startOfDay(for: now), now: now)
+
+        // One glucose read for today, shared by the day chart and today's workout curves.
+        glucoseCache = nil
+        await primeGlucose(from: startOfDay.addingTimeInterval(-60 * 60),
+                           to: now.addingTimeInterval(60 * 60))
+
+        await loadGlucoseToday(&snap, startOfDay: startOfDay, now: now)
+        let massKg = profile.weightKg ?? 70
+        await loadWorkoutsToday(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
+        await refreshTodayWorkouts(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
         data = snap
+    }
+
+    /// Rebuild today's sessions so the Summary hero curve and the Workouts rows stay live
+    /// between full refreshes (they are what render the during-workout glucose).
+    private func refreshTodayWorkouts(_ snap: inout HealthSnapshot, startOfDay: Date, now: Date, massKg: Double) async {
+        guard let wks = try? await svc.workouts(from: startOfDay, to: now), !wks.isEmpty else { return }
+
+        var rebuilt: [WorkoutSession] = []
+        for w in wks { rebuilt.append(await buildSession(w, massKg: massKg)) }
+
+        // Longest session drives the Summary glucose hero.
+        if let primaryIdx = wks.indices.max(by: { wks[$0].duration < wks[$1].duration }) {
+            snap.todayWorkout = rebuilt[primaryIdx]
+        }
+        // Keep the Workouts tab in sync for the same sessions.
+        let byId = Dictionary(rebuilt.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        snap.workoutHistory = snap.workoutHistory.map { week in
+            WorkoutWeek(label: week.label, sessions: week.sessions.map { byId[$0.id] ?? $0 })
+        }
     }
 
     /// Poll the glucose source about once a minute (only meaningful when Nightscout is active).
@@ -462,6 +518,13 @@ final class HealthDataStore: ObservableObject {
     private func loadWorkoutHistory(_ snap: inout HealthSnapshot, now: Date, massKg: Double) async {
         let start = cal.date(byAdding: .day, value: -42, to: cal.startOfDay(for: now))!
         guard let wks = try? await svc.workouts(from: start, to: now), !wks.isEmpty else { return }
+
+        // Single glucose read covering every session window (30 min before the earliest
+        // workout → 60 min past now), so no session falls back to stale HealthKit data.
+        if let earliest = wks.map({ $0.startDate }).min() {
+            await primeGlucose(from: earliest.addingTimeInterval(-30 * 60),
+                               to: now.addingTimeInterval(60 * 60))
+        }
 
         let nowWeek = startOfWeek(now)
         var buckets: [Int: [(date: Date, session: WorkoutSession)]] = [:]

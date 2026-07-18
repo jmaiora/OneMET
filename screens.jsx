@@ -68,7 +68,7 @@ function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
 
       {/* BEFORE WORKOUT (generic; full session guide lives on the Plan tab) */}
       <Card icon="bolt" iconColor={accent} title="Before workout">
-        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.5 }}>{beforeWorkoutSummary(P.isPump)}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: T.ink, lineHeight: 1.4 }}>{beforeWorkoutSummary(P.isPump)}</div>
         <div style={{ fontSize: 11.5, fontWeight: 500, color: T.ink3, lineHeight: 1.4, marginTop: 10 }}>
           Illustrative guidance, not medical advice. See the Plan tab for a session-specific start decision.
         </div>

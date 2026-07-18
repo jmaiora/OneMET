@@ -81,7 +81,7 @@ struct SummaryView: View {
             Card(title: "Before workout", icon: "bolt", iconColor: accent) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump))
-                        .font(.system(size: 14))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)

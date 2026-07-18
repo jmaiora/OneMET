@@ -804,7 +804,7 @@ function SummaryScreen({ accent, mmol, onOpenGlucose, onGoActivity }) {
 
       {/* BEFORE WORKOUT (generic; full session guide lives on the Plan tab) */}
       <Card icon="bolt" iconColor={accent} title="Before workout">
-        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.5 }}>{beforeWorkoutSummary(P.isPump)}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: T.ink, lineHeight: 1.4 }}>{beforeWorkoutSummary(P.isPump)}</div>
         <div style={{ fontSize: 11.5, fontWeight: 500, color: T.ink3, lineHeight: 1.4, marginTop: 10 }}>
           Illustrative guidance, not medical advice. See the Plan tab for a session-specific start decision.
         </div>
@@ -1203,20 +1203,24 @@ function GlucoseDetail({ accent, mmol, onBack }) {
 Object.assign(window, { SummaryScreen, WorkoutsScreen, WorkoutDetailScreen, PlanScreen, ProfileScreen, GlucoseDetail });
 
 </script>
-<!-- app root -->
+<!-- app.jsx -->
 <script type="text/babel" data-presets="react">
+// app.jsx — OneMET prototype root: phone frame, tab state (Plan is 2nd), slide-over overlays.
 function App() {
   const accent = '#2A6FDB';
   const [tab, setTab] = React.useState('summary');
   const [showGlucose, setShowGlucose] = React.useState(false);
   const [openWorkout, setOpenWorkout] = React.useState(null);
   const mmol = false;
+
   let screen;
   if (tab === 'summary') screen = <SummaryScreen accent={accent} mmol={mmol} onOpenGlucose={() => setShowGlucose(true)} onGoActivity={() => setTab('workouts')} />;
   else if (tab === 'plan') screen = <PlanScreen accent={accent} />;
   else if (tab === 'workouts') screen = <WorkoutsScreen accent={accent} onOpenWorkout={setOpenWorkout} />;
   else screen = <ProfileScreen accent={accent} />;
+
   const changeTab = (t) => { setShowGlucose(false); setOpenWorkout(null); setTab(t); };
+
   return (
     <div className="screen">
       {screen}
