@@ -39,12 +39,17 @@ func weekLabel(_ weeksAgo: Int) -> String {
 /// Insight copy for a session, based on the glucose delta (ported from data.jsx).
 func workoutInsight(name: String, durMin: Int, delta: Int) -> String {
     let d = abs(delta)
-    if delta < -25 {
+    let sign = delta > 0 ? "+" : ""
+    if delta <= -25 {
         return "This \(name.lowercased()) lowered glucose by \(d) mg/dL over \(durMin) min — consider \(Int((Double(d) * 0.4).rounded()))g carbs before similar sessions."
-    } else if delta < -12 {
+    } else if delta <= -12 {
         return "Moderate drop of \(d) mg/dL during this session — a small snack beforehand can help keep you in range."
+    } else if delta >= 25 {
+        return "This \(name.lowercased()) raised glucose by \(d) mg/dL over \(durMin) min — common with short, intense or anaerobic efforts."
+    } else if delta >= 12 {
+        return "Glucose rose \(d) mg/dL during this session — typical of higher-intensity work."
     } else {
-        return "Glucose stayed steady, dropping only \(d) mg/dL — low risk activity at this intensity."
+        return "Glucose stayed steady (\(sign)\(delta) mg/dL) — low-impact at this intensity."
     }
 }
 

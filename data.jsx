@@ -216,11 +216,15 @@ function buildWorkoutHistory() {
         : sport.id === 'swim' ? (0.5 + rnd() * 1.2).toFixed(1) + ' km' : null;
       const kcal = Math.round(sport.met * durMin * 1.1);
       const hrAvg = Math.round(90 + sport.met * 7);
-      const insight = delta < -25
+      const insight = delta <= -25
         ? `This ${sport.name.toLowerCase()} lowered glucose by ${Math.abs(delta)} mg/dL over ${durMin} min — consider ${Math.round(Math.abs(delta) * 0.4)}g carbs before similar sessions.`
-        : delta < -12
+        : delta <= -12
         ? `Moderate drop of ${Math.abs(delta)} mg/dL during this session — a small snack beforehand can help keep you in range.`
-        : `Glucose stayed steady, dropping only ${Math.abs(delta)} mg/dL — low risk activity at this intensity.`;
+        : delta >= 25
+        ? `This ${sport.name.toLowerCase()} raised glucose by ${delta} mg/dL over ${durMin} min — common with short, intense or anaerobic efforts.`
+        : delta >= 12
+        ? `Glucose rose ${delta} mg/dL during this session — typical of higher-intensity work.`
+        : `Glucose stayed steady (${delta > 0 ? '+' : ''}${delta} mg/dL) — low-impact at this intensity.`;
       workouts.push({
         id: 'w' + (idCounter++), name: sport.name, sportId: sport.id, icon: sport.icon,
         day: dayLabel, time, dur: `${durMin} min`, durMin, dist: dist || '—',

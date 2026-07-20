@@ -452,10 +452,13 @@ final class HealthDataStore: ObservableObject {
             snap.runFrom = slot(primary.startDate, startOfDay)
             snap.runTo = slot(primary.endDate, startOfDay)
             if let pw = out.first(where: { $0.time == Self.timeFmt.string(from: primary.startDate) }) {
-                if pw.glucoseDelta < 0 {
-                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) lowered glucose by \(abs(pw.glucoseDelta)) mg/dL over \(pw.dur) — consider 15g carbs before similar sessions."
+                let delta = pw.glucoseDelta
+                if delta <= -12 {
+                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) lowered glucose by \(abs(delta)) mg/dL over \(pw.dur) — consider 15g carbs before similar sessions."
+                } else if delta >= 12 {
+                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) raised glucose by \(delta) mg/dL over \(pw.dur) — common with short, intense or anaerobic efforts."
                 } else {
-                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) kept glucose steady (\(pw.glucoseDelta >= 0 ? "+" : "")\(pw.glucoseDelta) mg/dL) over \(pw.dur)."
+                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) kept glucose steady (\(delta > 0 ? "+" : "")\(delta) mg/dL) over \(pw.dur)."
                 }
             }
         }
