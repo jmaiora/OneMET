@@ -19,7 +19,7 @@ struct ProfileView: View {
         let p = profileStore.profile
 
         ScreenScaffold(spacing: 18) {
-            AppHeader(title: "Profile", date: "Account", accent: accent)
+            AppHeader(title: "Profile", date: "Account", initials: profileStore.profile.initials, accent: accent)
 
             // Identity row (tap to edit)
             Button { editor = .identity } label: {
@@ -51,8 +51,7 @@ struct ProfileView: View {
                 IOSListRow(title: "CGM Sensor",
                            detail: store.authorized ? "Connected" : "Not linked",
                            dot: store.authorized ? Theme.green : Theme.ink3)
-                IOSListRow(title: "Apple Watch", detail: "Series 9", dot: Theme.red)
-                IOSListRow(title: "Insulin Pen", detail: "Synced 9:41", dot: accent, isLast: true)
+                IOSListRow(title: "Apple Watch", detail: "Series 9", dot: Theme.red, isLast: true)
             }
 
             IOSList(header: "Glucose Source") {
@@ -66,7 +65,6 @@ struct ProfileView: View {
             IOSList(header: "Personal Targets") {
                 IOSListRow(title: "Glucose Range", detail: p.glucoseRangeText, dot: Theme.green) { editor = .glucose }
                 IOSListRow(title: "Daily MET Goal", detail: p.metGoalText, dot: Theme.ringMet) { editor = .met }
-                IOSListRow(title: "Carb Ratio", detail: p.carbRatioText, dot: Theme.amber) { editor = .carb }
                 IOSListRow(title: "Insulin Delivery", detail: p.deliveryText, dot: accent, isLast: true) { editor = .insulin }
             }
 

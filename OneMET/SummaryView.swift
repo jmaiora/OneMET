@@ -17,7 +17,7 @@ struct SummaryView: View {
         let r = d.rings
 
         ScreenScaffold(onRefresh: { await store.refresh() }) {
-            AppHeader(title: "Summary", date: Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()), accent: accent)
+            AppHeader(title: "Summary", date: Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()), initials: profileStore.profile.initials, accent: accent)
 
             // ── Glucose hero ──
             Card(title: "Glucose", icon: "drop", iconColor: Theme.green,

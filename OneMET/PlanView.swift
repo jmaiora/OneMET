@@ -27,7 +27,7 @@ struct PlanView: View {
                                   difficulty: difficulty)
 
         ScreenScaffold {
-            AppHeader(title: "Plan", date: "Run Guide", accent: accent)
+            AppHeader(title: "Plan", date: "Run Guide", initials: profileStore.profile.initials, accent: accent)
 
             Card(title: "Session Details", icon: "calendar", iconColor: accent) {
                 SportPicker(sports: SPORTS, index: $sportIndex, accent: accent, durationLabel: "\(duration) min", difficultyLabel: difficulty.rawValue)

@@ -63,7 +63,7 @@ function Header({ title, date, accent }) {
       </div>
       <div style={{ width: 36, height: 36, borderRadius: 18, background: accent,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontSize: 15, fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>AM</div>
+        color: '#fff', fontSize: 15, fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>{(window.PROFILE && window.PROFILE.initials) || '?'}</div>
     </div>
   );
 }

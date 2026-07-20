@@ -115,7 +115,7 @@ struct CardHeader: View {
 struct AppHeader: View {
     let title: String
     let date: String
-    var initials: String = "AM"
+    var initials: String = "?"
     var accent: Color = Theme.accent
 
     var body: some View {

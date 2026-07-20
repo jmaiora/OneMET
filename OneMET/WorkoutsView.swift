@@ -4,6 +4,7 @@ import SwiftUI
 
 struct WorkoutsView: View {
     @EnvironmentObject var store: HealthDataStore
+    @EnvironmentObject var profileStore: ProfileStore
     var accent: Color
     var onOpenWorkout: (WorkoutSession) -> Void
 
@@ -17,7 +18,7 @@ struct WorkoutsView: View {
         let shown = weeks.reduce(0) { $0 + $1.sessions.count }
 
         ScreenScaffold(onRefresh: { await store.refresh() }) {
-            AppHeader(title: "Workouts", date: "History", accent: accent)
+            AppHeader(title: "Workouts", date: "History", initials: profileStore.profile.initials, accent: accent)
 
             // Rings hero
             Card(pad: 20) {
@@ -122,5 +123,6 @@ struct HistoryRow: View {
         Theme.bg.ignoresSafeArea()
         WorkoutsView(accent: Theme.accent, onOpenWorkout: { _ in })
             .environmentObject(HealthDataStore())
+            .environmentObject(ProfileStore())
     }
 }

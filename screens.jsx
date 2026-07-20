@@ -370,8 +370,7 @@ function ProfileScreen({ accent }) {
 
       <IOSList header="Connected Devices">
         <IOSListRow title="CGM Sensor" detail="Connected" icon={T.green} />
-        <IOSListRow title="Apple Watch" detail="Series 9" icon={T.red} />
-        <IOSListRow title="Insulin Pen" detail="Synced 9:41" icon={accent} isLast />
+        <IOSListRow title="Apple Watch" detail="Series 9" icon={T.red} isLast />
       </IOSList>
 
       <IOSList header="Glucose Source">
@@ -381,7 +380,6 @@ function ProfileScreen({ accent }) {
       <IOSList header="Personal Targets">
         <IOSListRow title="Glucose Range" detail={`${P.glucoseLow}–${P.glucoseHigh} mg/dL`} icon={T.green} />
         <IOSListRow title="Daily MET Goal" detail={`${P.dailyMetGoal} MET·min`} icon={T.ringMet} />
-        <IOSListRow title="Carb Ratio" detail={`1 : ${P.carbRatio}`} icon={T.amber} />
         <IOSListRow title="Insulin Delivery" detail={delivery} icon={accent} isLast />
       </IOSList>
 
