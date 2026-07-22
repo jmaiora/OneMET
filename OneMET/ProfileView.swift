@@ -14,6 +14,7 @@ struct ProfileView: View {
     var accent: Color
 
     @State private var editor: ProfileEditor?
+    @State private var exportFile: ExportFile?
 
     var body: some View {
         let p = profileStore.profile
@@ -51,7 +52,9 @@ struct ProfileView: View {
                 IOSListRow(title: "CGM Sensor",
                            detail: store.authorized ? "Connected" : "Not linked",
                            dot: store.authorized ? Theme.green : Theme.ink3)
-                IOSListRow(title: "Apple Watch", detail: "Series 9", dot: Theme.red, isLast: true)
+                IOSListRow(title: "Apple Watch",
+                           detail: store.data.watchModel.isEmpty ? "Not detected" : store.data.watchModel,
+                           dot: Theme.red, isLast: true)
             }
 
             IOSList(header: "Glucose Source") {
@@ -73,9 +76,8 @@ struct ProfileView: View {
             }
 
             IOSList(header: "Data") {
-                IOSListRow(title: "Export Health Report", dot: accent)
-                IOSListRow(title: "Share with Clinician", dot: Theme.teal)
-                IOSListRow(title: "Notifications", dot: Theme.violet, isLast: true)
+                IOSListRow(title: "Export Health Report", dot: accent) { exportWorkouts() }
+                IOSListRow(title: "Share with Clinician", dot: Theme.teal, isLast: true)
             }
         }
         .sheet(item: $editor) { which in
@@ -87,6 +89,19 @@ struct ProfileView: View {
             case .insulin:  EditInsulinDeliverySheet(store: profileStore)
             case .nightscout: NightscoutSheet(store: glucoseSource)
             }
+        }
+        .sheet(item: $exportFile) { file in
+            ActivityView(activityItems: [file.url])
+        }
+    }
+
+    /// Build a downloadable .xlsx of the workout history and present the share sheet.
+    private func exportWorkouts() {
+        let data = WorkoutExport.xlsx(history: store.data.workoutHistory)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneMET-Workouts.xlsx")
+        if (try? data.write(to: url, options: .atomic)) != nil {
+            exportFile = ExportFile(url: url)
         }
     }
 }

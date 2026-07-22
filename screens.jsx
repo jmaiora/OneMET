@@ -389,8 +389,7 @@ function ProfileScreen({ accent }) {
 
       <IOSList header="Data">
         <IOSListRow title="Export Health Report" icon={accent} />
-        <IOSListRow title="Share with Clinician" icon={T.teal} />
-        <IOSListRow title="Notifications" icon={T.violet} isLast />
+        <IOSListRow title="Share with Clinician" icon={T.teal} isLast />
       </IOSList>
     </div>
   );

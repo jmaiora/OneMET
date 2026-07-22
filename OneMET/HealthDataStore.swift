@@ -112,6 +112,7 @@ struct HealthSnapshot {
     var workouts: [Workout] = []
     var workoutHistory: [WorkoutWeek] = []
     var todayWorkout: WorkoutSession? = nil     // primary session recorded today (drives the Summary glucose chart)
+    var watchModel: String = ""             // detected Apple Watch model (from HealthKit)
     var nutrition: Nutrition = Nutrition(carbs: 0, carbsGoal: 200, insulinUnits: 0, meals: [])
     var events: [DayEvent] = []
 
@@ -155,6 +156,7 @@ struct HealthSnapshot {
         s.heartSeries = SampleData.heart.series
         s.workouts = SampleData.workouts
         s.workoutHistory = SampleData.workoutHistory
+        s.watchModel = "Apple Watch"
         s.todayWorkout = SampleData.workoutHistory.first?.sessions.first
         s.nutrition = SampleData.nutrition
         s.tirTrend = SampleData.tirTrend
@@ -508,6 +510,40 @@ final class HealthDataStore: ObservableObject {
         }
     }
 
+    /// Best-guess Apple Watch marketing name from the most recent workout's recording device.
+    private func appleWatchModel(from wks: [HKWorkout]) -> String {
+        let pt = wks.sorted { $0.startDate > $1.startDate }
+            .compactMap { $0.sourceRevision.productType }
+            .first { $0.hasPrefix("Watch") }
+        guard let pt else { return "" }
+        return watchMarketingName(pt)
+    }
+
+    /// Map an Apple Watch product identifier (e.g. "Watch6,14") to a marketing name.
+    /// Unknown/newer identifiers fall back to the generic "Apple Watch" rather than a wrong series.
+    private func watchMarketingName(_ productType: String) -> String {
+        let nums = productType.replacingOccurrences(of: "Watch", with: "").split(separator: ",")
+        guard nums.count == 2, let major = Int(nums[0]), let minor = Int(nums[1]) else { return "Apple Watch" }
+        switch (major, minor) {
+        case (1, _):                             return "Apple Watch (1st gen)"
+        case (2, 6), (2, 7):                     return "Apple Watch Series 1"
+        case (2, _):                             return "Apple Watch Series 2"
+        case (3, _):                             return "Apple Watch Series 3"
+        case (4, _):                             return "Apple Watch Series 4"
+        case (5, 9), (5, 10), (5, 11), (5, 12):  return "Apple Watch SE"
+        case (5, _):                             return "Apple Watch Series 5"
+        case (6, 1), (6, 2), (6, 3), (6, 4):     return "Apple Watch Series 6"
+        case (6, 6), (6, 7), (6, 8), (6, 9):     return "Apple Watch Series 7"
+        case (6, 10), (6, 11), (6, 12), (6, 13): return "Apple Watch SE (2nd gen)"
+        case (6, 14), (6, 15), (6, 16), (6, 17): return "Apple Watch Series 8"
+        case (6, 18):                            return "Apple Watch Ultra"
+        case (7, 1), (7, 2), (7, 3), (7, 4):     return "Apple Watch Series 9"
+        case (7, 5):                             return "Apple Watch Ultra 2"
+        case (7, 8), (7, 9), (7, 10), (7, 11):   return "Apple Watch Series 10"
+        default:                                 return "Apple Watch"
+        }
+    }
+
     // MARK: Workout history (last 6 weeks, grouped by week)
 
     private static let dayFmt: DateFormatter = {
@@ -521,6 +557,7 @@ final class HealthDataStore: ObservableObject {
     private func loadWorkoutHistory(_ snap: inout HealthSnapshot, now: Date, massKg: Double) async {
         let start = cal.date(byAdding: .day, value: -42, to: cal.startOfDay(for: now))!
         guard let wks = try? await svc.workouts(from: start, to: now), !wks.isEmpty else { return }
+        snap.watchModel = appleWatchModel(from: wks)
 
         // Single glucose read covering every session window (30 min before the earliest
         // workout → 60 min past now), so no session falls back to stale HealthKit data.
