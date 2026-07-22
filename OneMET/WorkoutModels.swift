@@ -41,9 +41,9 @@ func workoutInsight(name: String, durMin: Int, delta: Int) -> String {
     let d = abs(delta)
     let sign = delta > 0 ? "+" : ""
     if delta <= -25 {
-        return "This \(name.lowercased()) lowered glucose by \(d) mg/dL over \(durMin) min — consider \(Int((Double(d) * 0.4).rounded()))g carbs before similar sessions."
+        return "This \(name.lowercased()) lowered glucose by \(d) mg/dL over \(durMin) min — consider adding \(Int((Double(d) * 0.4).rounded()))g carbs before similar sessions."
     } else if delta <= -12 {
-        return "Moderate drop of \(d) mg/dL during this session — a small snack beforehand can help keep you in range."
+        return "Moderate drop of \(d) mg/dL during this session — a small additional snack beforehand can help keep you in range."
     } else if delta >= 25 {
         return "This \(name.lowercased()) raised glucose by \(d) mg/dL over \(durMin) min — common with short, intense or anaerobic efforts."
     } else if delta >= 12 {
