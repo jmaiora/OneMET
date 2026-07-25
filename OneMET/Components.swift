@@ -240,30 +240,31 @@ struct TabBar: View {
         HStack(alignment: .top) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 let on = tab == active
-                VStack(spacing: 3) {
+                VStack(spacing: 2) {
                     AppIconView(name: tab.icon,
                                 color: on ? accent : Theme.ink3,
-                                size: 24,
+                                size: 22,
                                 weight: on ? .bold : .regular)
                     Text(tab.label)
-                        .font(.system(size: 10.5, weight: on ? .bold : .medium))
+                        .font(.system(size: 10, weight: on ? .bold : .medium))
                         .foregroundStyle(on ? accent : Theme.ink2)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 2)
                 .contentShape(Rectangle())
                 .onTapGesture { active = tab }
             }
         }
-        .padding(.top, 8)
+        .padding(.top, 6)
         .padding(.bottom, 6)
-        .background(Theme.card.ignoresSafeArea(edges: .bottom))
+        .frame(maxWidth: .infinity)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
         .overlay(
-            Rectangle()
-                .fill(Theme.sep)
-                .frame(height: 0.5),
-            alignment: .top
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(Theme.sep, lineWidth: 0.5)
         )
+        .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 5)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 4)
     }
 }
 
