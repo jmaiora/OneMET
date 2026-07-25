@@ -19,6 +19,7 @@ function Icon({ name, color = 'currentColor', size = 17, stroke = 1.9 }) {
     case 'house': return <svg {...common}><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></svg>;
     case 'chart': return <svg {...common}><path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-7"/></svg>;
     case 'calendar': return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 9.5h16M8 3v4M16 3v4"/></svg>;
+    case 'bike': return <svg {...common}><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5 L10 9 L14 9 M10 9 L14 17.5 M14 17.5 L17.5 9 L19 9 M11.5 6.8 L13.7 6.8"/></svg>;
     default: return null;
   }
 }
@@ -100,9 +101,8 @@ function TabBar({ active, onChange, accent }) {
   ];
   return (
     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40,
-      paddingBottom: 22, paddingTop: 9,
-      background: 'linear-gradient(to top, rgba(248,248,250,0.96) 60%, rgba(248,248,250,0))',
-      backdropFilter: 'blur(18px) saturate(180%)', WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+      paddingBottom: 10, paddingTop: 8,
+      background: T.card,
       borderTop: `0.5px solid ${T.sep}`,
       display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start' }}>
       {tabs.map(t => {

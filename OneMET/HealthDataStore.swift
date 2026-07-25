@@ -502,7 +502,7 @@ final class HealthDataStore: ObservableObject {
         switch t {
         case .running: return "run"
         case .walking, .hiking: return "shoe"
-        case .cycling: return "bolt"
+        case .cycling: return "bike"
         case .swimming: return "drop"
         case .traditionalStrengthTraining, .functionalStrengthTraining: return "flame"
         case .highIntensityIntervalTraining: return "activity"

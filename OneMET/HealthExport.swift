@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import MessageUI
 
 // HealthExport.swift — build a downloadable .xlsx of workout details and share it.
 // The .xlsx is written by hand as a "stored" (uncompressed) ZIP of the minimal
@@ -189,4 +190,40 @@ struct ActivityView: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
+
+
+// MARK: - Mail composer (uses the device's configured Apple Mail account)
+
+struct MailView: UIViewControllerRepresentable {
+    let subject: String
+    let body: String
+    let attachmentURL: URL
+    var onFinish: () -> Void = {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish) }
+
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        let vc = MFMailComposeViewController()
+        vc.mailComposeDelegate = context.coordinator
+        vc.setSubject(subject)
+        vc.setMessageBody(body, isHTML: false)
+        if let data = try? Data(contentsOf: attachmentURL) {
+            vc.addAttachmentData(data,
+                mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName: attachmentURL.lastPathComponent)
+        }
+        return vc
+    }
+
+    func updateUIViewController(_ vc: MFMailComposeViewController, context: Context) {}
+
+    final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        let onFinish: () -> Void
+        init(onFinish: @escaping () -> Void) { self.onFinish = onFinish }
+        func mailComposeController(_ controller: MFMailComposeViewController,
+                                   didFinishWith result: MFMailComposeResult, error: Error?) {
+            onFinish()
+        }
+    }
 }

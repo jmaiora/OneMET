@@ -22,6 +22,7 @@ enum AppIcon {
         case "house":    return "house.fill"
         case "chart":    return "chart.bar.fill"
         case "calendar": return "calendar"
+        case "bike":     return "bicycle"
         default:         return "circle"
         }
     }
@@ -254,9 +255,9 @@ struct TabBar: View {
                 .onTapGesture { active = tab }
             }
         }
-        .padding(.top, 9)
-        .padding(.bottom, 22)
-        .background(.ultraThinMaterial)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .background(Theme.card.ignoresSafeArea(edges: .bottom))
         .overlay(
             Rectangle()
                 .fill(Theme.sep)

@@ -42,7 +42,6 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             TabBar(active: tabBinding, accent: accent)
-                .ignoresSafeArea(edges: .bottom)
                 .zIndex(5)
 
             if showGlucose {

@@ -18,7 +18,7 @@ let SPORTS: [Sport] = [
           desc: "An easy walk. Low hypo risk, gentle on glucose across the session."),
     Sport(id: "run", name: "Outdoor Run", met: 9.1, icon: "run", difficulty: "Vigorous", color: "#E0556E",
           desc: "A steady outdoor run. Expect a fast glucose drop — fuel up beforehand."),
-    Sport(id: "cycling", name: "Cycling", met: 7.0, icon: "bolt", difficulty: "Moderate", color: "#E8833A",
+    Sport(id: "cycling", name: "Cycling", met: 7.0, icon: "bike", difficulty: "Moderate", color: "#E8833A",
           desc: "Sustained cycling effort. Plan a top-up if you ride past 45 minutes."),
     Sport(id: "swim", name: "Swimming", met: 8.0, icon: "drop", difficulty: "Vigorous", color: "#1FB8C9",
           desc: "Full-body swim session. Glucose can dip fast — carb up beforehand."),

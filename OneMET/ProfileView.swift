@@ -1,4 +1,5 @@
 import SwiftUI
+import MessageUI
 
 // ProfileView.swift — OneMET Profile screen with editable personal data.
 
@@ -15,6 +16,7 @@ struct ProfileView: View {
 
     @State private var editor: ProfileEditor?
     @State private var exportFile: ExportFile?
+    @State private var mailFile: ExportFile?
 
     var body: some View {
         let p = profileStore.profile
@@ -77,7 +79,7 @@ struct ProfileView: View {
 
             IOSList(header: "Data") {
                 IOSListRow(title: "Export Health Report", dot: accent) { exportWorkouts() }
-                IOSListRow(title: "Share with Clinician", dot: Theme.teal, isLast: true)
+                IOSListRow(title: "Share with Clinician", dot: Theme.teal, isLast: true) { shareWithClinician() }
             }
         }
         .sheet(item: $editor) { which in
@@ -93,6 +95,11 @@ struct ProfileView: View {
         .sheet(item: $exportFile) { file in
             ActivityView(activityItems: [file.url])
         }
+        .sheet(item: $mailFile) { file in
+            MailView(subject: "OneMET — Health report",
+                     body: "Please find attached my OneMET workout health report.",
+                     attachmentURL: file.url) { mailFile = nil }
+        }
     }
 
     /// Build a downloadable .xlsx of the workout history and present the share sheet.
@@ -101,6 +108,20 @@ struct ProfileView: View {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("OneMET-Workouts.xlsx")
         if (try? data.write(to: url, options: .atomic)) != nil {
+            exportFile = ExportFile(url: url)
+        }
+    }
+
+    /// Email the health report to a clinician via the device's Mail account; if Mail
+    /// isn't set up, fall back to the system share sheet (choose Gmail/Outlook/etc.).
+    private func shareWithClinician() {
+        let data = WorkoutExport.xlsx(history: store.data.workoutHistory)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OneMET-Health-Report.xlsx")
+        guard (try? data.write(to: url, options: .atomic)) != nil else { return }
+        if MFMailComposeViewController.canSendMail() {
+            mailFile = ExportFile(url: url)
+        } else {
             exportFile = ExportFile(url: url)
         }
     }
