@@ -100,7 +100,7 @@ function TabBar({ active, onChange, accent }) {
     { id: 'profile', label: 'Profile', icon: 'person' },
   ];
   return (
-    <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16, zIndex: 40,
+    <div style={{ position: 'absolute', bottom: 8, left: 16, right: 16, zIndex: 40,
       paddingBottom: 8, paddingTop: 8, borderRadius: 30,
       background: T.card, border: `0.5px solid ${T.sep}`,
       boxShadow: '0 6px 20px rgba(0,0,0,0.12)',

@@ -264,7 +264,7 @@ struct TabBar: View {
         )
         .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 5)
         .padding(.horizontal, 18)
-        .padding(.bottom, 4)
+        .padding(.bottom, 10)
     }
 }
 
