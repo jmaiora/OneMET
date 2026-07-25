@@ -237,7 +237,7 @@ struct TabBar: View {
     var accent: Color = Theme.accent
 
     var body: some View {
-        HStack(alignment: .top) {
+        HStack(spacing: 4) {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 let on = tab == active
                 VStack(spacing: 2) {
@@ -250,21 +250,19 @@ struct TabBar: View {
                         .foregroundStyle(on ? accent : Theme.ink2)
                 }
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(accent.opacity(on ? 0.14 : 0)))
                 .contentShape(Rectangle())
                 .onTapGesture { active = tab }
             }
         }
-        .padding(.top, 6)
-        .padding(.bottom, 6)
+        .padding(6)
         .frame(maxWidth: .infinity)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .stroke(Theme.sep, lineWidth: 0.5)
-        )
+        .background(Theme.card, in: Capsule())
+        .overlay(Capsule().stroke(Theme.sep, lineWidth: 0.5))
         .shadow(color: .black.opacity(0.12), radius: 14, x: 0, y: 5)
         .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+        .padding(.bottom, 2)
     }
 }
 

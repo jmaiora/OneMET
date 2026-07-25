@@ -484,16 +484,17 @@ function TabBar({ active, onChange, accent }) {
     { id: 'profile', label: 'Profile', icon: 'person' },
   ];
   return (
-    <div style={{ position: 'absolute', bottom: 8, left: 16, right: 16, zIndex: 40,
-      paddingBottom: 8, paddingTop: 8, borderRadius: 30,
+    <div style={{ position: 'absolute', bottom: 6, left: 16, right: 16, zIndex: 40,
+      padding: 6, borderRadius: 999,
       background: T.card, border: `0.5px solid ${T.sep}`,
       boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
-      display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start' }}>
+      display: 'flex', gap: 4, alignItems: 'center' }}>
       {tabs.map(t => {
         const on = active === t.id;
         return (
           <div key={t.id} onClick={() => onChange(t.id)}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', flex: 1 }}>
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', flex: 1,
+              padding: '7px 0', borderRadius: 999, background: on ? accent + '24' : 'transparent' }}>
             <Icon name={t.icon} color={on ? accent : T.ink3} size={22} stroke={on ? 2.2 : 1.9} />
             <span style={{ fontSize: 10, fontWeight: on ? 700 : 500, color: on ? accent : T.ink2 }}>{t.label}</span>
           </div>
