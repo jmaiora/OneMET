@@ -4,7 +4,7 @@ import MessageUI
 // ProfileView.swift — OneMET Profile screen with editable personal data.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, glucose, met, carb, insulin, nightscout
+    case identity, glucose, met, carb, insulin, nightscout, dexcom
     var id: Int { rawValue }
 }
 
@@ -60,6 +60,10 @@ struct ProfileView: View {
             }
 
             IOSList(header: "Glucose Source") {
+                IOSListRow(title: "Dexcom Share",
+                           detail: glucoseSource.dexcom.isActive ? "On · live"
+                                 : (glucoseSource.dexcom.isConfigured ? "Configured · off" : "Not set"),
+                           dot: glucoseSource.dexcom.isActive ? Theme.green : Theme.ink3) { editor = .dexcom }
                 IOSListRow(title: "Nightscout",
                            detail: glucoseSource.config.isActive ? "On · live"
                                  : (glucoseSource.config.isConfigured ? "Configured · off" : "Not set"),
@@ -90,6 +94,7 @@ struct ProfileView: View {
             case .carb:     EditCarbRatioSheet(store: profileStore)
             case .insulin:  EditInsulinDeliverySheet(store: profileStore)
             case .nightscout: NightscoutSheet(store: glucoseSource)
+            case .dexcom: DexcomSheet(store: glucoseSource)
             }
         }
         .sheet(item: $exportFile) { file in

@@ -32,16 +32,28 @@ enum Keychain {
 @MainActor
 final class GlucoseSourceStore: ObservableObject {
     @Published var config: NightscoutConfig { didSet { persist() } }
+    @Published var dexcom: DexcomConfig { didSet { persistDexcom() } }
 
     private let urlKey = "onemet.ns.url"
     private let enabledKey = "onemet.ns.enabled"
     private let tokenKey = "onemet.ns.token"
+
+    private let dexUserKey = "onemet.dex.user"
+    private let dexEnabledKey = "onemet.dex.enabled"
+    private let dexOusKey = "onemet.dex.ous"
+    private let dexPassKey = "onemet.dex.pass"
 
     init() {
         let url = UserDefaults.standard.string(forKey: urlKey) ?? ""
         let enabled = UserDefaults.standard.bool(forKey: enabledKey)
         let secret = Keychain.get(tokenKey) ?? ""
         config = NightscoutConfig(urlString: url, secret: secret, enabled: enabled)
+
+        let dexUser = UserDefaults.standard.string(forKey: dexUserKey) ?? ""
+        let dexEnabled = UserDefaults.standard.bool(forKey: dexEnabledKey)
+        let dexOus = UserDefaults.standard.object(forKey: dexOusKey) as? Bool ?? true
+        let dexPass = Keychain.get(dexPassKey) ?? ""
+        dexcom = DexcomConfig(username: dexUser, password: dexPass, ous: dexOus, enabled: dexEnabled)
     }
 
     private func persist() {
@@ -49,5 +61,13 @@ final class GlucoseSourceStore: ObservableObject {
         UserDefaults.standard.set(config.enabled, forKey: enabledKey)
         if config.secret.isEmpty { Keychain.delete(tokenKey) }
         else { Keychain.set(config.secret, for: tokenKey) }
+    }
+
+    private func persistDexcom() {
+        UserDefaults.standard.set(dexcom.username, forKey: dexUserKey)
+        UserDefaults.standard.set(dexcom.enabled, forKey: dexEnabledKey)
+        UserDefaults.standard.set(dexcom.ous, forKey: dexOusKey)
+        if dexcom.password.isEmpty { Keychain.delete(dexPassKey) }
+        else { Keychain.set(dexcom.password, for: dexPassKey) }
     }
 }

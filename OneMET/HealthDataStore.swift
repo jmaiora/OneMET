@@ -183,6 +183,7 @@ final class HealthDataStore: ObservableObject {
 
     /// Glucose source config. When Nightscout is active, glucose comes from there (low latency); HealthKit otherwise.
     var glucoseConfig = NightscoutConfig()
+    var dexcomConfig = DexcomConfig()
 
     private let svc = HealthKitService()
     private let cal = Calendar.current
@@ -199,6 +200,17 @@ final class HealthDataStore: ObservableObject {
         if let c = glucoseCache, c.from <= from, c.to >= to {
             return c.readings.filter { $0.date >= from && $0.date <= to }
         }
+        return await fetchGlucose(from: from, to: to)
+    }
+
+    /// Fetch glucose from the active remote source — Dexcom Share, else Nightscout —
+    /// falling back to HealthKit when neither is active or a request fails / returns empty.
+    private func fetchGlucose(from: Date, to: Date) async -> [(date: Date, v: Double)] {
+        if dexcomConfig.isActive {
+            if let r = try? await DexcomShareClient(config: dexcomConfig).entries(from: from, to: to), !r.isEmpty {
+                return r
+            }
+        }
         if glucoseConfig.isActive {
             if let r = try? await NightscoutClient(config: glucoseConfig).entries(from: from, to: to), !r.isEmpty {
                 return r
@@ -212,15 +224,8 @@ final class HealthDataStore: ObservableObject {
     /// Fetch a glucose span once and cache it for this refresh, so the day chart and every
     /// workout curve slice the same dataset instead of each issuing its own request.
     private func primeGlucose(from: Date, to: Date) async {
-        if glucoseConfig.isActive,
-           let r = try? await NightscoutClient(config: glucoseConfig).entries(from: from, to: to), !r.isEmpty {
-            glucoseCache = (from, to, r)
-            return
-        }
-        let samples = (try? await svc.samples(.bloodGlucose, from: from, to: to, ascending: true)) ?? []
-        let unit = HealthKitService.mgdl
-        let mapped = samples.map { (date: $0.startDate, v: $0.quantity.doubleValue(for: unit)) }
-        if !mapped.isEmpty { glucoseCache = (from, to, mapped) }
+        let r = await fetchGlucose(from: from, to: to)
+        if !r.isEmpty { glucoseCache = (from, to, r) }
     }
 
     private static let timeFmt: DateFormatter = {
@@ -319,7 +324,7 @@ final class HealthDataStore: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 60_000_000_000)
                 guard let self else { return }
-                if self.glucoseConfig.isActive { await self.refreshGlucose() }
+                if self.dexcomConfig.isActive || self.glucoseConfig.isActive { await self.refreshGlucose() }
             }
         }
     }

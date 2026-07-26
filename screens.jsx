@@ -374,7 +374,8 @@ function ProfileScreen({ accent }) {
       </IOSList>
 
       <IOSList header="Glucose Source">
-        <IOSListRow title="Nightscout" detail="On · live" icon={T.green} isLast />
+        <IOSListRow title="Dexcom Share" detail="On · live" icon={T.green} />
+        <IOSListRow title="Nightscout" detail="Configured · off" icon={T.ink3} isLast />
       </IOSList>
 
       <IOSList header="Personal Targets">

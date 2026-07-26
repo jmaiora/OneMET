@@ -287,3 +287,84 @@ struct NightscoutSheet: View {
         }
     }
 }
+
+
+// MARK: - Dexcom Share glucose source
+
+struct DexcomSheet: View {
+    @ObservedObject var store: GlucoseSourceStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var username: String
+    @State private var password: String
+    @State private var ous: Bool
+    @State private var enabled: Bool
+    @State private var testing = false
+    @State private var testResult: String?
+    @State private var testOK = false
+
+    init(store: GlucoseSourceStore) {
+        self.store = store
+        _username = State(initialValue: store.dexcom.username)
+        _password = State(initialValue: store.dexcom.password)
+        _ous = State(initialValue: store.dexcom.ous)
+        _enabled = State(initialValue: store.dexcom.enabled)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Dexcom Share"),
+                        footer: Text("Your Dexcom account with Share/Follow enabled (Sharing ON in the Dexcom app, with at least one follower). Read-only; only recent (~24 h) glucose is available.")) {
+                    TextField("Username, email or phone", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.emailAddress)
+                    SecureField("Password", text: $password)
+                    Picker("Region", selection: $ous) {
+                        Text("Outside US").tag(true)
+                        Text("United States").tag(false)
+                    }
+                    Toggle("Use Dexcom for glucose", isOn: $enabled)
+                }
+
+                Section {
+                    Button {
+                        Task {
+                            testing = true; testResult = nil
+                            let cfg = DexcomConfig(username: username, password: password, ous: ous, enabled: true)
+                            let ok = await DexcomShareClient(config: cfg).test()
+                            testOK = ok
+                            testResult = ok ? "Connected \u{2014} recent readings found."
+                                            : "Couldn't fetch readings. Check account, password and region."
+                            testing = false
+                        }
+                    } label: {
+                        HStack {
+                            Text("Test Connection")
+                            if testing { Spacer(); ProgressView() }
+                        }
+                    }
+                    .disabled(username.isEmpty || password.isEmpty || testing)
+
+                    if let testResult {
+                        Text(testResult)
+                            .font(.footnote)
+                            .foregroundStyle(testOK ? Color.green : Color.red)
+                    }
+                }
+            }
+            .navigationTitle("Dexcom Share")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        store.dexcom = DexcomConfig(username: username, password: password, ous: ous, enabled: enabled)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}

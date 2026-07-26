@@ -70,6 +70,7 @@ struct RootView: View {
         .task {
             store.profile = profileStore.profile
             store.glucoseConfig = glucoseSource.config
+            store.dexcomConfig = glucoseSource.dexcom
             await store.load()
         }
         .onChange(of: profileStore.profile) { newValue in
@@ -78,6 +79,11 @@ struct RootView: View {
         }
         .onChange(of: glucoseSource.config) { newConfig in
             store.glucoseConfig = newConfig
+            store.startPolling()
+            Task { await store.refresh() }
+        }
+        .onChange(of: glucoseSource.dexcom) { newValue in
+            store.dexcomConfig = newValue
             store.startPolling()
             Task { await store.refresh() }
         }
