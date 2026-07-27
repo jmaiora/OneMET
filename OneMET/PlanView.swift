@@ -91,7 +91,6 @@ struct PlanView: View {
             }
 
             disclaimer
-            sources
         }
         .onChange(of: sportIndex) { newIndex in
             difficulty = WorkoutDifficulty(sportDifficulty: SPORTS[newIndex].difficulty)
@@ -163,7 +162,8 @@ struct PlanView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
             }
-            Text(g.duringText)
+            (Text(g.duringText)
+                + Text("1").font(.system(size: 9, weight: .bold)).baselineOffset(6))
                 .font(.system(size: 13.5, weight: .medium))
                 .foregroundStyle(.white.opacity(0.95))
                 .lineSpacing(3)
@@ -202,30 +202,29 @@ struct PlanView: View {
     // MARK: - Disclaimer + sources
 
     private var disclaimer: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.amber)
-            Text("Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.")
-                .font(.system(size: 12.5, weight: .medium))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.amber)
+                Text("Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.")
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(Theme.ink2)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            (Text("1").font(.system(size: 9, weight: .bold)).baselineOffset(4)
+                + Text("  Approach: a prevention-first, real-world interpretation of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD."))
+                .font(.system(size: 11.5))
                 .foregroundStyle(Theme.ink2)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.amber.opacity(0.10))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private var sources: some View {
-        Text("Approach: a prevention-first, real-world interpretation of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD, oriented to recreational running.")
-            .font(.system(size: 11.5))
-            .foregroundStyle(Theme.ink3)
-            .lineSpacing(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
     }
 }
 

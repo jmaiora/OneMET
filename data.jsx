@@ -271,6 +271,7 @@ function beforeWorkoutSummary(isPump) {
 function buildRunGuide({ durationMin, iob, glucoseMgdl, trend, difficulty, isPump }) {
   const T = window.TOKENS;
   const diff = difficulty || DIFFICULTIES[1];
+  const iobFactor = 1 + Math.min(0.25, Math.max(0, iob - 1) * 0.15);
 
   let band, bandDetail;
   if (durationMin < 45) { band = 'Easy'; bandDetail = 'Under 45 min · aim to finish without eating'; }
@@ -278,7 +279,7 @@ function buildRunGuide({ durationMin, iob, glucoseMgdl, trend, difficulty, isPum
   else { band = 'Long'; bandDetail = 'Over 90 min · fuel for performance'; }
 
   const trendFalling = trend < 0;
-  const startG = startCarbGrams(glucoseMgdl, diff);
+  const startG = Math.round(startCarbGrams(glucoseMgdl, diff) * iobFactor);
   let status = 'unknown', title = 'Check your glucose first';
   let reason = 'No live CGM / Nightscout reading — head out only when you can see your glucose and trend.';
   if (glucoseMgdl && glucoseMgdl > 0) {
@@ -306,7 +307,7 @@ function buildRunGuide({ durationMin, iob, glucoseMgdl, trend, difficulty, isPum
   }[status];
 
   const feedIntervalMin = 45;
-  const perHour = diff.carbsPerHour;
+  const perHour = Math.round(diff.carbsPerHour * iobFactor);
   const perFeed = Math.round(perHour * feedIntervalMin / 60);
   const feeds = perHour > 0 ? Math.max(0, Math.floor((durationMin - 1) / feedIntervalMin)) : 0;
   const total = startG + perFeed * feeds;
@@ -315,7 +316,7 @@ function buildRunGuide({ durationMin, iob, glucoseMgdl, trend, difficulty, isPum
     duringText = 'Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop.';
   } else {
     duringHeadline = `~${perHour} g/h`;
-    duringText = `Fuel to the Riddell/EXTOD rate for ${diff.label.toLowerCase()} effort — carbs taken with insulin adjusted rather than skipped. No cap: longer sessions simply add more feeds.`;
+    duringText = `Planned carb intake to fuel the effort — take it with insulin adjusted rather than skipped. Longer sessions simply add more feeds. Rates per the Riddell/EXTOD consensus.`;
   }
 
   return {

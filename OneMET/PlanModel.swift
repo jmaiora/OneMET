@@ -134,9 +134,14 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · fuel as needed" }
     else { band = "Long"; bandDetail = "Over 90 min · fuel for performance" }
 
+    // Insulin-on-board uplift: carbs stay as-is at ≤ 1 U, then rise a little above 1 U —
+    // a small, bounded nudge (capped ~+25%) toward the Riddell/EXTOD high-IOB end, not a
+    // raw proportional scale.
+    let iobFactor = 1 + min(0.25, max(0, iob - 1) * 0.15)
+
     // Carbs to take before starting — the same value the During card shows "at start",
     // so the banner's top-up amount always matches the During section.
-    let duringStartG = startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)
+    let duringStartG = Int((Double(startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)) * iobFactor).rounded())
 
     // ── 3. Start decision from glucose + trend; top-up grams = the During "at start" ──
     var status: StartStatus = .unknown
@@ -186,7 +191,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // No cap: the feeding rate scales with effort and longer sessions get more feeds.
     // A recommended intake at the start, then refuels every 45 min.
     let feedIntervalMin = 45
-    let duringPerHourG = difficulty.carbsPerHour
+    let duringPerHourG = Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
     let duringTotalG = duringStartG + perFeedG * duringFeeds
@@ -197,11 +202,11 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
         during = "Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop."
     } else {
         duringHeadline = "~\(duringPerHourG) g/h"
-        during = "Fuel to the Riddell/EXTOD rate for \(difficulty.rawValue.lowercased()) effort — carbs taken with insulin adjusted rather than skipped. No cap: longer sessions simply add more feeds."
+        during = "Planned carb intake to fuel the effort — take it with insulin adjusted rather than skipped. Longer sessions simply add more feeds. Rates per the Riddell/EXTOD consensus."
     }
 
     // ── 4 & 5. Accept imperfect glucose; learn progressively ──
-    let philosophy = "Most runners feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs."
+    let philosophy = "Most PwD feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs."
     let learn = "Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy."
 
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,

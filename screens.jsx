@@ -326,7 +326,7 @@ function PlanScreen({ accent }) {
             <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.85, marginBottom: 8 }}>{g.headline} · ~{g.total} g total</div>
           </div>
         )}
-        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.45, opacity: 0.96 }}>{g.text}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.45, opacity: 0.96 }}>{g.text}<sup style={{ fontSize: 9, fontWeight: 700, marginLeft: 1 }}>1</sup></div>
       </div>
 
       <Card title="Good to know">
@@ -342,12 +342,14 @@ function PlanScreen({ accent }) {
         </div>
       </Card>
 
-      <div style={{ background: T.amber + '1a', borderRadius: 14, padding: 14, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-        <span style={{ color: T.amber, fontWeight: 700 }}>⚠</span>
-        <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink2, lineHeight: 1.4 }}>Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.</span>
-      </div>
-      <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5, padding: '0 4px' }}>
-        Approach: a prevention-first reading of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD, oriented to recreational training.
+      <div style={{ background: T.amber + '1a', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span style={{ color: T.amber, fontWeight: 700 }}>⚠</span>
+          <span style={{ fontSize: 12.5, fontWeight: 500, color: T.ink2, lineHeight: 1.4 }}>Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: T.ink2, lineHeight: 1.5 }}>
+          <sup style={{ fontWeight: 700 }}>1</sup>  Approach: a prevention-first, real-world interpretation of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD.
+        </div>
       </div>
     </div>
   );
