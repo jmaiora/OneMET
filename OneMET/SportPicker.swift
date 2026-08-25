@@ -69,33 +69,30 @@ struct SportPicker: View {
         sports[((index + rel) % n + n) % n]
     }
 
+    /// Where a card sits for the current drag. depth 0 is the front slot; each step back
+    /// is smaller, lower and nudged right. Deliberately a plain function — @ViewBuilder
+    /// can't contain ordinary control flow, it tries to read each branch as a view.
+    private func layout(rel: Int) -> (depth: CGFloat, extraX: CGFloat, alpha: Double) {
+        if rel == 0 {
+            return (0, drag, 1 - Double(progress) * 0.6)     // fades as it leaves
+        }
+        if rel == -1 {
+            // Slides in from off-screen left, but only on a backward swipe. Kept at zero
+            // opacity while parked so it can never show at the screen edge on a wide layout.
+            let x = goingForward ? -flingDistance : -flingDistance + progress * flingDistance
+            return (0, x, goingForward ? 0 : Double(progress))
+        }
+        // Stacked behind; advances one slot as the front card exits forwards.
+        return (max(0, CGFloat(rel) - (goingForward ? progress : 0)), 0, 1)
+    }
+
     @ViewBuilder
     private func cardView(rel: Int) -> some View {
         let s = sport(at: rel)
         let sc = Color(hex: s.color)
         let front = rel == 0
-
-        // depth 0 = front slot; each step back is smaller, lower and nudged right.
-        let depth: CGFloat
-        let extraX: CGFloat
-        let alpha: Double
-
-        if front {
-            depth = 0
-            extraX = drag
-            alpha = 1 - Double(progress) * 0.6          // fades as it leaves
-        } else if rel == -1 {
-            // Slides in from off-screen left, but only on a backward swipe. Kept at zero
-            // opacity while parked so it can never show at the screen edge on a wide layout.
-            depth = 0
-            extraX = goingForward ? -flingDistance : -flingDistance + progress * flingDistance
-            alpha = goingForward ? 0 : Double(progress)
-        } else {
-            // Stacked behind; advances one slot as the front card exits forwards.
-            depth = max(0, CGFloat(rel) - (goingForward ? progress : 0))
-            extraX = 0
-            alpha = 1
-        }
+        let l = layout(rel: rel)
+        let depth = l.depth, extraX = l.extraX, alpha = l.alpha
 
         let styled = card(s, color: sc, dimAmount: Double(min(1, depth)),
                           difficultyText: front ? difficultyLabel : s.difficulty)
