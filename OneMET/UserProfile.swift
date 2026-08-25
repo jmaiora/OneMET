@@ -30,9 +30,10 @@ struct UserProfile: Encodable, Equatable {
     var dailyMetGoal: Int = 500          // MET·min ring goal
     var carbRatio: Int = 10              // 1 unit : carbRatio g
     var insulinDelivery: InsulinDelivery = .pump   // drives EXTOD carb rates in the Plan tab
+    var glucoseUnit: GlucoseUnit = .mgdl // display only — everything is stored in mg/dL
 
     enum CodingKeys: String, CodingKey {
-        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery
+        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit
     }
 
     var isConfigured: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -52,7 +53,7 @@ struct UserProfile: Encodable, Equatable {
         return s
     }
 
-    var glucoseRangeText: String { "\(Int(glucoseLow))–\(Int(glucoseHigh)) mg/dL" }
+    var glucoseRangeText: String { glucoseUnit.range(glucoseLow, glucoseHigh) }
     var metGoalText: String { "\(dailyMetGoal) MET·min" }
     var carbRatioText: String { "1 : \(carbRatio)" }
     var weightText: String { weightKg.map { String(format: "%.1f kg", $0) } ?? "Not set" }
@@ -74,6 +75,7 @@ extension UserProfile: Decodable {
         dailyMetGoal = try c.decodeIfPresent(Int.self, forKey: .dailyMetGoal) ?? dailyMetGoal
         carbRatio = try c.decodeIfPresent(Int.self, forKey: .carbRatio) ?? carbRatio
         insulinDelivery = try c.decodeIfPresent(InsulinDelivery.self, forKey: .insulinDelivery) ?? insulinDelivery
+        glucoseUnit = try c.decodeIfPresent(GlucoseUnit.self, forKey: .glucoseUnit) ?? glucoseUnit
     }
 }
 

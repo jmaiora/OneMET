@@ -36,21 +36,37 @@ func weekLabel(_ weeksAgo: Int) -> String {
     }
 }
 
-/// Insight copy for a session, based on the glucose delta (ported from data.jsx).
-func workoutInsight(name: String, durMin: Int, delta: Int) -> String {
-    let d = abs(delta)
-    let sign = delta > 0 ? "+" : ""
-    if delta <= -25 {
-        return "This \(name.lowercased()) lowered glucose by \(d) mg/dL over \(durMin) min — consider adding \(Int((Double(d) * 0.4).rounded()))g carbs before similar sessions."
-    } else if delta <= -12 {
-        return "Moderate drop of \(d) mg/dL during this session — a small additional snack beforehand can help keep you in range."
-    } else if delta >= 25 {
-        return "This \(name.lowercased()) raised glucose by \(d) mg/dL over \(durMin) min — common with short, intense or anaerobic efforts."
-    } else if delta >= 12 {
-        return "Glucose rose \(d) mg/dL during this session — typical of higher-intensity work."
-    } else {
-        return "Glucose stayed steady (\(sign)\(delta) mg/dL) — low-impact at this intensity."
+/// Above this glucose (mg/dL) a fall isn't a hypo risk, so no pre-session carbs are
+/// suggested however large the drop was — dropping 60 points and landing at 190 needs
+/// no fuelling, only a smaller drop that actually approaches the low threshold does.
+let carbAdviceCeilingMgdl: Double = 120
+
+/// Insight copy for a session. `nadirMgdl` is the lowest glucose seen from the start of
+/// the session through the hour after it — the value that decides whether the drop
+/// actually mattered. Pass nil when there's no CGM data for the session.
+func workoutInsight(name: String, durMin: Int, delta: Int,
+                    nadirMgdl: Double?, unit: GlucoseUnit) -> String {
+    let sport = name.lowercased()
+    let size = unit.amount(Double(abs(delta)))
+
+    if delta <= -12 {
+        // The size of the fall says nothing on its own — where it landed does.
+        if let nadir = nadirMgdl, nadir > carbAdviceCeilingMgdl {
+            return "This \(sport) lowered glucose by \(size) over \(durMin) min, but you never went below \(unit.amount(nadir)) — no extra carbs needed for sessions like this."
+        }
+        if delta <= -25 {
+            let carbs = Int((Double(abs(delta)) * 0.4).rounded())
+            return "This \(sport) lowered glucose by \(size) over \(durMin) min, down to \(nadirMgdl.map { unit.amount($0) } ?? "a low") — consider adding \(carbs) g carbs before similar sessions."
+        }
+        return "Moderate drop of \(size) during this session — a small additional snack beforehand can help keep you in range."
     }
+    if delta >= 25 {
+        return "This \(sport) raised glucose by \(size) over \(durMin) min — common with short, intense or anaerobic efforts."
+    }
+    if delta >= 12 {
+        return "Glucose rose \(size) during this session — typical of higher-intensity work."
+    }
+    return "Glucose stayed steady (\(unit.deltaAmount(Double(delta)))) — low-impact at this intensity."
 }
 
 /// Synthesize a pre/during/post glucose curve (used for mock/preview data).

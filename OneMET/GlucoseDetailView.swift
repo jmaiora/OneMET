@@ -5,14 +5,13 @@ import SwiftUI
 struct GlucoseDetailView: View {
     @EnvironmentObject var store: HealthDataStore
     var accent: Color
-    var mmol: Bool = false
+    var unit: GlucoseUnit = .mgdl
     var onBack: () -> Void
 
     var body: some View {
         let d = store.data
         let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
         let trendWord = d.currentTrend == .down ? "falling" : d.currentTrend == .up ? "rising" : "steady"
-        let unit = mmol ? "mmol/L" : "mg/dL"
 
         ScreenScaffold {
             Button(action: onBack) {
@@ -40,11 +39,11 @@ struct GlucoseDetailView: View {
             Card {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(d.hasGlucose ? fmtGlucose(d.current, mmol: mmol) : "—")
+                        Text(d.hasGlucose ? unit.value(d.current) : "—")
                             .font(.system(size: 52, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
-                        Text(unit)
+                        Text(unit.rawValue)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                     }
@@ -55,7 +54,7 @@ struct GlucoseDetailView: View {
                 }
                 .padding(.bottom, 8)
 
-                GlucoseChart(height: 184, mmol: mmol, accent: accent,
+                GlucoseChart(height: 184, unit: unit, accent: accent,
                              data: d.glucose, currentIdx: d.currentIdx,
                              runFrom: d.runFrom, runTo: d.runTo,
                              low: d.targetLow, high: d.targetHigh)
@@ -65,11 +64,11 @@ struct GlucoseDetailView: View {
             Card(title: "Today") {
                 LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
                                     GridItem(.flexible(), alignment: .leading)], spacing: 18) {
-                    StatBlock(label: "Average", value: fmtGlucose(d.avg, mmol: mmol), unit: unit)
+                    StatBlock(label: "Average", value: unit.value(d.avg), unit: unit.rawValue)
                     StatBlock(label: "Time in Range", value: "\(d.tir.inRange)", unit: "%", color: Theme.green)
-                    StatBlock(label: "Lowest", value: fmtGlucose(d.lowestToday, mmol: mmol), color: Theme.red)
-                    StatBlock(label: "Highest", value: fmtGlucose(d.highestToday, mmol: mmol), color: Theme.amber)
-                    StatBlock(label: "Std. Dev", value: mmol ? String(format: "%.1f", d.sdToday / 18) : "\(Int(d.sdToday))")
+                    StatBlock(label: "Lowest", value: unit.value(d.lowestToday), color: Theme.red)
+                    StatBlock(label: "Highest", value: unit.value(d.highestToday), color: Theme.amber)
+                    StatBlock(label: "Std. Dev", value: unit.value(d.sdToday))
                     StatBlock(label: "GMI", value: d.avg > 0 ? String(format: "%.1f", HealthMath.gmi(meanMgdl: d.avg)) : "—", unit: "%")
                 }
 

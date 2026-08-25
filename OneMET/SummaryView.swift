@@ -6,14 +6,13 @@ struct SummaryView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
     var accent: Color
-    var mmol: Bool = false
+    var unit: GlucoseUnit = .mgdl
     var onOpenGlucose: () -> Void
     var onGoActivity: () -> Void
 
     var body: some View {
         let d = store.data
         let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
-        let unit = mmol ? "mmol/L" : "mg/dL"
         let r = d.rings
 
         ScreenScaffold(onRefresh: { await store.refresh() }) {
@@ -24,11 +23,11 @@ struct SummaryView: View {
                  right: store.isLoading ? "Updating…" : "Now", onTap: onOpenGlucose) {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(d.hasGlucose ? fmtGlucose(d.current, mmol: mmol) : "—")
+                        Text(d.hasGlucose ? unit.value(d.current) : "—")
                             .font(.system(size: 52, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
-                        Text(unit)
+                        Text(unit.rawValue)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                         if d.hasGlucose { TrendArrow(dir: d.currentTrend, color: st.color) }
@@ -44,7 +43,7 @@ struct SummaryView: View {
                     // A workout was recorded today → show its pre/during/post glucose overlay.
                     WorkoutChart(session: tw, accent: accent, height: 158)
                 } else {
-                    GlucoseChart(height: 158, mmol: mmol, accent: accent,
+                    GlucoseChart(height: 158, unit: unit, accent: accent,
                                  data: d.glucose, currentIdx: d.currentIdx,
                                  runFrom: d.runFrom, runTo: d.runTo,
                                  low: d.targetLow, high: d.targetHigh)
@@ -80,7 +79,7 @@ struct SummaryView: View {
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: "Before workout", icon: "bolt", iconColor: accent) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump))
+                    Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump, unit: unit))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(3)

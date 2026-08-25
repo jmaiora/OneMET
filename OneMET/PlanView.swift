@@ -20,11 +20,12 @@ struct PlanView: View {
         let glucose: Double? = d.hasGlucose ? d.current : nil
         let trend = d.currentTrend
         let gStatus = glucose.map { glucoseStatus($0, low: d.targetLow, high: d.targetHigh) }
+        let unit = profileStore.profile.glucoseUnit
         let guide = buildRunGuide(sportId: sport.id, durationMin: duration, iob: iob,
                                   glucoseMgdl: glucose,
                                   trendFalling: trend == .down, trendRising: trend == .up,
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
-                                  difficulty: difficulty)
+                                  difficulty: difficulty, unit: unit)
 
         ScreenScaffold {
             AppHeader(title: "Plan", date: "Run Guide", initials: profileStore.profile.initials, accent: accent)
@@ -64,8 +65,8 @@ struct PlanView: View {
                     Spacer()
                     if let g = glucose, let st = gStatus {
                         HStack(spacing: 5) {
-                            Text("\(Int(g))").font(.system(size: 15, weight: .semibold)).foregroundStyle(st.color).monospacedDigit()
-                            Text("mg/dL").font(.system(size: 13)).foregroundStyle(Theme.ink2)
+                            Text(unit.value(g)).font(.system(size: 15, weight: .semibold)).foregroundStyle(st.color).monospacedDigit()
+                            Text(unit.rawValue).font(.system(size: 13)).foregroundStyle(Theme.ink2)
                             TrendArrow(dir: trend, color: st.color)
                         }
                     } else {

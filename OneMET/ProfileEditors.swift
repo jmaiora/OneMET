@@ -72,6 +72,45 @@ struct EditIdentitySheet: View {
     }
 }
 
+// MARK: - Glucose units
+
+struct EditGlucoseUnitSheet: View {
+    @ObservedObject var store: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var unit: GlucoseUnit
+
+    init(store: ProfileStore) {
+        self.store = store
+        _unit = State(initialValue: store.profile.glucoseUnit)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(footer: Text("Display only — readings are always stored and compared in mg/dL, so switching units never changes your targets or any advice, just how the numbers are written.")) {
+                    Picker("Units", selection: $unit) {
+                        ForEach(GlucoseUnit.allCases) { Text($0.longName).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                }
+                Section("Preview") {
+                    HStack { Text("Current range"); Spacer()
+                        Text(unit.range(store.profile.glucoseLow, store.profile.glucoseHigh))
+                            .foregroundStyle(.secondary) }
+                }
+            }
+            .navigationTitle("Glucose Units")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { store.profile.glucoseUnit = unit; dismiss() }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Glucose range
 
 struct EditGlucoseRangeSheet: View {
@@ -87,14 +126,16 @@ struct EditGlucoseRangeSheet: View {
     }
 
     var body: some View {
+        // Values are held in mg/dL whatever the display unit; only the label converts.
+        let u = store.profile.glucoseUnit
         NavigationStack {
             Form {
-                Section(footer: Text("Your personal time-in-range targets. Standard is 70–180 mg/dL.")) {
-                    Stepper(value: $low, in: 50...max(55, high - 10), step: 5) {
-                        HStack { Text("Low"); Spacer(); Text("\(Int(low)) mg/dL").foregroundStyle(.secondary) }
+                Section(footer: Text("Your personal time-in-range targets. Standard is \(u.range(70, 180)).")) {
+                    Stepper(value: $low, in: 50...max(55, high - 10), step: u.stepMgdl) {
+                        HStack { Text("Low"); Spacer(); Text(u.amount(low)).foregroundStyle(.secondary) }
                     }
-                    Stepper(value: $high, in: min(345, low + 10)...350, step: 5) {
-                        HStack { Text("High"); Spacer(); Text("\(Int(high)) mg/dL").foregroundStyle(.secondary) }
+                    Stepper(value: $high, in: min(345, low + 10)...350, step: u.stepMgdl) {
+                        HStack { Text("High"); Spacer(); Text(u.amount(high)).foregroundStyle(.secondary) }
                     }
                 }
             }

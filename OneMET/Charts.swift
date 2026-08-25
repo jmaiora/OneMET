@@ -55,7 +55,7 @@ struct ActivityRings: View {
 
 struct GlucoseChart: View {
     var height: CGFloat = 168
-    var mmol: Bool = false
+    var unit: GlucoseUnit = .mgdl
     var accent: Color
     var showRun: Bool = true
     var from: Int = 0
@@ -93,8 +93,8 @@ struct GlucoseChart: View {
                 var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
                 ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
             }
-            let highLabel = mmol ? String(format: "%.1f", high / 18) : "\(Int(high))"
-            let lowLabel = mmol ? String(format: "%.1f", low / 18) : "\(Int(low))"
+            let highLabel = unit.value(high)
+            let lowLabel = unit.value(low)
             ctx.draw(Text(highLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),
                      at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
             ctx.draw(Text(lowLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),

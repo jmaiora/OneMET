@@ -12,6 +12,7 @@ struct WorkoutsView: View {
 
     var body: some View {
         let d = store.data
+        let unit = profileStore.profile.glucoseUnit
         let r = d.rings
         let weeks = Array(d.workoutHistory.prefix(visibleWeeks))
         let total = d.workoutHistory.reduce(0) { $0 + $1.sessions.count }
@@ -52,7 +53,7 @@ struct WorkoutsView: View {
                      right: "\(wk.sessions.count) workout\(wk.sessions.count == 1 ? "" : "s")") {
                     VStack(spacing: 0) {
                         ForEach(Array(wk.sessions.enumerated()), id: \.element.id) { i, s in
-                            HistoryRow(session: s, accent: accent, last: i == wk.sessions.count - 1) {
+                            HistoryRow(session: s, accent: accent, unit: unit, last: i == wk.sessions.count - 1) {
                                 onOpenWorkout(s)
                             }
                         }
@@ -77,6 +78,7 @@ struct WorkoutsView: View {
 struct HistoryRow: View {
     var session: WorkoutSession
     var accent: Color
+    var unit: GlucoseUnit = .mgdl
     var last: Bool
     var onTap: () -> Void
 
@@ -103,7 +105,7 @@ struct HistoryRow: View {
                     Spacer(minLength: 8)
 
                     VStack(alignment: .trailing, spacing: 3) {
-                        Chip("\(session.glucoseDelta > 0 ? "+" : "")\(session.glucoseDelta) mg/dL", color: dropColor)
+                        Chip(unit.deltaAmount(Double(session.glucoseDelta)), color: dropColor)
                         Text("\(fmtNum(session.avgMet)) MET avg")
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.ink3)

@@ -164,7 +164,10 @@ struct HealthSnapshot {
         s.corr = SampleData.corr
         s.avgTir14 = 82; s.tirDeltaVsPrior = 8; s.gmi = 6.4; s.avgGlucose14 = SampleData.avg
         s.avgMet14 = 210; s.lowEvents14 = 3; s.avgSteps14 = 9140; s.workoutCount14 = 9
-        s.insight = "Your 4:08 PM run lowered glucose by 38 mg/dL over 32 min — consider 15g carbs before similar sessions."
+        // Mirrors what workoutInsight() produces for the seeded 4:08 PM run, so previews
+        // show the same sentence the Workout detail screen would.
+        s.insight = s.todayWorkout?.insight
+            ?? "Log a workout to see how activity shifts your glucose."
         return s
     }
 }
@@ -334,6 +337,7 @@ final class HealthDataStore: ObservableObject {
         snap.workoutHistory = snap.workoutHistory.map { week in
             WorkoutWeek(label: week.label, sessions: week.sessions.map { byId[$0.id] ?? $0 })
         }
+        syncInsight(&snap)
     }
 
     /// Poll the glucose source about once a minute (only meaningful when Nightscout is active).
@@ -473,20 +477,21 @@ final class HealthDataStore: ObservableObject {
         snap.metToday = metMinTotal.rounded()                      // ring dose (MET·min)
         snap.rings.met = RingMetric(value: snap.metToday, goal: Double(profile.dailyMetGoal), unit: "MET·MIN")
 
-        // Primary workout drives the glucose-chart RUN band + the insight banner.
+        // Primary workout drives the glucose-chart RUN band. The insight banner is NOT
+        // written here: it comes verbatim from today's WorkoutSession (see syncInsight)
+        // so the Summary banner and the Workout detail screen can never disagree.
         if let primary = wks.max(by: { $0.duration < $1.duration }) {
             snap.runFrom = slot(primary.startDate, startOfDay)
             snap.runTo = slot(primary.endDate, startOfDay)
-            if let pw = out.first(where: { $0.time == Self.timeFmt.string(from: primary.startDate) }) {
-                let delta = pw.glucoseDelta
-                if delta <= -12 {
-                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) lowered glucose by \(abs(delta)) mg/dL over \(pw.dur) — consider 15g carbs before similar sessions."
-                } else if delta >= 12 {
-                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) raised glucose by \(delta) mg/dL over \(pw.dur) — common with short, intense or anaerobic efforts."
-                } else {
-                    snap.insight = "Your \(pw.time) \(pw.name.lowercased()) kept glucose steady (\(delta > 0 ? "+" : "")\(delta) mg/dL) over \(pw.dur)."
-                }
-            }
+        }
+    }
+
+    /// The Summary "Activity Insight" banner shows exactly the sentence the Workout
+    /// detail screen shows for the same session — one source of truth, one delta.
+    private func syncInsight(_ snap: inout HealthSnapshot) {
+        snap.unit = profile.glucoseUnit.rawValue
+        if let tw = snap.todayWorkout {
+            snap.insight = tw.insight
         }
     }
 
@@ -595,8 +600,6 @@ final class HealthDataStore: ObservableObject {
             let anyEver = await svc.hasAnyWorkoutsEver()
             if anyEver {
                 workoutDiagnostic = "No workouts in the last 6 weeks."
-            } else if needsHealthAccess {
-                workoutDiagnostic = "Health access hasn't been granted. Tap “Fix Health access” in Profile, then allow Workouts."
             } else {
                 workoutDiagnostic = "No workouts visible. iOS updates can switch off Health access for apps — check Settings ▸ Privacy & Security ▸ Health ▸ OneMET and make sure Workouts is on."
             }
@@ -630,8 +633,9 @@ final class HealthDataStore: ObservableObject {
                         sessions: buckets[k]!.sorted { $0.date > $1.date }.map { $0.session })
         }
         if !weeks.isEmpty { snap.workoutHistory = weeks }
-        // Primary (longest) workout today drives the Summary glucose chart.
+        // Primary (longest) workout today drives the Summary glucose chart + insight.
         snap.todayWorkout = todayCandidates.max(by: { $0.dur < $1.dur })?.session
+        syncInsight(&snap)
     }
 
     private func buildSession(_ w: HKWorkout, massKg: Double) async -> WorkoutSession {
@@ -666,6 +670,10 @@ final class HealthDataStore: ObservableObject {
         if !readings.isEmpty {
             delta = Int((curve[activityEnd] - curve[activityStart]).rounded())
         }
+        // Lowest point from the start of the session through the post-exercise hour.
+        // Post-session lows are the real risk, so the window deliberately runs past the
+        // end of the workout rather than stopping at activityEnd.
+        let nadir: Double? = readings.isEmpty ? nil : curve[activityStart...].min()
 
         let name = workoutName(w.workoutActivityType)
         return WorkoutSession(
@@ -685,7 +693,8 @@ final class HealthDataStore: ObservableObject {
             curve: readings.isEmpty ? [] : curve,
             activityStart: activityStart,
             activityEnd: activityEnd,
-            insight: workoutInsight(name: name, durMin: durMin, delta: delta)
+            insight: workoutInsight(name: name, durMin: durMin, delta: delta,
+                                    nadirMgdl: nadir, unit: profile.glucoseUnit)
         )
     }
 
@@ -733,9 +742,8 @@ final class HealthDataStore: ObservableObject {
                                 text: "\(m.name) · \(m.carbs)g carbs", color: Theme.amber))
         }
         for w in snap.workouts {
-            let sign = w.glucoseDelta > 0 ? "+" : ""
             evs.append(DayEvent(date: parse(w.time), time: w.time,
-                                text: "\(w.name) · \(sign)\(w.glucoseDelta) mg/dL",
+                                text: "\(w.name) · \(profile.glucoseUnit.deltaAmount(Double(w.glucoseDelta)))",
                                 color: w.glucoseDelta < 0 ? Theme.green : Theme.amber))
         }
         snap.events = evs.sorted { $0.date < $1.date }

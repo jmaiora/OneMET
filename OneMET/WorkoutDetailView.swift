@@ -5,6 +5,7 @@ import SwiftUI
 struct WorkoutDetailView: View {
     var session: WorkoutSession
     var accent: Color
+    var unit: GlucoseUnit = .mgdl
     var onBack: () -> Void
 
     var body: some View {
@@ -50,7 +51,7 @@ struct WorkoutDetailView: View {
                     StatBlock(label: "Calories", value: "\(w.kcal)", unit: "kcal")
                     StatBlock(label: "Avg MET", value: fmtNum(w.avgMet))
                     StatBlock(label: "Avg HR", value: "\(w.hr)", unit: "bpm", color: Theme.red)
-                    StatBlock(label: "Glucose Δ", value: "\(w.glucoseDelta > 0 ? "+" : "")\(w.glucoseDelta)", unit: "mg/dL", color: dropColor)
+                    StatBlock(label: "Glucose Δ", value: unit.delta(Double(w.glucoseDelta)), unit: unit.rawValue, color: dropColor)
                 }
                 .padding(.bottom, 14)
 

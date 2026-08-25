@@ -4,7 +4,7 @@ import MessageUI
 // ProfileView.swift — OneMET Profile screen with editable personal data.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, glucose, met, carb, insulin, nightscout, dexcom
+    case identity, glucose, units, met, carb, insulin, nightscout, dexcom
     var id: Int { rawValue }
 }
 
@@ -50,13 +50,16 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
+            // Dots here are status, not decoration: green = we're receiving data from it,
+            // grey = nothing detected. (The Apple Watch dot used to be a fixed red, which
+            // read as a fault even when the watch was working fine.)
             IOSList(header: "Connected Devices") {
                 IOSListRow(title: "CGM Sensor",
-                           detail: store.authorized ? "Connected" : "Not linked",
-                           dot: store.authorized ? Theme.green : Theme.ink3)
+                           detail: cgmDetail,
+                           dot: cgmConnected ? Theme.green : Theme.ink3)
                 IOSListRow(title: "Apple Watch",
-                           detail: store.data.watchModel.isEmpty ? "Not detected" : store.data.watchModel,
-                           dot: Theme.red, isLast: true)
+                           detail: watchDetected ? store.data.watchModel : "Not detected",
+                           dot: watchDetected ? Theme.green : Theme.ink3, isLast: true)
             }
 
             IOSList(header: "Glucose Source") {
@@ -72,6 +75,7 @@ struct ProfileView: View {
             }
 
             IOSList(header: "Personal Targets") {
+                IOSListRow(title: "Glucose Units", detail: p.glucoseUnit.rawValue, dot: Theme.teal) { editor = .units }
                 IOSListRow(title: "Glucose Range", detail: p.glucoseRangeText, dot: Theme.green) { editor = .glucose }
                 IOSListRow(title: "Daily MET Goal", detail: p.metGoalText, dot: Theme.ringMet) { editor = .met }
                 IOSListRow(title: "Insulin Delivery", detail: p.deliveryText, dot: accent, isLast: true) { editor = .insulin }
@@ -90,6 +94,7 @@ struct ProfileView: View {
             switch which {
             case .identity: EditIdentitySheet(store: profileStore)
             case .glucose:  EditGlucoseRangeSheet(store: profileStore)
+            case .units:    EditGlucoseUnitSheet(store: profileStore)
             case .met:      EditMetGoalSheet(store: profileStore)
             case .carb:     EditCarbRatioSheet(store: profileStore)
             case .insulin:  EditInsulinDeliverySheet(store: profileStore)
@@ -106,6 +111,21 @@ struct ProfileView: View {
                      attachmentURL: file.url) { mailFile = nil }
         }
     }
+
+    /// A CGM counts as connected when a remote source is live, or when Apple Health has
+    /// actually handed us glucose readings — not merely because the app launched.
+    private var cgmConnected: Bool {
+        glucoseSource.dexcom.isActive || glucoseSource.config.isActive || store.data.hasGlucose
+    }
+
+    private var cgmDetail: String {
+        if glucoseSource.dexcom.isActive { return "Dexcom Share" }
+        if glucoseSource.config.isActive { return "Nightscout" }
+        return store.data.hasGlucose ? "Apple Health" : "Not linked"
+    }
+
+    /// A watch is "detected" when a recent workout was recorded on one.
+    private var watchDetected: Bool { !store.data.watchModel.isEmpty }
 
     /// Build a downloadable .xlsx of the workout history and present the share sheet.
     private func exportWorkouts() {

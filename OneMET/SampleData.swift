@@ -73,9 +73,9 @@ func glucoseStatus(_ mgdl: Double,
     return GlucoseStatus(label: "In Range", color: Theme.green)
 }
 
-/// Format a mg/dL value, optionally converting to mmol/L.
-func fmtGlucose(_ mgdl: Double, mmol: Bool = false) -> String {
-    mmol ? String(format: "%.1f", mgdl / 18) : String(Int(mgdl.rounded()))
+/// Format a mg/dL value for display. See `GlucoseUnit` for the unit model.
+func fmtGlucose(_ mgdl: Double, unit: GlucoseUnit = .mgdl) -> String {
+    unit.value(mgdl)
 }
 
 // MARK: - Day-long glucose curve
@@ -186,7 +186,9 @@ enum SampleData {
                                   dur: "\(durMin) min", durMin: durMin, dist: dist, kcal: kcal, avgMet: met,
                                   hr: hr, glucoseDelta: delta, curve: c.curve,
                                   activityStart: c.activityStart, activityEnd: c.activityEnd,
-                                  insight: workoutInsight(name: name, durMin: durMin, delta: delta))
+                                  insight: workoutInsight(name: name, durMin: durMin, delta: delta,
+                                                          nadirMgdl: c.curve[c.activityStart...].min(),
+                                                          unit: .mgdl))
         }
         return [
             WorkoutWeek(label: "This Week", sessions: [

@@ -20,8 +20,10 @@ struct RootView: View {
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var openWorkout: WorkoutSession?
-    @State private var mmol = false
     private let accent = Theme.accent
+
+    /// Display unit for every glucose value in the app (Profile ▸ Glucose Units).
+    private var unit: GlucoseUnit { profileStore.profile.glucoseUnit }
     private let anim = Animation.easeInOut(duration: 0.25)
 
     private var tabBinding: Binding<AppTab> {
@@ -45,7 +47,7 @@ struct RootView: View {
                 .zIndex(5)
 
             if showGlucose {
-                GlucoseDetailView(accent: accent, mmol: mmol) {
+                GlucoseDetailView(accent: accent, unit: unit) {
                     withAnimation(anim) { showGlucose = false }
                 }
                 .background(Theme.bg.ignoresSafeArea())
@@ -54,7 +56,7 @@ struct RootView: View {
             }
 
             if let w = openWorkout {
-                WorkoutDetailView(session: w, accent: accent) {
+                WorkoutDetailView(session: w, accent: accent, unit: unit) {
                     withAnimation(anim) { openWorkout = nil }
                 }
                 .background(Theme.bg.ignoresSafeArea())
@@ -98,7 +100,7 @@ struct RootView: View {
         case .summary:
             SummaryView(
                 accent: accent,
-                mmol: mmol,
+                unit: unit,
                 onOpenGlucose: { withAnimation(anim) { showGlucose = true } },
                 onGoActivity: { tab = .workouts }
             )

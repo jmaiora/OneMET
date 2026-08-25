@@ -37,11 +37,12 @@ let SPORTS: [Sport] = [
 // Generic "before workout" strategy — the insulin-first principle. Depends only on
 // the user's insulin-delivery method (a Profile setting), not on any live session
 // input, so it can be shown as a standalone summary on the Summary tab.
-func beforeWorkoutSummary(deliveryIsPump: Bool) -> String {
+func beforeWorkoutSummary(deliveryIsPump: Bool, unit: GlucoseUnit = .mgdl) -> String {
+    let startBand = unit.range(140, 180)
     if deliveryIsPump {
-        return "Prevent, don\u{2019}t treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near 140–180 mg/dL, carry fast carbs."
+        return "Prevent, don\u{2019}t treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near \(startBand), carry fast carbs."
     } else {
-        return "Prevent, don\u{2019}t treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near 140–180 mg/dL, carry fast carbs."
+        return "Prevent, don\u{2019}t treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near \(startBand), carry fast carbs."
     }
 }
 
@@ -127,7 +128,8 @@ struct RunGuide {
 
 func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
-                   deliveryIsPump: Bool, difficulty: WorkoutDifficulty) -> RunGuide {
+                   deliveryIsPump: Bool, difficulty: WorkoutDifficulty,
+                   unit: GlucoseUnit = .mgdl) -> RunGuide {
     // ── 2. Match advice to run duration ──
     let band: String, bandDetail: String
     if durationMin < 45 { band = "Easy"; bandDetail = "Under 45 min · aim to finish without eating" }
@@ -148,14 +150,15 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     var title = "Check your glucose first"
     var reason = "No live CGM / Nightscout reading — head out only when you can see your glucose and trend."
     if let g = glucoseMgdl, g > 0 {
-        let gi = Int(g.rounded())
+        let gi = unit.value(g)
+        let gAmount = unit.amount(g)
         let highIOB = iob > 1.2
         if g < 70 {
             status = .stop; title = "Treat first — don't start"
-            reason = "You're low (\(gi) mg/dL). Treat, and wait until you've recovered before heading out."
+            reason = "You're low (\(gAmount)). Treat, and wait until you've recovered before heading out."
         } else if g < 90 {
             status = .wait; title = "Top up ~\(duringStartG) g and wait"
-            reason = "\(gi) mg/dL is below the safe start zone — take ~\(duringStartG) g and re-check before you go."
+            reason = "\(gAmount) is below the safe start zone — take ~\(duringStartG) g and re-check before you go."
         } else if g < 126 {
             if trendFalling {
                 status = .topUp; title = "Top up ~\(duringStartG) g first"
@@ -173,7 +176,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                 reason = "\(gi) is fine, but \(String(format: "%.1f", iob)) U on board will keep pulling you down — ~\(duringStartG) g covers it."
             } else {
                 status = .go; title = "Good to start"
-                reason = "\(gi) mg/dL is right in the sweet spot — head out."
+                reason = "\(gAmount) is right in the sweet spot — head out."
             }
         } else if g <= 250 {
             status = .go; title = "Good to start"
@@ -185,7 +188,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     }
 
     // ── 1. Prevent rather than treat (insulin-first; strategy only, no doses) ──
-    let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump)
+    let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump, unit: unit)
 
     // During — Riddell/EXTOD carbohydrate fuelling, driven by the selected difficulty.
     // No cap: the feeding rate scales with effort and longer sessions get more feeds.
@@ -206,7 +209,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     }
 
     // ── 4 & 5. Accept imperfect glucose; learn progressively ──
-    let philosophy = "Most PwD feel best around 140–200 mg/dL during exercise. Avoiding lows matters more than perfect numbers — chasing 100–140 usually means repeated gels and rebound highs."
+    let philosophy = "Most PwD feel best around \(unit.range(140, 200)) during exercise. Avoiding lows matters more than perfect numbers — chasing \(unit.range(100, 140)) usually means repeated gels and rebound highs."
     let learn = "Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy."
 
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,

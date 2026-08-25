@@ -134,6 +134,7 @@ struct TIRLegend: View {
 struct WorkoutRow: View {
     var w: Workout
     var accent: Color
+    var unit: GlucoseUnit = .mgdl
     var last: Bool
 
     var body: some View {
@@ -157,7 +158,7 @@ struct WorkoutRow: View {
                 Spacer(minLength: 8)
 
                 VStack(alignment: .trailing, spacing: 3) {
-                    Chip("\(w.glucoseDelta > 0 ? "+" : "")\(w.glucoseDelta) mg/dL", color: dropColor)
+                    Chip(unit.deltaAmount(Double(w.glucoseDelta)), color: dropColor)
                     Text("\(fmtNum(w.avgMet)) MET avg")
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.ink3)
