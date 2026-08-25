@@ -36,11 +36,26 @@ struct WorkoutsView: View {
             }
 
             if d.workoutHistory.isEmpty {
-                Card {
-                    Text("No workouts logged yet. Sessions from Apple Health will appear here.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.ink2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                Card(title: "No workouts shown", icon: "run", iconColor: Theme.amber) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(store.workoutDiagnostic
+                             ?? "No workouts logged yet. Sessions from Apple Health will appear here.")
+                            .font(.system(size: 13.5))
+                            .foregroundStyle(Theme.ink)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Button {
+                            Task { await store.reRequestHealthAccess() }
+                        } label: {
+                            Text(store.isLoading ? "Checking…" : "Fix Health access")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(accent)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(store.isLoading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 

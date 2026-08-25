@@ -175,8 +175,10 @@ struct HealthSnapshot {
 final class HealthDataStore: ObservableObject {
     @Published var data: HealthSnapshot = .mock
     @Published var isLoading = false
-    @Published var authorized = false
+    @Published var authorized = false          // true only once we've actually READ something
     @Published var statusMessage: String? = nil
+    @Published var needsHealthAccess = false   // HealthKit would still show a permission sheet
+    @Published var workoutDiagnostic: String? = nil   // why the workout list is empty
 
     /// The user's personal data; set by the app before loading. Drives mass, MET goal, glucose range.
     var profile = UserProfile()
@@ -239,12 +241,26 @@ final class HealthDataStore: ObservableObject {
         }
         do {
             try await svc.requestAuthorization()
-            authorized = true
         } catch {
             statusMessage = "HealthKit authorization failed: \(error.localizedDescription)"
         }
+        // NOTE: requestAuthorization succeeding does NOT mean the user granted anything —
+        // HealthKit deliberately hides read grants. Treat "we actually read data" as the truth.
+        needsHealthAccess = await svc.shouldRequestAuthorization()
         await refresh()
         startPolling()
+    }
+
+    /// Re-prompt for Health access and reload. Useful after an iOS update resets permissions.
+    func reRequestHealthAccess() async {
+        do {
+            try await svc.requestAuthorization()
+            statusMessage = nil
+        } catch {
+            statusMessage = "Health access request failed: \(error.localizedDescription)"
+        }
+        needsHealthAccess = await svc.shouldRequestAuthorization()
+        await refresh()
     }
 
     func refresh() async {
@@ -273,6 +289,9 @@ final class HealthDataStore: ObservableObject {
         await loadNutritionToday(&snap, startOfDay: startOfDay, now: now)
         buildEvents(&snap)
         await loadHistory(&snap, now: now, massKg: massKg)
+
+        // Read grants are opaque in HealthKit — infer access from actually having data.
+        if snap.hasGlucose || snap.steps > 0 || !snap.workoutHistory.isEmpty { authorized = true }
 
         data = snap
     }
@@ -561,7 +580,30 @@ final class HealthDataStore: ObservableObject {
 
     private func loadWorkoutHistory(_ snap: inout HealthSnapshot, now: Date, massKg: Double) async {
         let start = cal.date(byAdding: .day, value: -42, to: cal.startOfDay(for: now))!
-        guard let wks = try? await svc.workouts(from: start, to: now), !wks.isEmpty else { return }
+
+        var wks: [HKWorkout] = []
+        do {
+            wks = try await svc.workouts(from: start, to: now)
+        } catch {
+            workoutDiagnostic = "Couldn't read workouts from Health: \(error.localizedDescription)"
+            return
+        }
+
+        if wks.isEmpty {
+            // HealthKit returns an empty array (not an error) when read access is denied,
+            // so probe a wider window to tell "no access" apart from "none in 6 weeks".
+            let anyEver = await svc.hasAnyWorkoutsEver()
+            if anyEver {
+                workoutDiagnostic = "No workouts in the last 6 weeks."
+            } else if needsHealthAccess {
+                workoutDiagnostic = "Health access hasn't been granted. Tap “Fix Health access” in Profile, then allow Workouts."
+            } else {
+                workoutDiagnostic = "No workouts visible. iOS updates can switch off Health access for apps — check Settings ▸ Privacy & Security ▸ Health ▸ OneMET and make sure Workouts is on."
+            }
+            return
+        }
+        workoutDiagnostic = nil
+        authorized = true      // we genuinely read data, so access is real
         snap.watchModel = appleWatchModel(from: wks)
 
         // Single glucose read covering every session window (30 min before the earliest

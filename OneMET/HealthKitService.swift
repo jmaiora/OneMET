@@ -36,6 +36,27 @@ struct HealthKitService {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
+    /// True when HealthKit would still show a permission sheet — i.e. at least one
+    /// read type is undetermined. After an iOS update that resets Health access this
+    /// flips back to true, which is our best available signal (read grants are opaque).
+    func shouldRequestAuthorization() async -> Bool {
+        await withCheckedContinuation { cont in
+            store.getRequestStatusForAuthorization(toShare: [], read: readTypes) { status, _ in
+                cont.resume(returning: status == .shouldRequest)
+            }
+        }
+    }
+
+    /// Diagnostic probe: are ANY workouts visible in the last year? HealthKit returns an
+    /// empty array (not an error) when read access is denied, so this distinguishes
+    /// "no permission / nothing synced" from "no workouts in the window you asked for".
+    func hasAnyWorkoutsEver() async -> Bool {
+        let end = Date()
+        let start = Calendar.current.date(byAdding: .year, value: -1, to: end) ?? end
+        let found = (try? await workouts(from: start, to: end)) ?? []
+        return !found.isEmpty
+    }
+
     // MARK: - Predicates
 
     private func samplePredicate(_ from: Date, _ to: Date) -> NSPredicate {

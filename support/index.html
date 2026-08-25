@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneMET — Support</title>
+<style>
+  :root {
+    --accent: #2E7DF6;
+    --ink: #1c1c1e;
+    --ink2: #48484a;
+    --ink3: #8e8e93;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --sep: #e5e5ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 40px 22px 64px; }
+  header { text-align: center; margin-bottom: 34px; }
+  .logo {
+    width: 74px; height: 74px; border-radius: 18px;
+    background: linear-gradient(145deg, #2E7DF6, #1FB8C9);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 34px; font-weight: 800; letter-spacing: -1px;
+    box-shadow: 0 8px 22px rgba(46,125,246,.28);
+  }
+  h1 { font-size: 27px; margin: 16px 0 4px; letter-spacing: -.5px; }
+  .tagline { color: var(--ink2); font-size: 16px; margin: 0; }
+  .card {
+    background: var(--card); border-radius: 16px; padding: 22px 24px;
+    margin-bottom: 18px; border: 1px solid var(--sep);
+  }
+  h2 { font-size: 18px; margin: 0 0 12px; letter-spacing: -.3px; }
+  p { margin: 0 0 12px; color: var(--ink2); }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .contact-btn {
+    display: inline-block; background: var(--accent); color: #fff;
+    padding: 12px 22px; border-radius: 12px; font-weight: 600; margin-top: 4px;
+  }
+  .contact-btn:hover { text-decoration: none; opacity: .92; }
+  .faq-q { font-weight: 600; color: var(--ink); margin: 16px 0 4px; }
+  .faq-q:first-child { margin-top: 0; }
+  .disclaimer {
+    background: #fff8e6; border: 1px solid #f2e2b0; border-radius: 14px;
+    padding: 16px 18px; font-size: 14px; color: #6b5a20;
+  }
+  footer { text-align: center; color: var(--ink3); font-size: 13px; margin-top: 30px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">M</div>
+      <h1>OneMET</h1>
+      <p class="tagline">Glucose &amp; exercise, side by side — for people with type&nbsp;1 diabetes.</p>
+    </header>
+
+    <div class="card">
+      <h2>Support &amp; Contact</h2>
+      <p>Questions, bug reports, or feedback about OneMET? I read every message and I'm happy to help.</p>
+      <p><a class="contact-btn" href="mailto:jmaiora@gmail.com?subject=OneMET%20Support">Email support</a></p>
+      <p style="margin-top:14px;font-size:14px;">Or write directly to <a href="mailto:jmaiora@gmail.com">jmaiora@gmail.com</a>. I typically reply within a few days.</p>
+    </div>
+
+    <div class="card">
+      <h2>About the app</h2>
+      <p>OneMET helps you see how physical activity affects your glucose and plan carbohydrates around your workouts. It reads glucose from Nightscout or Dexcom&nbsp;Share and activity from Apple&nbsp;Health, then shows a prevention-first guide for before and during exercise.</p>
+    </div>
+
+    <div class="card">
+      <h2>Frequently asked</h2>
+
+      <p class="faq-q">Which iPhone do I need?</p>
+      <p>An iPhone running a recent version of iOS. An Apple&nbsp;Watch and a CGM (via Nightscout or Dexcom&nbsp;Share) make the most of the app, but aren't strictly required to try it.</p>
+
+      <p class="faq-q">How do I connect my glucose data?</p>
+      <p>Open the Profile tab → Glucose Source, and enter your Nightscout site or your Dexcom&nbsp;Share account. The connection is read-only.</p>
+
+      <p class="faq-q">Is my data private?</p>
+      <p>Your health data stays on your device and is used only to show your own trends and guidance. It isn't sold or shared with third parties.</p>
+
+      <p class="faq-q">I'm a beta tester and can't install the app.</p>
+      <p>Make sure the free <strong>TestFlight</strong> app is installed, and that you opened the invitation on the same iPhone using the email linked to your Apple&nbsp;ID. If it still fails, email me the address you used.</p>
+    </div>
+
+    <div class="disclaimer">
+      OneMET provides illustrative, educational guidance only. It is <strong>not a medical device</strong> and does not replace advice from your healthcare team. Always agree insulin and carbohydrate decisions with your clinician.
+    </div>
+
+    <footer>
+      © 2026 Josu Maiora · OneMET
+    </footer>
+  </div>
+</body>
+</html>
