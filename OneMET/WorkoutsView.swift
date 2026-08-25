@@ -6,6 +6,7 @@ struct WorkoutsView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
     var accent: Color
+    var lang: AppLanguage = .en
     var onOpenWorkout: (WorkoutSession) -> Void
 
     @State private var visibleWeeks = 2
@@ -19,7 +20,8 @@ struct WorkoutsView: View {
         let shown = weeks.reduce(0) { $0 + $1.sessions.count }
 
         ScreenScaffold(onRefresh: { await store.refresh() }) {
-            AppHeader(title: "Workouts", date: "History", initials: profileStore.profile.initials, accent: accent)
+            AppHeader(title: lang.t("workouts.title"), date: lang.t("workouts.history"),
+                      initials: profileStore.profile.initials, accent: accent)
 
             // Rings hero
             Card(pad: 20) {
@@ -30,16 +32,15 @@ struct WorkoutsView: View {
                 }
                 .padding(.bottom, 16)
                 VStack(alignment: .leading, spacing: 12) {
-                    RingStat(color: Theme.ringMove, label: "Move", value: r.move.value, goal: r.move.goal, unit: "kcal")
-                    RingStat(color: Theme.ringExer, label: "Exercise", value: r.exer.value, goal: r.exer.goal, unit: "min")
-                    RingStat(color: Theme.ringMet, label: "MET", value: r.met.value, goal: r.met.goal, unit: "MET·min")
+                    RingStat(color: Theme.ringMove, label: lang.t("summary.move"), value: r.move.value, goal: r.move.goal, unit: "kcal")
+                    RingStat(color: Theme.ringExer, label: lang.t("summary.exercise"), value: r.exer.value, goal: r.exer.goal, unit: lang.t("workouts.min"))
+                    RingStat(color: Theme.ringMet, label: lang.t("summary.met"), value: r.met.value, goal: r.met.goal, unit: "MET·min")
                 }
             }
 
             if d.workoutHistory.isEmpty {
-                Card(title: "No workouts shown", icon: "run", iconColor: Theme.amber) {
-                    Text(store.workoutDiagnostic
-                         ?? "No workouts logged yet. Sessions from Apple Health will appear here.")
+                Card(title: lang.t("workouts.noneShown"), icon: "run", iconColor: Theme.amber) {
+                    Text(store.workoutDiagnostic ?? lang.t("workouts.noneYet"))
                         .font(.system(size: 13.5))
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(2)
@@ -50,10 +51,12 @@ struct WorkoutsView: View {
 
             ForEach(weeks) { wk in
                 Card(title: wk.label, icon: "run", iconColor: accent,
-                     right: "\(wk.sessions.count) workout\(wk.sessions.count == 1 ? "" : "s")") {
+                     right: lang.t(wk.sessions.count == 1 ? "workouts.one" : "workouts.many",
+                                   String(wk.sessions.count))) {
                     VStack(spacing: 0) {
                         ForEach(Array(wk.sessions.enumerated()), id: \.element.id) { i, s in
-                            HistoryRow(session: s, accent: accent, unit: unit, last: i == wk.sessions.count - 1) {
+                            HistoryRow(session: s, accent: accent, unit: unit, lang: lang,
+                                       last: i == wk.sessions.count - 1) {
                                 onOpenWorkout(s)
                             }
                         }
@@ -63,7 +66,7 @@ struct WorkoutsView: View {
 
             if shown < total {
                 Button { visibleWeeks += 2 } label: {
-                    Text("Load Past Weeks")
+                    Text(lang.t("workouts.loadPast"))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(accent)
                         .frame(maxWidth: .infinity)
@@ -79,6 +82,7 @@ struct HistoryRow: View {
     var session: WorkoutSession
     var accent: Color
     var unit: GlucoseUnit = .mgdl
+    var lang: AppLanguage = .en
     var last: Bool
     var onTap: () -> Void
 
@@ -106,7 +110,7 @@ struct HistoryRow: View {
 
                     VStack(alignment: .trailing, spacing: 3) {
                         Chip(unit.deltaAmount(Double(session.glucoseDelta)), color: dropColor)
-                        Text("\(fmtNum(session.avgMet)) MET avg")
+                        Text(lang.t("workouts.metAvg", fmtNum(session.avgMet)))
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.ink3)
                             .monospacedDigit()

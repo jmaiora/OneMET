@@ -56,6 +56,7 @@ struct ActivityRings: View {
 struct GlucoseChart: View {
     var height: CGFloat = 168
     var unit: GlucoseUnit = .mgdl
+    var lang: AppLanguage = .en
     var accent: Color
     var showRun: Bool = true
     var from: Int = 0
@@ -105,7 +106,7 @@ struct GlucoseChart: View {
             if showRun && runFrom != nil && runTo != nil && re > rs {
                 ctx.fill(Path(CGRect(x: X(rs), y: padT, width: X(re) - X(rs), height: h - padT - padB)),
                          with: .color(accent.opacity(0.06)))
-                ctx.draw(Text("RUN").font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
+                ctx.draw(Text(lang.t("chart.run")).font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
                          at: CGPoint(x: (X(rs) + X(re)) / 2, y: padT + 7), anchor: .center)
             }
 
@@ -264,6 +265,7 @@ struct TIRBar: View {
 struct TrendBars: View {
     var height: CGFloat = 150
     var accent: Color
+    var lang: AppLanguage = .en
     var data: [Double] = SampleData.tirTrend
 
     var body: some View {
@@ -279,7 +281,7 @@ struct TrendBars: View {
             var goal = Path()
             goal.move(to: CGPoint(x: 0, y: Y(70))); goal.addLine(to: CGPoint(x: w, y: Y(70)))
             ctx.stroke(goal, with: .color(Theme.green.opacity(0.4)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            ctx.draw(Text("70% goal").font(.system(size: 9.5, weight: .semibold)).foregroundColor(Theme.green),
+            ctx.draw(Text(lang.t("chart.goal70")).font(.system(size: 9.5, weight: .semibold)).foregroundColor(Theme.green),
                      at: CGPoint(x: 2, y: Y(70) - 4), anchor: .bottomLeading)
 
             for (i, v) in data.enumerated() {
@@ -291,7 +293,7 @@ struct TrendBars: View {
                 ctx.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(color.opacity(op)))
             }
             for i in [0, 6, 13] {
-                let lab = i == 13 ? "Today" : "\(14 - i)d"
+                let lab = i == 13 ? lang.t("chart.today") : lang.t("chart.daysAgo", String(14 - i))
                 ctx.draw(Text(lab).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 4), anchor: .center)
             }
@@ -305,6 +307,7 @@ struct TrendBars: View {
 struct CorrScatter: View {
     var height: CGFloat = 168
     var accent: Color
+    var lang: AppLanguage = .en
     var data: [CorrPoint] = SampleData.corr
 
     var body: some View {
@@ -338,7 +341,7 @@ struct CorrScatter: View {
                 ctx.fill(Path(ellipseIn: CGRect(x: X(d.met) - 4.5, y: Y(d.tirPct) - 4.5, width: 9, height: 9)),
                          with: .color(accent.opacity(0.85)))
             }
-            ctx.draw(Text("Avg workout MET →").font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+            ctx.draw(Text(lang.t("chart.avgWorkoutMet")).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
                      at: CGPoint(x: (padL + w - padR) / 2, y: h - 4), anchor: .center)
         }
         .frame(height: height)
@@ -400,6 +403,11 @@ struct WorkoutChart: View {
     var session: WorkoutSession
     var accent: Color
     var height: CGFloat = 168
+    var unit: GlucoseUnit = .mgdl
+    var lang: AppLanguage = .en
+    // Axis thresholds were hardcoded 70/180; they now follow the user's own target range.
+    var low: Double = Theme.targetLow
+    var high: Double = Theme.targetHigh
 
     var body: some View {
         Canvas { ctx, size in
@@ -414,7 +422,7 @@ struct WorkoutChart: View {
             func Y(_ v: CGFloat) -> CGFloat { padT + (1 - (v - gMin) / (gMax - gMin)) * (h - padT - padB) }
 
             let pts = data.enumerated().map { CGPoint(x: X($0.offset), y: Y(CGFloat($0.element))) }
-            let yLow = Y(70), yHigh = Y(180)
+            let yLow = Y(CGFloat(low)), yHigh = Y(CGFloat(high))
 
             // target band + thresholds
             ctx.fill(Path(CGRect(x: padL, y: yHigh, width: w - padL - padR, height: yLow - yHigh)),
@@ -423,8 +431,8 @@ struct WorkoutChart: View {
                 var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
                 ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
             }
-            ctx.draw(Text("180").font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text("70").font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
+            ctx.draw(Text(unit.value(high)).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
+            ctx.draw(Text(unit.value(low)).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // activity window
             let rs = X(session.activityStart), re = X(session.activityEnd)
@@ -444,9 +452,9 @@ struct WorkoutChart: View {
             ctx.stroke(smoothPath(pts), with: .color(accent), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
             // phase labels
-            ctx.draw(Text("Before").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
-            ctx.draw(Text("Activity").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
-            ctx.draw(Text("After").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
+            ctx.draw(Text(lang.t("chart.before")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
+            ctx.draw(Text(lang.t("chart.activity")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
+            ctx.draw(Text(lang.t("chart.after")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
         }
         .frame(height: height)
     }

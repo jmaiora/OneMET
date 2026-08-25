@@ -135,6 +135,7 @@ struct WorkoutRow: View {
     var w: Workout
     var accent: Color
     var unit: GlucoseUnit = .mgdl
+    var lang: AppLanguage = .en
     var last: Bool
 
     var body: some View {
@@ -159,7 +160,7 @@ struct WorkoutRow: View {
 
                 VStack(alignment: .trailing, spacing: 3) {
                     Chip(unit.deltaAmount(Double(w.glucoseDelta)), color: dropColor)
-                    Text("\(fmtNum(w.avgMet)) MET avg")
+                    Text(lang.t("workouts.metAvg", fmtNum(w.avgMet)))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.ink3)
                         .monospacedDigit()

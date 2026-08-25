@@ -8,11 +8,12 @@ struct PlanView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
     var accent: Color
+    var lang: AppLanguage = .en
 
     @State private var sportIndex = 0
     @State private var duration = 45
     @State private var iob = 1.0
-    @State private var difficulty: WorkoutDifficulty = WorkoutDifficulty(sportDifficulty: SPORTS[0].difficulty)
+    @State private var difficulty: WorkoutDifficulty = SPORTS[0].difficulty
 
     var body: some View {
         let d = store.data
@@ -25,28 +26,33 @@ struct PlanView: View {
                                   glucoseMgdl: glucose,
                                   trendFalling: trend == .down, trendRising: trend == .up,
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
-                                  difficulty: difficulty, unit: unit)
+                                  difficulty: difficulty, unit: unit, lang: lang)
 
         ScreenScaffold {
-            AppHeader(title: "Plan", date: "Run Guide", initials: profileStore.profile.initials, accent: accent)
+            AppHeader(title: lang.t("plan.title"), date: lang.t("plan.runGuide"),
+                      initials: profileStore.profile.initials, accent: accent)
 
-            Card(title: "Session Details", icon: "calendar", iconColor: accent) {
-                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent, durationLabel: "\(duration) min", difficultyLabel: difficulty.rawValue)
+            Card(title: lang.t("plan.sessionDetails"), icon: "calendar", iconColor: accent) {
+                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
+                            durationLabel: "\(duration) \(lang.t("workouts.min"))",
+                            difficultyLabel: difficulty.label(lang), lang: lang)
                     .padding(.bottom, 2)
-                SelectRow(label: "Planned Duration", selection: $duration,
-                          options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map { (value: $0, label: "\($0) min") }, accent: accent)
+                SelectRow(label: lang.t("plan.plannedDuration"), selection: $duration,
+                          options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map {
+                              (value: $0, label: "\($0) \(lang.t("workouts.min"))")
+                          }, accent: accent)
                 HStack {
-                    Text("Difficulty")
+                    Text(lang.t("plan.difficulty"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Theme.ink)
                     Spacer()
                     Menu {
                         ForEach(WorkoutDifficulty.allCases) { d in
-                            Button(d.rawValue) { difficulty = d }
+                            Button(d.label(lang)) { difficulty = d }
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Text(difficulty.rawValue)
+                            Text(difficulty.label(lang))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(accent)
                             AppIconView(name: "chevron", color: Theme.ink3, size: 13)
@@ -57,9 +63,9 @@ struct PlanView: View {
                 .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
             }
 
-            Card(title: "Current State", icon: "bolt", iconColor: Theme.amber) {
+            Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber) {
                 HStack {
-                    Text("Current Glucose")
+                    Text(lang.t("plan.currentGlucose"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Theme.ink)
                     Spacer()
@@ -76,7 +82,7 @@ struct PlanView: View {
                 .padding(.vertical, 11)
                 .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
 
-                SelectRow(label: "Insulin on Board", selection: $iob,
+                SelectRow(label: lang.t("plan.iob"), selection: $iob,
                           options: [0, 0.5, 1.0, 1.5, 2.0, 3.0].map { (value: $0, label: String(format: "%.1f U", $0)) }, accent: accent)
             }
 
@@ -84,7 +90,7 @@ struct PlanView: View {
 
             duringBanner(guide)
 
-            Card(title: "Good to know") {
+            Card(title: lang.t("plan.goodToKnow")) {
                 VStack(alignment: .leading, spacing: 12) {
                     goodLine("checkmark.seal.fill", Theme.green, guide.philosophyText)
                     goodLine("chart.line.uptrend.xyaxis", accent, guide.learnText)
@@ -94,7 +100,7 @@ struct PlanView: View {
             disclaimer
         }
         .onChange(of: sportIndex) { newIndex in
-            difficulty = WorkoutDifficulty(sportDifficulty: SPORTS[newIndex].difficulty)
+            difficulty = SPORTS[newIndex].difficulty
         }
     }
 
@@ -140,7 +146,7 @@ struct PlanView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 AppIconView(name: "fork", color: .white, size: 16)
-                Text("During · \(difficulty.rawValue)")
+                Text(lang.t("plan.during", difficulty.label(lang)))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer(minLength: 8)
@@ -153,13 +159,14 @@ struct PlanView: View {
             if g.duringTotalG > 0 {
                 HStack(alignment: .top, spacing: 22) {
                     if g.duringStartG > 0 {
-                        duringStat(big: "~\(g.duringStartG) g", small: "AT START")
+                        duringStat(big: "~\(g.duringStartG) g", small: lang.t("plan.atStart"))
                     }
                     if g.duringFeeds > 0 {
-                        duringStat(big: "~\(g.duringPerFeedG) g", small: "EVERY \(g.duringIntervalMin) MIN")
+                        duringStat(big: "~\(g.duringPerFeedG) g",
+                                   small: lang.t("plan.everyMin", String(g.duringIntervalMin)))
                     }
                 }
-                Text("~\(g.duringPerHourG) g/h · ~\(g.duringTotalG) g total")
+                Text(lang.t("plan.perHourTotal", String(g.duringPerHourG), String(g.duringTotalG)))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
             }
@@ -208,14 +215,14 @@ struct PlanView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.amber)
-                Text("Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.")
+                Text(lang.t("plan.disclaimer"))
                     .font(.system(size: 12.5, weight: .medium))
                     .foregroundStyle(Theme.ink2)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             (Text("1").font(.system(size: 9, weight: .bold)).baselineOffset(4)
-                + Text("  Approach: a prevention-first, real-world interpretation of the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD."))
+                + Text(lang.t("plan.sources")))
                 .font(.system(size: 11.5))
                 .foregroundStyle(Theme.ink2)
                 .lineSpacing(2)

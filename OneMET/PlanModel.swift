@@ -3,29 +3,26 @@ import Foundation
 // PlanModel.swift — sport catalog + carb-planning heuristic (Plan tab).
 // Ported from the v2 design handoff (data.jsx: SPORTS, computeCarbPlan).
 
+/// A sport catalogue entry. Name and description are looked up from `id` at display
+/// time rather than stored, so switching language re-renders them with no state to sync.
 struct Sport: Identifiable, Hashable {
     let id: String
-    let name: String
     let met: Double
     let icon: String
-    let difficulty: String
+    let difficulty: WorkoutDifficulty
     let color: String       // hex
-    let desc: String
+
+    func name(_ lang: AppLanguage) -> String { lang.t("sport.\(id)") }
+    func desc(_ lang: AppLanguage) -> String { lang.t("sport.\(id).desc") }
 }
 
 let SPORTS: [Sport] = [
-    Sport(id: "walk", name: "Walk", met: 3.2, icon: "shoe", difficulty: "Light", color: "#1F8A5B",
-          desc: "An easy walk. Low hypo risk, gentle on glucose across the session."),
-    Sport(id: "run", name: "Outdoor Run", met: 9.1, icon: "run", difficulty: "Vigorous", color: "#E0556E",
-          desc: "A steady outdoor run. Expect a fast glucose drop — fuel up beforehand."),
-    Sport(id: "cycling", name: "Cycling", met: 7.0, icon: "bike", difficulty: "Moderate", color: "#E8833A",
-          desc: "Sustained cycling effort. Plan a top-up if you ride past 45 minutes."),
-    Sport(id: "swim", name: "Swimming", met: 8.0, icon: "drop", difficulty: "Vigorous", color: "#1FB8C9",
-          desc: "Full-body swim session. Glucose can dip fast — carb up beforehand."),
-    Sport(id: "strength", name: "Strength", met: 5.0, icon: "flame", difficulty: "Moderate", color: "#8E72E8",
-          desc: "Resistance training. Effects on glucose are slower and can extend post-session."),
-    Sport(id: "hiit", name: "HIIT", met: 10.0, icon: "activity", difficulty: "Vigorous", color: "#D6484B",
-          desc: "High-intensity intervals. Sharp swings possible — monitor closely.")
+    Sport(id: "walk",     met: 3.2,  icon: "shoe",     difficulty: .light,    color: "#1F8A5B"),
+    Sport(id: "run",      met: 9.1,  icon: "run",      difficulty: .vigorous, color: "#E0556E"),
+    Sport(id: "cycling",  met: 7.0,  icon: "bike",     difficulty: .moderate, color: "#E8833A"),
+    Sport(id: "swim",     met: 8.0,  icon: "drop",     difficulty: .vigorous, color: "#1FB8C9"),
+    Sport(id: "strength", met: 5.0,  icon: "flame",    difficulty: .moderate, color: "#8E72E8"),
+    Sport(id: "hiit",     met: 10.0, icon: "activity", difficulty: .vigorous, color: "#D6484B")
 ]
 
 // Prevention-first exercise guide. Rather than "eat X g every 20 min", it favours
@@ -37,35 +34,19 @@ let SPORTS: [Sport] = [
 // Generic "before workout" strategy — the insulin-first principle. Depends only on
 // the user's insulin-delivery method (a Profile setting), not on any live session
 // input, so it can be shown as a standalone summary on the Summary tab.
-func beforeWorkoutSummary(deliveryIsPump: Bool, unit: GlucoseUnit = .mgdl) -> String {
-    let startBand = unit.range(140, 180)
-    if deliveryIsPump {
-        return "Prevent, don\u{2019}t treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near \(startBand), carry fast carbs."
-    } else {
-        return "Prevent, don\u{2019}t treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near \(startBand), carry fast carbs."
-    }
+func beforeWorkoutSummary(deliveryIsPump: Bool, unit: GlucoseUnit = .mgdl,
+                          lang: AppLanguage = .en) -> String {
+    lang.t(deliveryIsPump ? "before.pump" : "before.mdi", unit.range(140, 180))
 }
 
 enum StartStatus { case go, topUp, wait, stop, unknown }
 
 enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
-    case light = "Light"
-    case moderate = "Moderate"
-    case vigorous = "Vigorous"
-    case maximal = "Maximal"
+    // Raw values are stable ids, never shown; use label(_:) for display.
+    case light, moderate, vigorous, maximal
     var id: String { rawValue }
 
-    // Map a sport's inherent difficulty label to a fuelling level — used when the
-    // user swipes to a different sport in the Plan tab (still manually overridable).
-    init(sportDifficulty: String) {
-        switch sportDifficulty.lowercased() {
-        case "light":    self = .light
-        case "moderate": self = .moderate
-        case "vigorous": self = .vigorous
-        case "maximal":  self = .maximal
-        default:         self = .moderate
-        }
-    }
+    func label(_ lang: AppLanguage) -> String { lang.t("difficulty.\(rawValue)") }
 
     // Riddell/EXTOD carbohydrate fuelling rate during exercise (grams per hour).
     var carbsPerHour: Int {
@@ -129,12 +110,11 @@ struct RunGuide {
 func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
                    deliveryIsPump: Bool, difficulty: WorkoutDifficulty,
-                   unit: GlucoseUnit = .mgdl) -> RunGuide {
+                   unit: GlucoseUnit = .mgdl, lang: AppLanguage = .en) -> RunGuide {
     // ── 2. Match advice to run duration ──
-    let band: String, bandDetail: String
-    if durationMin < 45 { band = "Easy"; bandDetail = "Under 45 min · aim to finish without eating" }
-    else if durationMin <= 90 { band = "Moderate"; bandDetail = "45–90 min · fuel as needed" }
-    else { band = "Long"; bandDetail = "Over 90 min · fuel for performance" }
+    let bandKey = durationMin < 45 ? "easy" : (durationMin <= 90 ? "moderate" : "long")
+    let band = lang.t("band.\(bandKey)")
+    let bandDetail = lang.t("band.\(bandKey).detail")
 
     // Insulin-on-board uplift: carbs stay as-is at ≤ 1 U, then rise a little above 1 U —
     // a small, bounded nudge (capped ~+25%) toward the Riddell/EXTOD high-IOB end, not a
@@ -147,48 +127,57 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
 
     // ── 3. Start decision from glucose + trend; top-up grams = the During "at start" ──
     var status: StartStatus = .unknown
-    var title = "Check your glucose first"
-    var reason = "No live CGM / Nightscout reading — head out only when you can see your glucose and trend."
+    var title = lang.t("start.unknown.title")
+    var reason = lang.t("start.unknown.reason")
     if let g = glucoseMgdl, g > 0 {
-        let gi = unit.value(g)
-        let gAmount = unit.amount(g)
+        let gi = unit.value(g)              // bare number, for mid-sentence use
+        let gAmount = unit.amount(g)        // number + unit, for sentence openings
+        let grams = String(duringStartG)
         let highIOB = iob > 1.2
         if g < 70 {
-            status = .stop; title = "Treat first — don't start"
-            reason = "You're low (\(gAmount)). Treat, and wait until you've recovered before heading out."
+            status = .stop
+            title = lang.t("start.stop.title")
+            reason = lang.t("start.stop.reason", gAmount)
         } else if g < 90 {
-            status = .wait; title = "Top up ~\(duringStartG) g and wait"
-            reason = "\(gAmount) is below the safe start zone — take ~\(duringStartG) g and re-check before you go."
+            status = .wait
+            title = lang.t("start.wait.title", grams)
+            reason = lang.t("start.wait.reason", gAmount, grams)
         } else if g < 126 {
+            status = .topUp
             if trendFalling {
-                status = .topUp; title = "Top up ~\(duringStartG) g first"
-                reason = "\(gi) and falling — take ~\(duringStartG) g now to head off an early drop."
+                title = lang.t("start.topUpFirst.title", grams)
+                reason = lang.t("start.lowFalling.reason", gi, grams)
             } else {
-                status = .topUp; title = "Top up ~\(duringStartG) g, then go"
-                reason = "\(gi) is on the low side — take ~\(duringStartG) g and start, watching your trend."
+                title = lang.t("start.lowThenGo.title", grams)
+                reason = lang.t("start.lowThenGo.reason", gi, grams)
             }
         } else if g <= 180 {
             if trendFalling {
-                status = .topUp; title = "Top up ~\(duringStartG) g first"
-                reason = "\(gi) but drifting down — ~\(duringStartG) g steadies the start."
+                status = .topUp
+                title = lang.t("start.topUpFirst.title", grams)
+                reason = lang.t("start.midFalling.reason", gi, grams)
             } else if highIOB {
-                status = .topUp; title = "Consider ~\(duringStartG) g — insulin on board"
-                reason = "\(gi) is fine, but \(String(format: "%.1f", iob)) U on board will keep pulling you down — ~\(duringStartG) g covers it."
+                status = .topUp
+                title = lang.t("start.highIob.title", grams)
+                reason = lang.t("start.highIob.reason", gi, String(format: "%.1f", iob), grams)
             } else {
-                status = .go; title = "Good to start"
-                reason = "\(gAmount) is right in the sweet spot — head out."
+                status = .go
+                title = lang.t("start.go.title")
+                reason = lang.t("start.go.reason", gAmount)
             }
         } else if g <= 250 {
-            status = .go; title = "Good to start"
-            reason = "\(gi) is a little high; easy exercise usually brings it down. No carbs needed."
+            status = .go
+            title = lang.t("start.go.title")
+            reason = lang.t("start.goHigh.reason", gi)
         } else {
-            status = .wait; title = "Check ketones first"
-            reason = "\(gi) is high — if it's unexpected, check ketones and don't run if they're raised. Otherwise start gently."
+            status = .wait
+            title = lang.t("start.ketones.title")
+            reason = lang.t("start.ketones.reason", gi)
         }
     }
 
     // ── 1. Prevent rather than treat (insulin-first; strategy only, no doses) ──
-    let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump, unit: unit)
+    let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump, unit: unit, lang: lang)
 
     // During — Riddell/EXTOD carbohydrate fuelling, driven by the selected difficulty.
     // No cap: the feeding rate scales with effort and longer sessions get more feeds.
@@ -202,15 +191,15 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     let during: String
     var duringHeadline: String? = nil
     if duringTotalG == 0 {
-        during = "Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop."
+        during = lang.t("during.none")
     } else {
         duringHeadline = "~\(duringPerHourG) g/h"
-        during = "Planned carb intake to fuel the effort — take it with insulin adjusted rather than skipped. Longer sessions simply add more feeds. Rates per the Riddell/EXTOD consensus."
+        during = lang.t("during.some")
     }
 
     // ── 4 & 5. Accept imperfect glucose; learn progressively ──
-    let philosophy = "Most PwD feel best around \(unit.range(140, 200)) during exercise. Avoiding lows matters more than perfect numbers — chasing \(unit.range(100, 140)) usually means repeated gels and rebound highs."
-    let learn = "Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy."
+    let philosophy = lang.t("philosophy", unit.range(140, 200), unit.range(100, 140))
+    let learn = lang.t("learn")
 
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
                     startReason: reason, beforeText: before, duringText: during,

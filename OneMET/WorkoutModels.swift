@@ -28,11 +28,11 @@ struct WorkoutWeek: Identifiable {
     let sessions: [WorkoutSession]
 }
 
-func weekLabel(_ weeksAgo: Int) -> String {
+func weekLabel(_ weeksAgo: Int, lang: AppLanguage = .en) -> String {
     switch weeksAgo {
-    case 0: return "This Week"
-    case 1: return "Last Week"
-    default: return "\(weeksAgo) Weeks Ago"
+    case 0:  return lang.t("workouts.thisWeek")
+    case 1:  return lang.t("workouts.lastWeek")
+    default: return lang.t("workouts.weeksAgo", String(weeksAgo))
     }
 }
 
@@ -45,28 +45,30 @@ let carbAdviceCeilingMgdl: Double = 120
 /// the session through the hour after it — the value that decides whether the drop
 /// actually mattered. Pass nil when there's no CGM data for the session.
 func workoutInsight(name: String, durMin: Int, delta: Int,
-                    nadirMgdl: Double?, unit: GlucoseUnit) -> String {
+                    nadirMgdl: Double?, unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
+    let mins = String(durMin)
 
     if delta <= -12 {
         // The size of the fall says nothing on its own — where it landed does.
         if let nadir = nadirMgdl, nadir > carbAdviceCeilingMgdl {
-            return "This \(sport) lowered glucose by \(size) over \(durMin) min, but you never went below \(unit.amount(nadir)) — no extra carbs needed for sessions like this."
+            return lang.t("insight.dropNoCarbs", sport, size, mins, unit.amount(nadir))
         }
         if delta <= -25 {
-            let carbs = Int((Double(abs(delta)) * 0.4).rounded())
-            return "This \(sport) lowered glucose by \(size) over \(durMin) min, down to \(nadirMgdl.map { unit.amount($0) } ?? "a low") — consider adding \(carbs) g carbs before similar sessions."
+            let carbs = String(Int((Double(abs(delta)) * 0.4).rounded()))
+            let floor = nadirMgdl.map { unit.amount($0) } ?? lang.t("insight.dropUnknownNadir")
+            return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs)
         }
-        return "Moderate drop of \(size) during this session — a small additional snack beforehand can help keep you in range."
+        return lang.t("insight.dropModerate", size)
     }
     if delta >= 25 {
-        return "This \(sport) raised glucose by \(size) over \(durMin) min — common with short, intense or anaerobic efforts."
+        return lang.t("insight.riseBig", sport, size, mins)
     }
     if delta >= 12 {
-        return "Glucose rose \(size) during this session — typical of higher-intensity work."
+        return lang.t("insight.riseSmall", size)
     }
-    return "Glucose stayed steady (\(unit.deltaAmount(Double(delta)))) — low-impact at this intensity."
+    return lang.t("insight.steady", unit.deltaAmount(Double(delta)))
 }
 
 /// Synthesize a pre/during/post glucose curve (used for mock/preview data).

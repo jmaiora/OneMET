@@ -2,9 +2,13 @@ import SwiftUI
 
 // SportPicker.swift — swipeable stacked sport cards for the Plan tab.
 //
-// The card you drag is thrown clear off the edge and the card behind rises into its
-// place as it goes; the index only changes once the front card is out of sight, so
-// nothing ever appears to morph into a different sport or snap back.
+// The card you drag is thrown clear off whichever edge you dragged toward, and the deck
+// behind it steps forward one slot as it goes, so the incoming card is already sitting in
+// the front position by the time the index changes. The stack is addressed by *position*
+// (0 = front, 1 = behind, 2 = deeper) rather than by index offset, and the direction of
+// travel decides which sports fill those positions — that's what makes forward and
+// backward swipes behave identically instead of one of them working and the other
+// snapping back.
 
 struct SportPicker: View {
     let sports: [Sport]
@@ -12,6 +16,7 @@ struct SportPicker: View {
     var accent: Color
     var durationLabel: String
     var difficultyLabel: String
+    var lang: AppLanguage = .en
 
     @State private var drag: CGFloat = 0
     @State private var flinging = false
@@ -25,20 +30,21 @@ struct SportPicker: View {
     /// Drag past this (or flick harder than the predicted threshold) to commit.
     private let commitDistance: CGFloat = 60
 
-    /// 0 → 1 as the front card travels toward the edge. Drives every other card's motion,
-    /// so the stack and the outgoing card stay locked together.
+    /// 0 → 1 as the front card travels toward the edge. Drives every card's motion, so
+    /// the outgoing card and the deck behind it stay locked together.
     private var progress: CGFloat { min(1, abs(drag) / flingDistance) }
 
-    /// Rightward drag means "go back to the previous sport".
-    private var goingForward: Bool { drag < 0 }
+    /// Which way the deck is moving: +1 advances to the next sport (drag left), -1 goes
+    /// back to the previous one (drag right). At rest this is +1, so the resting peek
+    /// card is the next sport, as before.
+    private var direction: Int { drag > 0 ? -1 : 1 }
 
     var body: some View {
         VStack(spacing: 14) {
             ZStack {
-                // Rendered back-to-front. -1 is the previous card, parked off-screen left,
-                // which only comes into play on a backward swipe.
-                ForEach(slots, id: \.self) { rel in
-                    cardView(rel: rel)
+                // Rendered deepest-first; zIndex pins the order regardless.
+                ForEach(positions.reversed(), id: \.self) { pos in
+                    cardView(position: pos)
                 }
             }
             .frame(height: 236)
@@ -59,50 +65,37 @@ struct SportPicker: View {
         }
     }
 
-    /// Relative positions to render, back to front. With fewer than three sports the
-    /// deeper slots would just repeat the same card, so they're dropped.
-    private var slots: [Int] {
-        n >= 3 ? [2, 1, -1, 0] : (n == 2 ? [1, -1, 0] : [0])
+    /// Stack positions to draw, front-first. With fewer sports the deeper slots would
+    /// just repeat the same card, so they're dropped.
+    private var positions: [Int] {
+        n >= 3 ? [0, 1, 2] : (n == 2 ? [0, 1] : [0])
     }
 
-    private func sport(at rel: Int) -> Sport {
-        sports[((index + rel) % n + n) % n]
-    }
-
-    /// Where a card sits for the current drag. depth 0 is the front slot; each step back
-    /// is smaller, lower and nudged right. Deliberately a plain function — @ViewBuilder
-    /// can't contain ordinary control flow, it tries to read each branch as a view.
-    private func layout(rel: Int) -> (depth: CGFloat, extraX: CGFloat, alpha: Double) {
-        if rel == 0 {
-            return (0, drag, 1 - Double(progress) * 0.6)     // fades as it leaves
-        }
-        if rel == -1 {
-            // Slides in from off-screen left, but only on a backward swipe. Kept at zero
-            // opacity while parked so it can never show at the screen edge on a wide layout.
-            let x = goingForward ? -flingDistance : -flingDistance + progress * flingDistance
-            return (0, x, goingForward ? 0 : Double(progress))
-        }
-        // Stacked behind; advances one slot as the front card exits forwards.
-        return (max(0, CGFloat(rel) - (goingForward ? progress : 0)), 0, 1)
+    /// The sport occupying a stack position for the current direction of travel.
+    private func sport(atPosition p: Int) -> Sport {
+        let rel = p * direction
+        return sports[((index + rel) % n + n) % n]
     }
 
     @ViewBuilder
-    private func cardView(rel: Int) -> some View {
-        let s = sport(at: rel)
+    private func cardView(position p: Int) -> some View {
+        let s = sport(atPosition: p)
         let sc = Color(hex: s.color)
-        let front = rel == 0
-        let l = layout(rel: rel)
-        let depth = l.depth, extraX = l.extraX, alpha = l.alpha
+        let front = p == 0
+
+        // Every card steps forward by `progress`, so position 1 lands exactly where
+        // position 0 was at the moment the index changes — no jump when the deck reshuffles.
+        let depth = max(0, CGFloat(p) - progress)
 
         let styled = card(s, color: sc, dimAmount: Double(min(1, depth)),
-                          difficultyText: front ? difficultyLabel : s.difficulty)
+                          difficultyText: front ? difficultyLabel : s.difficulty.label(lang))
             .scaleEffect(1 - depth * 0.05)
             .rotationEffect(.degrees(front ? Double(drag / 40) : Double(depth) * 2.5))
-            .offset(x: depth * 10 + extraX, y: depth * 8)
-            .opacity(alpha)
+            .offset(x: depth * 10 + (front ? drag : 0), y: depth * 8)
+            .opacity(front ? 1 - Double(progress) * 0.6 : 1)
             .shadow(color: depth < 0.5 ? sc.opacity(0.27 * (1 - Double(depth) * 2)) : .clear,
                     radius: 15, x: 0, y: 14)
-            .zIndex(front ? 10 : (rel == -1 ? 9 : Double(8 - rel)))
+            .zIndex(Double(10 - p))
 
         if front {
             styled.gesture(
@@ -118,7 +111,7 @@ struct SportPicker: View {
                         let w = v.translation.width
                         let flick = v.predictedEndTranslation.width
                         if abs(w) > commitDistance || abs(flick) > 180 {
-                            fling(forward: (abs(flick) > abs(w) ? flick : w) < 0)
+                            fling(toward: w)
                         } else {
                             withAnimation(.spring(response: 0.34, dampingFraction: 0.85)) { drag = 0 }
                         }
@@ -129,19 +122,20 @@ struct SportPicker: View {
         }
     }
 
-    /// Throw the front card off the edge, then swap the deck underneath it. The swap is
-    /// deliberately un-animated: by that point the incoming card has already slid into
-    /// the front position, so re-indexing is invisible.
-    private func fling(forward: Bool) {
+    /// Throw the front card off the edge it was dragged toward, then reshuffle the deck
+    /// underneath it. The reshuffle is deliberately un-animated: by that point the next
+    /// card has already slid into the front position, so re-indexing is invisible.
+    private func fling(toward width: CGFloat) {
         flinging = true
+        let step = width < 0 ? 1 : -1          // matches `direction` for this drag
         withAnimation(.easeOut(duration: flingDuration)) {
-            drag = forward ? -flingDistance : flingDistance
+            drag = width < 0 ? -flingDistance : flingDistance
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + flingDuration) {
             var t = Transaction()
             t.disablesAnimations = true
             withTransaction(t) {
-                index = (index + (forward ? 1 : -1) + n) % n
+                index = (index + step + n) % n
                 drag = 0
             }
             flinging = false
@@ -152,18 +146,18 @@ struct SportPicker: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 HStack(spacing: 18) {
-                    cardStat("Time", durationLabel)
-                    cardStat("Difficulty", difficultyText)
+                    cardStat(lang.t("plan.time"), durationLabel)
+                    cardStat(lang.t("plan.difficultyShort"), difficultyText)
                 }
                 Spacer()
                 AppIconView(name: s.icon, color: .white, size: 26, weight: .bold)
             }
             Spacer(minLength: 12)
-            Text(s.name)
+            Text(s.name(lang))
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.bottom, 8)
-            Text(s.desc)
+            Text(s.desc(lang))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white.opacity(0.92))
                 .lineSpacing(2)
@@ -192,7 +186,8 @@ struct SportPicker: View {
 #Preview {
     ZStack {
         Theme.bg.ignoresSafeArea()
-        SportPicker(sports: SPORTS, index: .constant(1), accent: Theme.accent, durationLabel: "45 min", difficultyLabel: "Moderate")
+        SportPicker(sports: SPORTS, index: .constant(1), accent: Theme.accent,
+                    durationLabel: "45 min", difficultyLabel: "Moderate")
             .padding()
     }
 }

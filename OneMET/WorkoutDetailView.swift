@@ -3,9 +3,11 @@ import SwiftUI
 // WorkoutDetailView.swift — single-session detail overlay (v2).
 
 struct WorkoutDetailView: View {
+    @EnvironmentObject var profileStore: ProfileStore
     var session: WorkoutSession
     var accent: Color
     var unit: GlucoseUnit = .mgdl
+    var lang: AppLanguage = .en
     var onBack: () -> Void
 
     var body: some View {
@@ -16,7 +18,7 @@ struct WorkoutDetailView: View {
             Button(action: onBack) {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
-                    Text("Workouts").font(.system(size: 17))
+                    Text(lang.t("workouts.title")).font(.system(size: 17))
                 }
                 .foregroundStyle(accent)
             }
@@ -46,26 +48,30 @@ struct WorkoutDetailView: View {
             // Stats + curve
             Card {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 3), spacing: 14) {
-                    StatBlock(label: "Duration", value: "\(w.durMin)", unit: "min")
-                    StatBlock(label: "Distance", value: w.dist)
-                    StatBlock(label: "Calories", value: "\(w.kcal)", unit: "kcal")
-                    StatBlock(label: "Avg MET", value: fmtNum(w.avgMet))
-                    StatBlock(label: "Avg HR", value: "\(w.hr)", unit: "bpm", color: Theme.red)
-                    StatBlock(label: "Glucose Δ", value: unit.delta(Double(w.glucoseDelta)), unit: unit.rawValue, color: dropColor)
+                    StatBlock(label: lang.t("workouts.duration"), value: "\(w.durMin)", unit: lang.t("workouts.min"))
+                    StatBlock(label: lang.t("workouts.distance"), value: w.dist)
+                    StatBlock(label: lang.t("workouts.calories"), value: "\(w.kcal)", unit: "kcal")
+                    StatBlock(label: lang.t("workouts.avgMet"), value: fmtNum(w.avgMet))
+                    StatBlock(label: lang.t("workouts.avgHr"), value: "\(w.hr)", unit: "bpm", color: Theme.red)
+                    StatBlock(label: lang.t("workouts.glucoseDelta"), value: unit.delta(Double(w.glucoseDelta)),
+                              unit: unit.rawValue, color: dropColor)
                 }
                 .padding(.bottom, 14)
 
                 if !w.curve.isEmpty {
-                    WorkoutChart(session: w, accent: accent, height: 168)
+                    WorkoutChart(session: w, accent: accent, height: 168, unit: unit, lang: lang,
+                                 low: profileStore.profile.glucoseLow,
+                                 high: profileStore.profile.glucoseHigh)
                 } else {
-                    Text("No CGM data around this session.")
+                    Text(lang.t("workouts.noCgm"))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.ink2)
                 }
             }
 
             // Activity Insight — fixed blue per the design
-            InsightBanner(text: w.insight, accent: Color(hex: "2A6FDB"))
+            InsightBanner(title: lang.t("summary.activityInsight"), text: w.insight,
+                          accent: Color(hex: "2A6FDB"))
         }
     }
 }
@@ -74,5 +80,6 @@ struct WorkoutDetailView: View {
     ZStack {
         Theme.bg.ignoresSafeArea()
         WorkoutDetailView(session: SampleData.workoutHistory[0].sessions[0], accent: Theme.accent, onBack: {})
+            .environmentObject(ProfileStore())
     }
 }

@@ -60,17 +60,20 @@ struct CorrPoint: Identifiable {
 // MARK: - Glucose status helpers
 
 struct GlucoseStatus {
-    let label: String
+    /// Localization key suffix ("low" / "inRange" / "high"), resolved at display time.
+    let key: String
     let color: Color
+
+    func label(_ lang: AppLanguage) -> String { lang.t("glucose.\(key)") }
 }
 
-/// Full status (label + color) for a reading, against a target range (defaults to standard 70–180).
+/// Full status (key + color) for a reading, against a target range (defaults to standard 70–180).
 func glucoseStatus(_ mgdl: Double,
                    low: Double = Theme.targetLow,
                    high: Double = Theme.targetHigh) -> GlucoseStatus {
-    if mgdl < low  { return GlucoseStatus(label: "Low",  color: Theme.red) }
-    if mgdl > high { return GlucoseStatus(label: "High", color: Theme.amber) }
-    return GlucoseStatus(label: "In Range", color: Theme.green)
+    if mgdl < low  { return GlucoseStatus(key: "low",  color: Theme.red) }
+    if mgdl > high { return GlucoseStatus(key: "high", color: Theme.amber) }
+    return GlucoseStatus(key: "inRange", color: Theme.green)
 }
 
 /// Format a mg/dL value for display. See `GlucoseUnit` for the unit model.
@@ -188,7 +191,7 @@ enum SampleData {
                                   activityStart: c.activityStart, activityEnd: c.activityEnd,
                                   insight: workoutInsight(name: name, durMin: durMin, delta: delta,
                                                           nadirMgdl: c.curve[c.activityStart...].min(),
-                                                          unit: .mgdl))
+                                                          unit: .mgdl, lang: .en))
         }
         return [
             WorkoutWeek(label: "This Week", sessions: [

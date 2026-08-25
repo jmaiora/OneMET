@@ -2,22 +2,48 @@ import Foundation
 
 // UserProfile.swift — the user's personal data, persisted on-device (UserDefaults).
 
+// Raw values are stable storage ids and double as localization key suffixes; nothing
+// displays them directly, so renaming a label never invalidates a saved profile.
 enum DiabetesType: String, CaseIterable, Codable, Identifiable {
-    case type1 = "Type 1"
-    case type2 = "Type 2"
-    case lada = "LADA"
-    case mody = "MODY"
-    case gestational = "Gestational"
-    case other = "Other"
+    case type1, type2, lada, mody, gestational, other
     var id: String { rawValue }
+    func label(_ lang: AppLanguage) -> String { lang.t("dtype.\(rawValue)") }
 }
 
 enum InsulinDelivery: String, CaseIterable, Codable, Identifiable, Hashable {
-    case pump = "Insulin Pump"
-    case mdi  = "Injections (MDI)"
+    case pump, mdi
     var id: String { rawValue }
     var isPump: Bool { self == .pump }
-    var short: String { self == .pump ? "pump" : "injections" }
+    func label(_ lang: AppLanguage) -> String { lang.t("insulin.\(rawValue)") }
+}
+
+// Profiles saved before localization stored the English display string as the raw value
+// ("Type 1", "Insulin Pump"). Decoding those against the new ids would throw and take
+// the whole profile down with it, so both types accept either spelling.
+extension DiabetesType {
+    init?(stored raw: String) {
+        if let v = DiabetesType(rawValue: raw) { self = v; return }
+        switch raw.lowercased() {
+        case "type 1":      self = .type1
+        case "type 2":      self = .type2
+        case "lada":        self = .lada
+        case "mody":        self = .mody
+        case "gestational": self = .gestational
+        case "other":       self = .other
+        default:            return nil
+        }
+    }
+}
+
+extension InsulinDelivery {
+    init?(stored raw: String) {
+        if let v = InsulinDelivery(rawValue: raw) { self = v; return }
+        switch raw.lowercased() {
+        case "insulin pump":     self = .pump
+        case "injections (mdi)": self = .mdi
+        default:                 return nil
+        }
+    }
 }
 
 struct UserProfile: Encodable, Equatable {
@@ -44,20 +70,11 @@ struct UserProfile: Encodable, Equatable {
         return s.isEmpty ? "?" : s
     }
 
-    var displayName: String { isConfigured ? name : "Set up your profile" }
-
-    var subtitle: String {
-        guard isConfigured else { return "Tap to add your details" }
-        var s = diabetesType.rawValue
-        if let y = diagnosisYear { s += " · since \(y)" }
-        return s
-    }
-
     var glucoseRangeText: String { glucoseUnit.range(glucoseLow, glucoseHigh) }
     var metGoalText: String { "\(dailyMetGoal) MET·min" }
     var carbRatioText: String { "1 : \(carbRatio)" }
-    var weightText: String { weightKg.map { String(format: "%.1f kg", $0) } ?? "Not set" }
-    var deliveryText: String { insulinDelivery.rawValue }
+    /// Empty when unset — SettingsView substitutes the localized "Not set".
+    var weightText: String { weightKg.map { String(format: "%.1f kg", $0) } ?? "" }
 }
 
 // Migration-safe decoding: any key missing from an older saved profile falls back
@@ -67,14 +84,17 @@ extension UserProfile: Decodable {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? name
-        diabetesType = try c.decodeIfPresent(DiabetesType.self, forKey: .diabetesType) ?? diabetesType
+        // Decoded as raw strings so legacy display-string values still map (see above).
+        if let raw = try? c.decodeIfPresent(String.self, forKey: .diabetesType),
+           let v = DiabetesType(stored: raw) { diabetesType = v }
         diagnosisYear = try c.decodeIfPresent(Int.self, forKey: .diagnosisYear) ?? diagnosisYear
         weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg) ?? weightKg
         glucoseLow = try c.decodeIfPresent(Double.self, forKey: .glucoseLow) ?? glucoseLow
         glucoseHigh = try c.decodeIfPresent(Double.self, forKey: .glucoseHigh) ?? glucoseHigh
         dailyMetGoal = try c.decodeIfPresent(Int.self, forKey: .dailyMetGoal) ?? dailyMetGoal
         carbRatio = try c.decodeIfPresent(Int.self, forKey: .carbRatio) ?? carbRatio
-        insulinDelivery = try c.decodeIfPresent(InsulinDelivery.self, forKey: .insulinDelivery) ?? insulinDelivery
+        if let raw = try? c.decodeIfPresent(String.self, forKey: .insulinDelivery),
+           let v = InsulinDelivery(stored: raw) { insulinDelivery = v }
         glucoseUnit = try c.decodeIfPresent(GlucoseUnit.self, forKey: .glucoseUnit) ?? glucoseUnit
     }
 }

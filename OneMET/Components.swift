@@ -212,22 +212,17 @@ struct Dot: View {
 // MARK: - TabBar
 
 enum AppTab: String, CaseIterable {
-    case summary, plan, workouts, profile
+    // Raw values double as localization key suffixes ("tab.summary", …).
+    case summary, plan, workouts, settings
 
-    var label: String {
-        switch self {
-        case .summary:  return "Summary"
-        case .workouts: return "Workouts"
-        case .plan:     return "Plan"
-        case .profile:  return "Profile"
-        }
-    }
+    func label(_ lang: AppLanguage) -> String { lang.t("tab.\(rawValue)") }
+
     var icon: String {
         switch self {
         case .summary:  return "house"
         case .workouts: return "run"
         case .plan:     return "calendar"
-        case .profile:  return "person"
+        case .settings: return "person"
         }
     }
 }
@@ -235,6 +230,7 @@ enum AppTab: String, CaseIterable {
 struct TabBar: View {
     @Binding var active: AppTab
     var accent: Color = Theme.accent
+    var lang: AppLanguage = .en
 
     var body: some View {
         HStack(spacing: 4) {
@@ -245,7 +241,7 @@ struct TabBar: View {
                                 color: on ? accent : Theme.ink3,
                                 size: 22,
                                 weight: on ? .bold : .regular)
-                    Text(tab.label)
+                    Text(tab.label(lang))
                         .font(.system(size: 10, weight: on ? .bold : .medium))
                         .foregroundStyle(on ? accent : Theme.ink2)
                 }

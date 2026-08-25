@@ -1,6 +1,6 @@
 import SwiftUI
 
-// ProfileEditors.swift — edit sheets for the user's personal data.
+// ProfileEditors.swift — edit sheets for the user's personal data and app settings.
 
 private var currentYear: Int { Calendar.current.component(.year, from: Date()) }
 
@@ -8,6 +8,7 @@ private var currentYear: Int { Calendar.current.component(.year, from: Date()) }
 
 struct EditIdentitySheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
 
     @State private var draft: UserProfile
@@ -15,8 +16,9 @@ struct EditIdentitySheet: View {
     @State private var year: Int
     @State private var weightText: String
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         let p = store.profile
         _draft = State(initialValue: p)
         _hasYear = State(initialValue: p.diagnosisYear != nil)
@@ -27,24 +29,24 @@ struct EditIdentitySheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Identity") {
-                    TextField("Name", text: $draft.name)
+                Section(lang.t("edit.identity")) {
+                    TextField(lang.t("edit.name"), text: $draft.name)
                         .textInputAutocapitalization(.words)
-                    Picker("Diabetes type", selection: $draft.diabetesType) {
-                        ForEach(DiabetesType.allCases) { Text($0.rawValue).tag($0) }
+                    Picker(lang.t("edit.diabetesType"), selection: $draft.diabetesType) {
+                        ForEach(DiabetesType.allCases) { Text($0.label(lang)).tag($0) }
                     }
-                    Toggle("Set diagnosis year", isOn: $hasYear.animation())
+                    Toggle(lang.t("edit.setDiagYear"), isOn: $hasYear.animation())
                     if hasYear {
                         Stepper(value: $year, in: 1940...currentYear) {
-                            HStack { Text("Diagnosis year"); Spacer()
+                            HStack { Text(lang.t("edit.diagYear")); Spacer()
                                 Text(String(year)).foregroundStyle(.secondary) }
                         }
                     }
                 }
-                Section(header: Text("Body"),
-                        footer: Text("Used for the MET·min calculation. Leave blank to use your Apple Health weight.")) {
+                Section(header: Text(lang.t("settings.body")),
+                        footer: Text(lang.t("edit.weightFooter"))) {
                     HStack {
-                        Text("Weight")
+                        Text(lang.t("settings.weight"))
                         Spacer()
                         TextField("kg", text: $weightText)
                             .keyboardType(.decimalPad)
@@ -54,12 +56,12 @@ struct EditIdentitySheet: View {
                     }
                 }
             }
-            .navigationTitle("Edit Profile")
+            .navigationTitle(lang.t("edit.profile"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(lang.t("common.save")) {
                         draft.diagnosisYear = hasYear ? year : nil
                         let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
                         draft.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
@@ -72,39 +74,78 @@ struct EditIdentitySheet: View {
     }
 }
 
+// MARK: - Language
+
+struct EditLanguageSheet: View {
+    @ObservedObject var loc: LocalizationStore
+    var lang: AppLanguage = .en
+    @Environment(\.dismiss) private var dismiss
+    @State private var choice: AppLanguage
+
+    init(loc: LocalizationStore, lang: AppLanguage = .en) {
+        self.loc = loc
+        self.lang = lang
+        _choice = State(initialValue: loc.language)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(footer: Text(lang.t("edit.langFooter"))) {
+                    Picker(lang.t("edit.langTitle"), selection: $choice) {
+                        // Each option is written in its own language, never translated.
+                        ForEach(AppLanguage.allCases) { Text($0.nativeName).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                }
+            }
+            .navigationTitle(lang.t("edit.langTitle"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(lang.t("common.save")) { loc.language = choice; dismiss() }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Glucose units
 
 struct EditGlucoseUnitSheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var unit: GlucoseUnit
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _unit = State(initialValue: store.profile.glucoseUnit)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(footer: Text("Display only — readings are always stored and compared in mg/dL, so switching units never changes your targets or any advice, just how the numbers are written.")) {
-                    Picker("Units", selection: $unit) {
+                Section(footer: Text(lang.t("edit.unitsFooter"))) {
+                    Picker(lang.t("edit.unitsTitle"), selection: $unit) {
                         ForEach(GlucoseUnit.allCases) { Text($0.longName).tag($0) }
                     }
                     .pickerStyle(.inline)
                 }
-                Section("Preview") {
-                    HStack { Text("Current range"); Spacer()
+                Section(lang.t("common.preview")) {
+                    HStack { Text(lang.t("edit.currentRange")); Spacer()
                         Text(unit.range(store.profile.glucoseLow, store.profile.glucoseHigh))
                             .foregroundStyle(.secondary) }
                 }
             }
-            .navigationTitle("Glucose Units")
+            .navigationTitle(lang.t("edit.unitsTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.profile.glucoseUnit = unit; dismiss() }
+                    Button(lang.t("common.save")) { store.profile.glucoseUnit = unit; dismiss() }
                 }
             }
         }
@@ -115,12 +156,14 @@ struct EditGlucoseUnitSheet: View {
 
 struct EditGlucoseRangeSheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var low: Double
     @State private var high: Double
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _low = State(initialValue: store.profile.glucoseLow)
         _high = State(initialValue: store.profile.glucoseHigh)
     }
@@ -130,21 +173,21 @@ struct EditGlucoseRangeSheet: View {
         let u = store.profile.glucoseUnit
         NavigationStack {
             Form {
-                Section(footer: Text("Your personal time-in-range targets. Standard is \(u.range(70, 180)).")) {
+                Section(footer: Text(lang.t("edit.rangeFooter", u.range(70, 180)))) {
                     Stepper(value: $low, in: 50...max(55, high - 10), step: u.stepMgdl) {
-                        HStack { Text("Low"); Spacer(); Text(u.amount(low)).foregroundStyle(.secondary) }
+                        HStack { Text(lang.t("edit.rangeLow")); Spacer(); Text(u.amount(low)).foregroundStyle(.secondary) }
                     }
                     Stepper(value: $high, in: min(345, low + 10)...350, step: u.stepMgdl) {
-                        HStack { Text("High"); Spacer(); Text(u.amount(high)).foregroundStyle(.secondary) }
+                        HStack { Text(lang.t("edit.rangeHigh")); Spacer(); Text(u.amount(high)).foregroundStyle(.secondary) }
                     }
                 }
             }
-            .navigationTitle("Glucose Range")
+            .navigationTitle(lang.t("edit.rangeTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(lang.t("common.save")) {
                         store.profile.glucoseLow = low
                         store.profile.glucoseHigh = high
                         dismiss()
@@ -159,29 +202,31 @@ struct EditGlucoseRangeSheet: View {
 
 struct EditMetGoalSheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var goal: Int
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _goal = State(initialValue: store.profile.dailyMetGoal)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(footer: Text("Target MET·minutes per day. A brisk walk is ~3–4 MET; running ~8–10 MET.")) {
+                Section(footer: Text(lang.t("edit.metFooter"))) {
                     Stepper(value: $goal, in: 100...1500, step: 10) {
-                        HStack { Text("Daily goal"); Spacer(); Text("\(goal) MET·min").foregroundStyle(.secondary) }
+                        HStack { Text(lang.t("edit.metGoal")); Spacer(); Text("\(goal) MET·min").foregroundStyle(.secondary) }
                     }
                 }
             }
-            .navigationTitle("Daily MET Goal")
+            .navigationTitle(lang.t("edit.metTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.profile.dailyMetGoal = goal; dismiss() }
+                    Button(lang.t("common.save")) { store.profile.dailyMetGoal = goal; dismiss() }
                 }
             }
         }
@@ -192,29 +237,31 @@ struct EditMetGoalSheet: View {
 
 struct EditCarbRatioSheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var ratio: Int
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _ratio = State(initialValue: store.profile.carbRatio)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(footer: Text("Insulin-to-carb ratio: 1 unit covers this many grams of carbohydrate.")) {
+                Section(footer: Text(lang.t("edit.carbFooter"))) {
                     Stepper(value: $ratio, in: 3...40) {
-                        HStack { Text("Ratio"); Spacer(); Text("1 : \(ratio)").foregroundStyle(.secondary) }
+                        HStack { Text(lang.t("edit.carbRatio")); Spacer(); Text("1 : \(ratio)").foregroundStyle(.secondary) }
                     }
                 }
             }
-            .navigationTitle("Carb Ratio")
+            .navigationTitle(lang.t("edit.carbTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.profile.carbRatio = ratio; dismiss() }
+                    Button(lang.t("common.save")) { store.profile.carbRatio = ratio; dismiss() }
                 }
             }
         }
@@ -225,30 +272,32 @@ struct EditCarbRatioSheet: View {
 
 struct EditInsulinDeliverySheet: View {
     @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var delivery: InsulinDelivery
 
-    init(store: ProfileStore) {
+    init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _delivery = State(initialValue: store.profile.insulinDelivery)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(footer: Text("How you take insulin. This tailors the Plan tab's before-workout strategy — basal reductions for a pump, meal-bolus timing on injections.")) {
-                    Picker("Delivery", selection: $delivery) {
-                        ForEach(InsulinDelivery.allCases) { Text($0.rawValue).tag($0) }
+                Section(footer: Text(lang.t("edit.insulinFooter"))) {
+                    Picker(lang.t("edit.delivery"), selection: $delivery) {
+                        ForEach(InsulinDelivery.allCases) { Text($0.label(lang)).tag($0) }
                     }
                     .pickerStyle(.inline)
                 }
             }
-            .navigationTitle("Insulin Delivery")
+            .navigationTitle(lang.t("edit.insulinTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { store.profile.insulinDelivery = delivery; dismiss() }
+                    Button(lang.t("common.save")) { store.profile.insulinDelivery = delivery; dismiss() }
                 }
             }
         }
@@ -259,6 +308,7 @@ struct EditInsulinDeliverySheet: View {
 
 struct NightscoutSheet: View {
     @ObservedObject var store: GlucoseSourceStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
 
     @State private var url: String
@@ -268,8 +318,9 @@ struct NightscoutSheet: View {
     @State private var testResult: String?
     @State private var testOK = false
 
-    init(store: GlucoseSourceStore) {
+    init(store: GlucoseSourceStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _url = State(initialValue: store.config.urlString)
         _secret = State(initialValue: store.config.secret)
         _enabled = State(initialValue: store.config.enabled)
@@ -278,14 +329,14 @@ struct NightscoutSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Nightscout"),
-                        footer: Text("Your Nightscout site URL plus an access token (or API secret). Glucose is read directly from Nightscout for lower latency than Apple Health. Read-only.")) {
+                Section(header: Text(lang.t("settings.nightscout")),
+                        footer: Text(lang.t("src.nsFooter"))) {
                     TextField("https://your-site.example.com", text: $url)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                    SecureField("Access token or API secret", text: $secret)
-                    Toggle("Use Nightscout for glucose", isOn: $enabled)
+                    SecureField(lang.t("src.token"), text: $secret)
+                    Toggle(lang.t("src.useNs"), isOn: $enabled)
                 }
 
                 Section {
@@ -295,13 +346,12 @@ struct NightscoutSheet: View {
                             let cfg = NightscoutConfig(urlString: url, secret: secret, enabled: true)
                             let ok = await NightscoutClient(config: cfg).test()
                             testOK = ok
-                            testResult = ok ? "Connected — recent readings found."
-                                            : "Couldn't fetch readings. Check the URL and token."
+                            testResult = lang.t(ok ? "src.testOk" : "src.testFailNs")
                             testing = false
                         }
                     } label: {
                         HStack {
-                            Text("Test Connection")
+                            Text(lang.t("src.test"))
                             if testing { Spacer(); ProgressView() }
                         }
                     }
@@ -314,12 +364,12 @@ struct NightscoutSheet: View {
                     }
                 }
             }
-            .navigationTitle("Glucose Source")
+            .navigationTitle(lang.t("src.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(lang.t("common.save")) {
                         store.config = NightscoutConfig(urlString: url, secret: secret, enabled: enabled)
                         dismiss()
                     }
@@ -329,11 +379,11 @@ struct NightscoutSheet: View {
     }
 }
 
-
 // MARK: - Dexcom Share glucose source
 
 struct DexcomSheet: View {
     @ObservedObject var store: GlucoseSourceStore
+    var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
 
     @State private var username: String
@@ -344,8 +394,9 @@ struct DexcomSheet: View {
     @State private var testResult: String?
     @State private var testOK = false
 
-    init(store: GlucoseSourceStore) {
+    init(store: GlucoseSourceStore, lang: AppLanguage = .en) {
         self.store = store
+        self.lang = lang
         _username = State(initialValue: store.dexcom.username)
         _password = State(initialValue: store.dexcom.password)
         _ous = State(initialValue: store.dexcom.ous)
@@ -355,18 +406,18 @@ struct DexcomSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Dexcom Share"),
-                        footer: Text("Your Dexcom account with Share/Follow enabled (Sharing ON in the Dexcom app, with at least one follower). Read-only; only recent (~24 h) glucose is available.")) {
-                    TextField("Username, email or phone", text: $username)
+                Section(header: Text(lang.t("settings.dexcom")),
+                        footer: Text(lang.t("src.dexFooter"))) {
+                    TextField(lang.t("src.username"), text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.emailAddress)
-                    SecureField("Password", text: $password)
-                    Picker("Region", selection: $ous) {
-                        Text("Outside US").tag(true)
-                        Text("United States").tag(false)
+                    SecureField(lang.t("src.password"), text: $password)
+                    Picker(lang.t("src.region"), selection: $ous) {
+                        Text(lang.t("src.outsideUs")).tag(true)
+                        Text(lang.t("src.us")).tag(false)
                     }
-                    Toggle("Use Dexcom for glucose", isOn: $enabled)
+                    Toggle(lang.t("src.useDexcom"), isOn: $enabled)
                 }
 
                 Section {
@@ -376,13 +427,12 @@ struct DexcomSheet: View {
                             let cfg = DexcomConfig(username: username, password: password, ous: ous, enabled: true)
                             let ok = await DexcomShareClient(config: cfg).test()
                             testOK = ok
-                            testResult = ok ? "Connected \u{2014} recent readings found."
-                                            : "Couldn't fetch readings. Check account, password and region."
+                            testResult = lang.t(ok ? "src.testOk" : "src.testFailDex")
                             testing = false
                         }
                     } label: {
                         HStack {
-                            Text("Test Connection")
+                            Text(lang.t("src.test"))
                             if testing { Spacer(); ProgressView() }
                         }
                     }
@@ -395,12 +445,12 @@ struct DexcomSheet: View {
                     }
                 }
             }
-            .navigationTitle("Dexcom Share")
+            .navigationTitle(lang.t("settings.dexcom"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(lang.t("common.save")) {
                         store.dexcom = DexcomConfig(username: username, password: password, ous: ous, enabled: enabled)
                         dismiss()
                     }

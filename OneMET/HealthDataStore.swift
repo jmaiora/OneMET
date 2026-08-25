@@ -129,8 +129,9 @@ struct HealthSnapshot {
     var avgSteps14: Int = 0
     var workoutCount14: Int = 0
 
-    // Insight banner
-    var insight: String = "Log a workout to see how activity shifts your glucose."
+    // Insight banner. Empty means "no workout today" — the view supplies the localized
+    // placeholder, so this doesn't have to know the language.
+    var insight: String = ""
 
     var unit: String = "mg/dL"
 
@@ -166,8 +167,7 @@ struct HealthSnapshot {
         s.avgMet14 = 210; s.lowEvents14 = 3; s.avgSteps14 = 9140; s.workoutCount14 = 9
         // Mirrors what workoutInsight() produces for the seeded 4:08 PM run, so previews
         // show the same sentence the Workout detail screen would.
-        s.insight = s.todayWorkout?.insight
-            ?? "Log a workout to see how activity shifts your glucose."
+        s.insight = s.todayWorkout?.insight ?? ""
         return s
     }
 }
@@ -185,6 +185,10 @@ final class HealthDataStore: ObservableObject {
 
     /// The user's personal data; set by the app before loading. Drives mass, MET goal, glucose range.
     var profile = UserProfile()
+
+    /// Display language. Sentences generated here (insights, diagnostics, sport names)
+    /// are built at refresh time, so RootView re-refreshes when this changes.
+    var language: AppLanguage = .en { didSet { configureFormatters() } }
 
     /// Glucose source config. When Nightscout is active, glucose comes from there (low latency); HealthKit otherwise.
     var glucoseConfig = NightscoutConfig()
@@ -233,19 +237,30 @@ final class HealthDataStore: ObservableObject {
         if !r.isEmpty { glucoseCache = (from, to, r) }
     }
 
-    private static let timeFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "h:mm a"; return f
-    }()
+    // Date formatters follow the chosen language, so "Fri, Jun 19" becomes "vie, 19 jun"
+    // in Spanish. Reconfigured in place rather than rebuilt — DateFormatter construction
+    // is expensive and these are hit once per workout per refresh.
+    private let timeFmt = DateFormatter()
+    private let dayFmt = DateFormatter()
+
+    init() { configureFormatters() }
+
+    private func configureFormatters() {
+        timeFmt.locale = language.locale
+        timeFmt.setLocalizedDateFormatFromTemplate("j:mm")
+        dayFmt.locale = language.locale
+        dayFmt.setLocalizedDateFormatFromTemplate("EEE d MMM")
+    }
 
     func load() async {
         guard HealthKitService.isAvailable else {
-            statusMessage = "Health data isn't available on this device."
+            statusMessage = language.t("diag.unavailable")
             return
         }
         do {
             try await svc.requestAuthorization()
         } catch {
-            statusMessage = "HealthKit authorization failed: \(error.localizedDescription)"
+            statusMessage = language.t("diag.authFailed", error.localizedDescription)
         }
         // NOTE: requestAuthorization succeeding does NOT mean the user granted anything —
         // HealthKit deliberately hides read grants. Treat "we actually read data" as the truth.
@@ -463,8 +478,8 @@ final class HealthDataStore: ObservableObject {
             }
             out.append(Workout(
                 name: workoutName(w.workoutActivityType),
-                time: Self.timeFmt.string(from: w.startDate),
-                dur: "\(Int(mins.rounded())) min",
+                time: timeFmt.string(from: w.startDate),
+                dur: "\(Int(mins.rounded())) \(language.t("workouts.min"))",
                 dist: distM > 0 ? String(format: "%.1f km", distM / 1000) : "—",
                 kcal: Int(kcal.rounded()),
                 avgMet: (avgMet * 10).rounded() / 10,
@@ -513,18 +528,23 @@ final class HealthDataStore: ObservableObject {
         return (est * 10).rounded() / 10
     }
 
-    private func workoutName(_ t: HKWorkoutActivityType) -> String {
+    /// Stable id for a HealthKit activity type — also the localization key suffix.
+    private func workoutKey(_ t: HKWorkoutActivityType) -> String {
         switch t {
-        case .running: return "Outdoor Run"
-        case .walking: return "Walk"
-        case .cycling: return "Cycling"
-        case .swimming: return "Swim"
-        case .hiking: return "Hike"
-        case .traditionalStrengthTraining, .functionalStrengthTraining: return "Strength"
-        case .highIntensityIntervalTraining: return "HIIT"
-        case .yoga: return "Yoga"
-        default: return "Workout"
+        case .running: return "run"
+        case .walking: return "walk"
+        case .cycling: return "cycling"
+        case .swimming: return "swim"
+        case .hiking: return "hike"
+        case .traditionalStrengthTraining, .functionalStrengthTraining: return "strength"
+        case .highIntensityIntervalTraining: return "hiit"
+        case .yoga: return "yoga"
+        default: return "workout"
         }
+    }
+
+    private func workoutName(_ t: HKWorkoutActivityType) -> String {
+        language.t("sport.\(workoutKey(t))")
     }
 
     private func sportIcon(_ t: HKWorkoutActivityType) -> String {
@@ -575,10 +595,6 @@ final class HealthDataStore: ObservableObject {
 
     // MARK: Workout history (last 6 weeks, grouped by week)
 
-    private static let dayFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "EEE, MMM d"; return f
-    }()
-
     private func startOfWeek(_ d: Date) -> Date {
         cal.dateInterval(of: .weekOfYear, for: d)?.start ?? cal.startOfDay(for: d)
     }
@@ -590,7 +606,7 @@ final class HealthDataStore: ObservableObject {
         do {
             wks = try await svc.workouts(from: start, to: now)
         } catch {
-            workoutDiagnostic = "Couldn't read workouts from Health: \(error.localizedDescription)"
+            workoutDiagnostic = language.t("diag.readFailed", error.localizedDescription)
             return
         }
 
@@ -598,11 +614,7 @@ final class HealthDataStore: ObservableObject {
             // HealthKit returns an empty array (not an error) when read access is denied,
             // so probe a wider window to tell "no access" apart from "none in 6 weeks".
             let anyEver = await svc.hasAnyWorkoutsEver()
-            if anyEver {
-                workoutDiagnostic = "No workouts in the last 6 weeks."
-            } else {
-                workoutDiagnostic = "No workouts visible. iOS updates can switch off Health access for apps — check Settings ▸ Privacy & Security ▸ Health ▸ OneMET and make sure Workouts is on."
-            }
+            workoutDiagnostic = language.t(anyEver ? "diag.noneIn6w" : "diag.noAccess")
             return
         }
         workoutDiagnostic = nil
@@ -629,7 +641,7 @@ final class HealthDataStore: ObservableObject {
         }
 
         let weeks = buckets.keys.sorted().map { k in
-            WorkoutWeek(label: weekLabel(k),
+            WorkoutWeek(label: weekLabel(k, lang: language),
                         sessions: buckets[k]!.sorted { $0.date > $1.date }.map { $0.session })
         }
         if !weeks.isEmpty { snap.workoutHistory = weeks }
@@ -681,9 +693,9 @@ final class HealthDataStore: ObservableObject {
             name: name,
             sportId: name.lowercased(),
             icon: sportIcon(w.workoutActivityType),
-            day: Self.dayFmt.string(from: w.startDate),
-            time: Self.timeFmt.string(from: w.startDate),
-            dur: "\(durMin) min",
+            day: dayFmt.string(from: w.startDate),
+            time: timeFmt.string(from: w.startDate),
+            dur: "\(durMin) \(language.t("workouts.min"))",
             durMin: durMin,
             dist: distM > 0 ? String(format: "%.1f km", distM / 1000) : "—",
             kcal: Int(kcal.rounded()),
@@ -694,7 +706,7 @@ final class HealthDataStore: ObservableObject {
             activityStart: activityStart,
             activityEnd: activityEnd,
             insight: workoutInsight(name: name, durMin: durMin, delta: delta,
-                                    nadirMgdl: nadir, unit: profile.glucoseUnit)
+                                    nadirMgdl: nadir, unit: profile.glucoseUnit, lang: language)
         )
     }
 
@@ -706,22 +718,24 @@ final class HealthDataStore: ObservableObject {
         let carbSamples = (try? await svc.samples(.dietaryCarbohydrates, from: startOfDay, to: now, ascending: true)) ?? []
 
         struct Grp { var carbs: Double; var first: Date }
+        // Keyed by a stable meal id; the display name is localized on the way out.
         var groups: [String: Grp] = [:]
         for s in carbSamples {
             let g = s.quantity.doubleValue(for: .gram())
             let hr = cal.component(.hour, from: s.startDate)
-            let name = hr < 4 ? "Dinner" : hr < 11 ? "Breakfast" : hr < 15 ? "Lunch" : hr < 18 ? "Snack" : "Dinner"
-            if var ex = groups[name] {
+            let key = hr < 4 ? "dinner" : hr < 11 ? "breakfast" : hr < 15 ? "lunch" : hr < 18 ? "snack" : "dinner"
+            if var ex = groups[key] {
                 ex.carbs += g
                 if s.startDate < ex.first { ex.first = s.startDate }
-                groups[name] = ex
+                groups[key] = ex
             } else {
-                groups[name] = Grp(carbs: g, first: s.startDate)
+                groups[key] = Grp(carbs: g, first: s.startDate)
             }
         }
-        let meals = ["Breakfast", "Lunch", "Snack", "Dinner"].compactMap { name -> Meal? in
-            guard let grp = groups[name], grp.carbs > 0 else { return nil }
-            return Meal(name: name, carbs: Int(grp.carbs.rounded()), time: Self.timeFmt.string(from: grp.first))
+        let meals = ["breakfast", "lunch", "snack", "dinner"].compactMap { key -> Meal? in
+            guard let grp = groups[key], grp.carbs > 0 else { return nil }
+            return Meal(name: language.t("meal.\(key)"), carbs: Int(grp.carbs.rounded()),
+                        time: timeFmt.string(from: grp.first))
         }
         snap.nutrition = Nutrition(carbs: Int(carbs.rounded()), carbsGoal: 200,
                                    insulinUnits: Int(insulin.rounded()), meals: meals)
@@ -732,14 +746,15 @@ final class HealthDataStore: ObservableObject {
     private func buildEvents(_ snap: inout HealthSnapshot) {
         let today = cal.startOfDay(for: Date())
         func parse(_ s: String) -> Date {
-            guard let t = Self.timeFmt.date(from: s) else { return today }
+            guard let t = timeFmt.date(from: s) else { return today }
             let c = cal.dateComponents([.hour, .minute], from: t)
             return cal.date(bySettingHour: c.hour ?? 0, minute: c.minute ?? 0, second: 0, of: today) ?? today
         }
         var evs: [DayEvent] = []
         for m in snap.nutrition.meals {
             evs.append(DayEvent(date: parse(m.time), time: m.time,
-                                text: "\(m.name) · \(m.carbs)g carbs", color: Theme.amber))
+                                text: language.t("meal.carbsLine", m.name, String(m.carbs)),
+                                color: Theme.amber))
         }
         for w in snap.workouts {
             evs.append(DayEvent(date: parse(w.time), time: w.time,
