@@ -56,13 +56,7 @@ struct ProfileView: View {
                            dot: store.authorized ? Theme.green : Theme.ink3)
                 IOSListRow(title: "Apple Watch",
                            detail: store.data.watchModel.isEmpty ? "Not detected" : store.data.watchModel,
-                           dot: Theme.red)
-                // iOS updates can silently switch Health access off — this re-prompts and reloads.
-                IOSListRow(title: store.isLoading ? "Checking Health access…" : "Fix Health access",
-                           detail: healthAccessDetail,
-                           dot: healthAccessColor, isLast: true) {
-                    Task { await store.reRequestHealthAccess() }
-                }
+                           dot: Theme.red, isLast: true)
             }
 
             IOSList(header: "Glucose Source") {
@@ -111,18 +105,6 @@ struct ProfileView: View {
                      body: "Please find attached my OneMET workout health report.",
                      attachmentURL: file.url) { mailFile = nil }
         }
-    }
-
-    /// Health-access status. Read grants are opaque in HealthKit, so "Granted" means we
-    /// actually read data; otherwise we prompt the user to re-authorise.
-    private var healthAccessDetail: String {
-        if store.needsHealthAccess { return "Needs permission" }
-        return store.authorized ? "Granted" : "No data — tap"
-    }
-
-    private var healthAccessColor: Color {
-        if store.needsHealthAccess { return Theme.amber }
-        return store.authorized ? Theme.green : Theme.amber
     }
 
     /// Build a downloadable .xlsx of the workout history and present the share sheet.
