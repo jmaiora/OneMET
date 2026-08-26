@@ -93,10 +93,14 @@ struct PlanView: View {
 
             duringBanner(guide)
 
-            // One line only — the full reasoning lives in Settings ▸ Help & FAQ.
+            // Headlines only — the full reasoning behind both lives in Settings ▸ Help & FAQ.
             Card(title: lang.t("plan.goodToKnow")) {
-                goodLine("checkmark.seal.fill", Theme.green,
-                         lang.t("philosophy.short", unit.range(140, 200)))
+                VStack(alignment: .leading, spacing: 14) {
+                    goodLine("checkmark.seal.fill", Theme.green,
+                             lang.t("philosophy.short", unit.range(140, 200)))
+                    goodEntry("chart.line.uptrend.xyaxis", accent,
+                              lang.t("help.learnTitle"), lang.t("learn.short"))
+                }
             }
 
             disclaimer
@@ -195,6 +199,26 @@ struct PlanView: View {
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.8))
                 .tracking(0.3)
+        }
+    }
+
+    /// A Good-to-know row with a heading above its line, for the points that have a longer
+    /// explanation waiting in Help & FAQ.
+    private func goodEntry(_ systemIcon: String, _ color: Color,
+                           _ title: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: systemIcon).font(.system(size: 15)).foregroundStyle(color).frame(width: 20)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                Text(text)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(Theme.ink2)
+            }
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

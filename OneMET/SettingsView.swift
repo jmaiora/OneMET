@@ -89,9 +89,8 @@ struct SettingsView: View {
                                isLast: true) { editor = .nightscout }
                 }
 
+                // No Profile row here — the identity card at the top is already the way in.
                 IOSList(header: lang.t("settings.more")) {
-                    IOSListRow(title: lang.t("settings.profile"), detail: lang.t("settings.profileSub"),
-                               dot: accent) { withAnimation(anim) { showProfile = true } }
                     IOSListRow(title: lang.t("settings.help"), detail: lang.t("settings.helpSub"),
                                dot: Theme.violet, isLast: true) { withAnimation(anim) { showHelp = true } }
                 }
