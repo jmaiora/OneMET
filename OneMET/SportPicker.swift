@@ -3,9 +3,15 @@ import SwiftUI
 // SportPicker.swift — swipeable stacked sport cards for the Plan tab.
 //
 // Modelled on a physical pile of cards: the top card follows your finger in *both* axes
-// and tilts as it goes, the pile underneath stays put, and a flick sends the card off in
-// whatever direction you threw it. Only once it's clear of the screen does the pile step
-// forward, and the thrown card loops back in to tuck underneath at the bottom.
+// and tilts as it goes, and the pile underneath stays put until you let go.
+//
+// A throw then has two phases. The card slides *partly* off the edge you pushed it
+// toward — never all the way; a sliver stays on screen — while the pile behind steps
+// forward one slot, so the incoming card is already in the front position by the time the
+// index changes. Then that sliver reverses, sliding back in and shrinking, and tucks in
+// behind the pile the way a dealt card goes underneath. Throwing it clear off the screen
+// instead breaks the illusion: nothing is left to come back, so the return reads as a new
+// card appearing rather than the one you just dealt going under.
 //
 // Positions, not indices. The stack is addressed by *position* (0 = front, 1 = behind,
 // 2 = deeper) and the direction of travel decides which sports fill those positions, so
@@ -37,11 +43,15 @@ struct SportPicker: View {
     @State private var returnProgress: CGFloat = 0
     /// Guards the cleanup timer so a second throw can't cancel the newer card's return.
     @State private var returnToken = 0
+    /// Measured width of the front card, so the throw scales with the device.
+    @State private var cardWidth: CGFloat = 300
 
     private var n: Int { max(sports.count, 1) }
 
-    /// How far a thrown card travels along its exit vector. Comfortably past any edge.
-    private let flingDistance: CGFloat = 620
+    /// How far a thrown card travels along its exit vector — just under one card width,
+    /// which leaves roughly a tenth of it showing past the screen edge. That remainder is
+    /// the whole point: it's what slides back in to tuck under the pile.
+    private var flingDistance: CGFloat { max(220, cardWidth * 0.92) }
     private let flingDuration = 0.26
     private let returnDuration = 0.34
     /// Drag this far (or flick harder than the predicted threshold) to commit.
@@ -81,6 +91,15 @@ struct SportPicker: View {
                 if let ri = returningIndex { returningCard(sportIndex: ri) }
             }
             .frame(height: 236)
+            .background(
+                // The throw distance is a fraction of the card, not a fixed number, so it
+                // clears the same proportion on an SE as on a Pro Max.
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { cardWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { cardWidth = $0 }
+                }
+            )
 
             // page dots
             HStack(spacing: 6) {
@@ -186,7 +205,10 @@ struct SportPicker: View {
             .rotationEffect(.degrees(Double(t) * tilt(returnVector) + Double(depth) * fanTilt))
             .offset(x: depth * fanX + t * returnVector.width,
                     y: depth * fanY + t * returnVector.height)
-            .opacity(min(1, Double(t) * 10))
+            // Visible for the whole journey back, then fades over the last fifth. It comes
+            // to rest one slot deeper than anything the pile draws, so without the fade
+            // you'd see its edge blink out from behind the deepest card.
+            .opacity(min(1, Double(t) * 5))
             // Starts at the same 0.27 the thrown card had, so the shadow doesn't blink out
             // at the handoff, and thins as the card settles behind the pile.
             .shadow(color: sc.opacity(0.27 * Double(t)), radius: 15, x: 0, y: 14)
@@ -197,13 +219,15 @@ struct SportPicker: View {
     /// Where a thrown card exits: the direction of the flick (falling back to the raw
     /// drag for a slow release), normalised out to `flingDistance`.
     ///
-    /// The vertical component is clamped to the horizontal one, so a throw never steepens
-    /// past 45°. Without that, a flick with a strong upward prediction sends the card
-    /// straight up across the header and the rest of the page rather than off to the side.
+    /// The vertical component is held to well under the horizontal one, so the card
+    /// leaves sideways with a bit of drift rather than diving. Unclamped, a flick with a
+    /// strong vertical prediction sends it up across the header or down past the fold,
+    /// and it no longer reads as being dealt off the side of the pile.
     private func exitVector(_ t: CGSize, _ pred: CGSize) -> CGSize {
         let raw = hypot(pred.width, pred.height) > hypot(t.width, t.height) ? pred : t
         let dx = raw.width == 0 ? (t.width < 0 ? -1 : 1) : raw.width
-        let dy = max(-abs(dx), min(abs(dx), raw.height))
+        let limit = abs(dx) * 0.45
+        let dy = max(-limit, min(limit, raw.height))
         let len = max(1, hypot(dx, dy))
         return CGSize(width: dx / len * flingDistance,
                       height: dy / len * flingDistance)
