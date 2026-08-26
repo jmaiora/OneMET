@@ -32,11 +32,14 @@ struct PlanView: View {
             AppHeader(title: lang.t("plan.title"), date: lang.t("plan.runGuide"),
                       initials: profileStore.profile.initials, accent: accent)
 
+            // The deck sits directly on the page, NOT inside a Card. Card clips to its
+            // rounded rect, which chopped the thrown card off at the container edge
+            // instead of letting it fly clear, and cut the fan off on the right.
+            SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
+                        durationLabel: "\(duration) \(lang.t("workouts.min"))",
+                        difficultyLabel: difficulty.label(lang), lang: lang)
+
             Card(title: lang.t("plan.sessionDetails"), icon: "calendar", iconColor: accent) {
-                SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
-                            durationLabel: "\(duration) \(lang.t("workouts.min"))",
-                            difficultyLabel: difficulty.label(lang), lang: lang)
-                    .padding(.bottom, 2)
                 SelectRow(label: lang.t("plan.plannedDuration"), selection: $duration,
                           options: [15, 30, 45, 60, 75, 90, 120, 150, 180].map {
                               (value: $0, label: "\($0) \(lang.t("workouts.min"))")

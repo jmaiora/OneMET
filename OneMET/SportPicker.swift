@@ -49,11 +49,17 @@ struct SportPicker: View {
     private let maxTilt: Double = 18
 
     // Fan geometry: each card behind sits further right, a little *higher*, smaller and
-    // rotated — the way a held hand of cards splays.
-    private let fanX: CGFloat = 14
-    private let fanY: CGFloat = -7
+    // very slightly rotated — the way a held hand of cards splays. Rotation is about the
+    // centre, so a card tilted much more than this pokes its corners out on both sides
+    // and stops reading as a neat pile.
+    private let fanX: CGFloat = 12
+    private let fanY: CGFloat = -6
     private let fanScale: CGFloat = 0.04
-    private let fanTilt: Double = 3.5
+    private let fanTilt: Double = 2
+
+    /// Room reserved on the right for the fan, so the deepest resting card isn't cut off
+    /// at the screen edge. The front card is narrower by this much.
+    private var fanInset: CGFloat { fanX * CGFloat(max(1, positions.count - 1)) + 6 }
 
     /// +1 advances to the next sport, -1 goes back. At rest it's +1, so the resting peek
     /// card is the next one along.
@@ -90,6 +96,10 @@ struct SportPicker: View {
                 }
             }
         }
+        // Reserve the fan's width on the right so the pile isn't cut off at the screen
+        // edge. Applied to the whole component, not just the cards, so the page dots stay
+        // centred under the front card.
+        .padding(.trailing, fanInset)
     }
 
     /// Stack positions to draw, front-first. With fewer sports the deeper slots would
@@ -186,11 +196,17 @@ struct SportPicker: View {
 
     /// Where a thrown card exits: the direction of the flick (falling back to the raw
     /// drag for a slow release), normalised out to `flingDistance`.
+    ///
+    /// The vertical component is clamped to the horizontal one, so a throw never steepens
+    /// past 45°. Without that, a flick with a strong upward prediction sends the card
+    /// straight up across the header and the rest of the page rather than off to the side.
     private func exitVector(_ t: CGSize, _ pred: CGSize) -> CGSize {
-        let v = hypot(pred.width, pred.height) > hypot(t.width, t.height) ? pred : t
-        let len = max(1, hypot(v.width, v.height))
-        return CGSize(width: v.width / len * flingDistance,
-                      height: v.height / len * flingDistance)
+        let raw = hypot(pred.width, pred.height) > hypot(t.width, t.height) ? pred : t
+        let dx = raw.width == 0 ? (t.width < 0 ? -1 : 1) : raw.width
+        let dy = max(-abs(dx), min(abs(dx), raw.height))
+        let len = max(1, hypot(dx, dy))
+        return CGSize(width: dx / len * flingDistance,
+                      height: dy / len * flingDistance)
     }
 
     /// Phase one: throw the card along the flick, and step the pile forward behind it.
