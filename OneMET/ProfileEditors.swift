@@ -379,6 +379,101 @@ struct NightscoutSheet: View {
     }
 }
 
+// MARK: - LibreLinkUp glucose source
+
+struct LibreLinkUpSheet: View {
+    @ObservedObject var store: GlucoseSourceStore
+    var lang: AppLanguage = .en
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var email: String
+    @State private var password: String
+    @State private var region: String
+    @State private var enabled: Bool
+    @State private var testing = false
+    @State private var testResult: String?
+    @State private var testOK = false
+
+    init(store: GlucoseSourceStore, lang: AppLanguage = .en) {
+        self.store = store
+        self.lang = lang
+        _email = State(initialValue: store.libre.email)
+        _password = State(initialValue: store.libre.password)
+        _region = State(initialValue: store.libre.region)
+        _enabled = State(initialValue: store.libre.enabled)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text(lang.t("settings.libre")),
+                        footer: Text(lang.t("src.libreFooter"))) {
+                    TextField(lang.t("src.libreEmail"), text: $email)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.emailAddress)
+                    SecureField(lang.t("src.password"), text: $password)
+                    Toggle(lang.t("src.useLibre"), isOn: $enabled)
+                }
+
+                Section(footer: Text(lang.t("src.libreRegionAuto"))) {
+                    Picker(lang.t("src.region"), selection: $region) {
+                        // Abbott shards accounts by region; testing the connection corrects
+                        // this automatically, so it rarely needs touching by hand.
+                        ForEach(LibreLinkUpClient.regions, id: \.self) {
+                            Text($0.uppercased()).tag($0)
+                        }
+                    }
+                }
+
+                Section {
+                    Button {
+                        Task {
+                            testing = true; testResult = nil
+                            var cfg = LibreLinkUpConfig(email: email, password: password,
+                                                        region: region, enabled: true)
+                            let client = LibreLinkUpClient(config: cfg)
+                            // Adopt whatever region the login redirects to before testing.
+                            if let detected = await client.detectRegion(), detected != region {
+                                region = detected
+                                cfg.region = detected
+                            }
+                            let ok = await LibreLinkUpClient(config: cfg).test()
+                            testOK = ok
+                            testResult = lang.t(ok ? "src.testOk" : "src.testFailLibre")
+                            testing = false
+                        }
+                    } label: {
+                        HStack {
+                            Text(lang.t("src.test"))
+                            if testing { Spacer(); ProgressView() }
+                        }
+                    }
+                    .disabled(email.isEmpty || password.isEmpty || testing)
+
+                    if let testResult {
+                        Text(testResult)
+                            .font(.footnote)
+                            .foregroundStyle(testOK ? Color.green : Color.red)
+                    }
+                }
+            }
+            .navigationTitle(lang.t("settings.libre"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(lang.t("common.save")) {
+                        store.libre = LibreLinkUpConfig(email: email, password: password,
+                                                        region: region, enabled: enabled)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Dexcom Share glucose source
 
 struct DexcomSheet: View {

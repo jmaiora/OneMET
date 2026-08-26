@@ -22,6 +22,10 @@ enum DexcomError: Error { case auth, http(Int) }
 struct DexcomShareClient {
     let config: DexcomConfig
 
+    /// Share retains ~24 h. Asking for more silently returns a truncated set, so callers
+    /// must not use this for anything longer.
+    static let maxLookback: TimeInterval = 23 * 3600
+
     private static let appId = "d89443d2-327c-4a6f-89e5-496bbb0317db"
     private static let nullGUID = "00000000-0000-0000-0000-000000000000"
 

@@ -348,6 +348,9 @@ enum Strings {
                         "La mayoría de personas con diabetes se encuentran mejor en torno a {0} durante el ejercicio. Evitar hipoglucemias importa más que un número perfecto: perseguir {1} suele acabar en geles repetidos y rebotes altos."),
         "learn":      L("Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy.",
                         "Aprende tu propia respuesta: anota la glucosa de inicio, la insulina activa, los carbohidratos y la glucosa final. Tras 3–5 sesiones parecidas darás con una estrategia repetible."),
+        // The one-liner the Plan tab shows; the full version lives in Help & FAQ.
+        "philosophy.short": L("Most PwD feel best around {0} before exercise. Learn your own response.",
+                              "La mayoría de personas con diabetes se encuentran mejor en torno a {0} antes del ejercicio. Aprende tu propia respuesta."),
 
     ]
 
@@ -386,7 +389,13 @@ enum Strings {
         "settings.appleHealth":  L("Apple Health", "Apple Salud"),
         "settings.glucoseSource": L("Glucose Source", "Fuente de glucosa"),
         "settings.dexcom":       L("Dexcom Share", "Dexcom Share"),
+        "settings.libre":        L("LibreLinkUp", "LibreLinkUp"),
         "settings.nightscout":   L("Nightscout", "Nightscout"),
+        "settings.profile":      L("Profile", "Perfil"),
+        "settings.profileSub":   L("Language, units and targets", "Idioma, unidades y objetivos"),
+        "settings.more":         L("More", "Más"),
+        "settings.help":         L("Help & FAQ", "Ayuda y preguntas frecuentes"),
+        "settings.helpSub":      L("How OneMET reads your data", "Cómo interpreta OneMET tus datos"),
         "settings.onLive":       L("On · live", "Activo · en directo"),
         "settings.configuredOff": L("Configured · off", "Configurado · apagado"),
         "settings.general":      L("General", "General"),
@@ -467,6 +476,29 @@ enum Strings {
         "src.useDexcom":    L("Use Dexcom for glucose", "Usar Dexcom para la glucosa"),
         "src.testFailDex":  L("Couldn't fetch readings. Check account, password and region.",
                               "No se pudieron obtener lecturas. Revisa la cuenta, la contraseña y la región."),
+        "src.libreFooter":  L("Sign in with the LibreLinkUp *follower* account — the one that accepted the invite, not the phone that scans the sensor. Read-only; only the last ~12 h of readings are available, so longer history still comes from Apple Health.",
+                              "Inicia sesión con la cuenta *seguidora* de LibreLinkUp: la que aceptó la invitación, no el teléfono que escanea el sensor. Solo lectura; únicamente hay lecturas de las últimas ~12 h, así que el historial largo sigue viniendo de Apple Salud."),
+        "src.libreEmail":   L("LibreLinkUp email", "Correo de LibreLinkUp"),
+        "src.useLibre":     L("Use LibreLinkUp for glucose", "Usar LibreLinkUp para la glucosa"),
+        "src.testFailLibre": L("Couldn't fetch readings. Check the email, password and region, and that someone is sharing with this account.",
+                               "No se pudieron obtener lecturas. Revisa el correo, la contraseña y la región, y que alguien esté compartiendo con esta cuenta."),
+        "src.libreRegionAuto": L("Detected automatically at sign-in.", "Se detecta automáticamente al iniciar sesión."),
+
+        // ── Help & FAQ ──
+        "help.title":        L("Help & FAQ", "Ayuda y preguntas frecuentes"),
+        "help.subtitle":     L("Guidance", "Orientación"),
+        "help.duringTitle":  L("Glucose during exercise", "La glucosa durante el ejercicio"),
+        "help.learnTitle":   L("Finding your own pattern", "Encontrar tu propio patrón"),
+        "help.metTitle":     L("What is a MET·minute?", "¿Qué es un MET·minuto?"),
+        "help.metBody":      L("A MET is a multiple of your resting metabolic rate: walking briskly is about 3–4 MET, running 8–10. Multiply by the minutes you spent there and you get MET·minutes — one number that captures both how hard and how long you went, which is why OneMET rings on it rather than on calories alone.",
+                               "Un MET es un múltiplo de tu metabolismo en reposo: caminar a buen ritmo son unos 3–4 MET, correr 8–10. Multiplícalo por los minutos y obtienes MET·minutos: un solo número que recoge intensidad y duración, y por eso el anillo de OneMET se basa en él y no solo en las calorías."),
+        "help.insightTitle": L("How the workout insight is worked out", "Cómo se calcula el análisis del entrenamiento"),
+        "help.insightBody":  L("For each session OneMET compares your glucose at the start with the value at the end, and also tracks the lowest reading from the start of the session through the hour afterwards. A large fall only prompts a carb suggestion if it actually took you near your low threshold — dropping 60 points and landing at 190 needs no fuelling, so the app says so instead.",
+                               "En cada sesión OneMET compara tu glucosa al empezar con la del final, y además sigue el valor más bajo desde el inicio hasta una hora después. Una bajada grande solo genera una sugerencia de carbohidratos si de verdad te acercó a tu umbral bajo: caer 60 puntos y quedarte en 190 no necesita comer nada, y la app lo dice así."),
+        "help.sourcesTitle": L("Where the numbers come from", "De dónde salen los datos"),
+        "help.sourcesBody":  L("Workouts, heart rate and activity come from Apple Health. Glucose comes from whichever source you switch on in Settings — Dexcom Share, LibreLinkUp or Nightscout — falling back to Apple Health. Follower services only keep a short window (Dexcom ~24 h, LibreLinkUp ~12 h), so the 14-day figures always come from Nightscout or Apple Health.",
+                               "Los entrenamientos, la frecuencia cardiaca y la actividad vienen de Apple Salud. La glucosa viene de la fuente que actives en Ajustes — Dexcom Share, LibreLinkUp o Nightscout — y si no, de Apple Salud. Los servicios de seguidor solo guardan una ventana corta (Dexcom ~24 h, LibreLinkUp ~12 h), así que las cifras de 14 días salen siempre de Nightscout o de Apple Salud."),
+        "help.disclaimerTitle": L("This is not medical advice", "Esto no es consejo médico"),
 
         // ── Export ──
         "export.mailSubject": L("OneMET — Health report", "OneMET — Informe de salud"),

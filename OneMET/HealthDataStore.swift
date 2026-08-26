@@ -190,9 +190,11 @@ final class HealthDataStore: ObservableObject {
     /// are built at refresh time, so RootView re-refreshes when this changes.
     var language: AppLanguage = .en { didSet { configureFormatters() } }
 
-    /// Glucose source config. When Nightscout is active, glucose comes from there (low latency); HealthKit otherwise.
+    /// Glucose source config. When a remote source is active, glucose comes from there
+    /// (low latency); HealthKit otherwise.
     var glucoseConfig = NightscoutConfig()
     var dexcomConfig = DexcomConfig()
+    var libreConfig = LibreLinkUpConfig()
 
     private let svc = HealthKitService()
     private let cal = Calendar.current
@@ -212,11 +214,24 @@ final class HealthDataStore: ObservableObject {
         return await fetchGlucose(from: from, to: to)
     }
 
-    /// Fetch glucose from the active remote source — Dexcom Share, else Nightscout —
-    /// falling back to HealthKit when neither is active or a request fails / returns empty.
+    /// Fetch glucose from the active remote source — Dexcom Share, LibreLinkUp, else
+    /// Nightscout — falling back to HealthKit when none is active or a request fails /
+    /// returns empty.
+    ///
+    /// Follower services only retain a short window (Share ~24 h, LibreLinkUp ~12 h) and
+    /// answer a longer request with a silently truncated set. Handing that to the 14-day
+    /// stats would compute them from half a day of data, so anything past a source's
+    /// retention skips it and drops through to Nightscout or HealthKit, which hold history.
     private func fetchGlucose(from: Date, to: Date) async -> [(date: Date, v: Double)] {
-        if dexcomConfig.isActive {
+        let span = to.timeIntervalSince(from)
+
+        if dexcomConfig.isActive, span <= DexcomShareClient.maxLookback {
             if let r = try? await DexcomShareClient(config: dexcomConfig).entries(from: from, to: to), !r.isEmpty {
+                return r
+            }
+        }
+        if libreConfig.isActive, span <= LibreLinkUpClient.maxLookback {
+            if let r = try? await LibreLinkUpClient(config: libreConfig).entries(from: from, to: to), !r.isEmpty {
                 return r
             }
         }
@@ -362,7 +377,8 @@ final class HealthDataStore: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 60_000_000_000)
                 guard let self else { return }
-                if self.dexcomConfig.isActive || self.glucoseConfig.isActive { await self.refreshGlucose() }
+                if self.dexcomConfig.isActive || self.libreConfig.isActive
+                    || self.glucoseConfig.isActive { await self.refreshGlucose() }
             }
         }
     }

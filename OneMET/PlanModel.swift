@@ -101,8 +101,9 @@ struct RunGuide {
     let duringFeeds: Int             // number of feeds across the session
     let duringTotalG: Int            // total carbs across the session (start + feeds)
     let duringIntervalMin: Int       // feed interval (minutes)
-    let philosophyText: String       // accept 140–200, avoid hypo > perfect
-    let learnText: String            // log & experiment
+    // The long-form "accept 140–200" and "learn your own response" copy used to live here.
+    // It now belongs to Settings ▸ Help & FAQ, which looks the strings up directly, and
+    // the Plan tab shows only the one-line version — so the guide no longer carries it.
     let deliveryIsPump: Bool
     let usedGlucose: Double?
 }
@@ -197,15 +198,10 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
         during = lang.t("during.some")
     }
 
-    // ── 4 & 5. Accept imperfect glucose; learn progressively ──
-    let philosophy = lang.t("philosophy", unit.range(140, 200), unit.range(100, 140))
-    let learn = lang.t("learn")
-
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
                     startReason: reason, beforeText: before, duringText: during,
                     duringHeadline: duringHeadline, duringPerHourG: duringPerHourG, duringStartG: duringStartG,
                     duringPerFeedG: perFeedG, duringFeeds: duringFeeds,
                     duringTotalG: duringTotalG, duringIntervalMin: feedIntervalMin,
-                    philosophyText: philosophy, learnText: learn,
                     deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl)
 }

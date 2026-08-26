@@ -33,6 +33,7 @@ enum Keychain {
 final class GlucoseSourceStore: ObservableObject {
     @Published var config: NightscoutConfig { didSet { persist() } }
     @Published var dexcom: DexcomConfig { didSet { persistDexcom() } }
+    @Published var libre: LibreLinkUpConfig { didSet { persistLibre() } }
 
     private let urlKey = "onemet.ns.url"
     private let enabledKey = "onemet.ns.enabled"
@@ -42,6 +43,11 @@ final class GlucoseSourceStore: ObservableObject {
     private let dexEnabledKey = "onemet.dex.enabled"
     private let dexOusKey = "onemet.dex.ous"
     private let dexPassKey = "onemet.dex.pass"
+
+    private let libreEmailKey = "onemet.libre.email"
+    private let libreRegionKey = "onemet.libre.region"
+    private let libreEnabledKey = "onemet.libre.enabled"
+    private let librePassKey = "onemet.libre.pass"
 
     init() {
         let url = UserDefaults.standard.string(forKey: urlKey) ?? ""
@@ -54,6 +60,13 @@ final class GlucoseSourceStore: ObservableObject {
         let dexOus = UserDefaults.standard.object(forKey: dexOusKey) as? Bool ?? true
         let dexPass = Keychain.get(dexPassKey) ?? ""
         dexcom = DexcomConfig(username: dexUser, password: dexPass, ous: dexOus, enabled: dexEnabled)
+
+        let libreEmail = UserDefaults.standard.string(forKey: libreEmailKey) ?? ""
+        let libreRegion = UserDefaults.standard.string(forKey: libreRegionKey) ?? "eu"
+        let libreEnabled = UserDefaults.standard.bool(forKey: libreEnabledKey)
+        let librePass = Keychain.get(librePassKey) ?? ""
+        libre = LibreLinkUpConfig(email: libreEmail, password: librePass,
+                                  region: libreRegion, enabled: libreEnabled)
     }
 
     private func persist() {
@@ -69,5 +82,13 @@ final class GlucoseSourceStore: ObservableObject {
         UserDefaults.standard.set(dexcom.ous, forKey: dexOusKey)
         if dexcom.password.isEmpty { Keychain.delete(dexPassKey) }
         else { Keychain.set(dexcom.password, for: dexPassKey) }
+    }
+
+    private func persistLibre() {
+        UserDefaults.standard.set(libre.email, forKey: libreEmailKey)
+        UserDefaults.standard.set(libre.region, forKey: libreRegionKey)
+        UserDefaults.standard.set(libre.enabled, forKey: libreEnabledKey)
+        if libre.password.isEmpty { Keychain.delete(librePassKey) }
+        else { Keychain.set(libre.password, for: librePassKey) }
     }
 }

@@ -90,11 +90,10 @@ struct PlanView: View {
 
             duringBanner(guide)
 
+            // One line only — the full reasoning lives in Settings ▸ Help & FAQ.
             Card(title: lang.t("plan.goodToKnow")) {
-                VStack(alignment: .leading, spacing: 12) {
-                    goodLine("checkmark.seal.fill", Theme.green, guide.philosophyText)
-                    goodLine("chart.line.uptrend.xyaxis", accent, guide.learnText)
-                }
+                goodLine("checkmark.seal.fill", Theme.green,
+                         lang.t("philosophy.short", unit.range(140, 200)))
             }
 
             disclaimer
