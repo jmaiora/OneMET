@@ -287,10 +287,11 @@ enum Strings {
         "plan.everyMin":     L("EVERY {0} MIN", "CADA {0} MIN"),
         "plan.perHourTotal": L("~{0} g/h · ~{1} g total", "~{0} g/h · ~{1} g en total"),
         "plan.goodToKnow":   L("Good to know", "Conviene saber"),
-        // Deliberately not "calculate carbs": the screen behind this leads with whether to
-        // start at all, which on a low reading matters more than the grams.
-        "plan.calculate":    L("Get my plan", "Ver mi plan"),
-        "plan.carbPlan":     L("Your plan", "Tu plan"),
+        // "Fuel" rather than "calculate carbs": the screen behind this leads with whether
+        // to start at all, which on a low reading matters more than the grams — but
+        // fuelling is still what most people are coming here for, so it has to be said.
+        "plan.calculate":    L("Get my fuel plan", "Ver mi plan de carbohidratos"),
+        "plan.carbPlan":     L("Your fuel plan", "Tu plan de carbohidratos"),
         // Restates the session the plan was built for: sport, minutes, MET.
         "plan.forSession":   L("{0} · {1} min · {2} MET", "{0} · {1} min · {2} MET"),
         "plan.time":         L("TIME", "TIEMPO"),

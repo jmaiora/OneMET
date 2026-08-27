@@ -37,6 +37,8 @@ struct CarbPlanView: View {
                 Text(lang.t("plan.carbPlan"))
                     .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
+                    // The Spanish title runs to two lines; let it, rather than truncate.
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
