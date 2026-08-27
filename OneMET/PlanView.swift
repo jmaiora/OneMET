@@ -101,7 +101,7 @@ struct PlanView: View {
 
                 Button { withAnimation(anim) { showCarbs = true } } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "fork.knife").font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "sparkles").font(.system(size: 16, weight: .semibold))
                         Text(lang.t("plan.calculate"))
                             .font(.system(size: 17, weight: .semibold))
                     }
