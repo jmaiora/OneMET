@@ -94,10 +94,12 @@ struct PlanView: View {
             duringBanner(guide)
 
             // Headlines only — the full reasoning behind both lives in Settings ▸ Help & FAQ.
+            // Both entries lead with a heading beside the icon so they read as a matched
+            // pair; only the second one carries a line underneath.
             Card(title: lang.t("plan.goodToKnow")) {
                 VStack(alignment: .leading, spacing: 14) {
-                    goodLine("checkmark.seal.fill", Theme.green,
-                             lang.t("philosophy.short", unit.range(140, 200)))
+                    goodEntry("checkmark.seal.fill", Theme.green,
+                              lang.t("philosophy.short", unit.range(140, 200)), nil)
                     goodEntry("chart.line.uptrend.xyaxis", accent,
                               lang.t("help.learnTitle"), lang.t("learn.short"))
                 }
@@ -202,34 +204,25 @@ struct PlanView: View {
         }
     }
 
-    /// A Good-to-know row with a heading above its line, for the points that have a longer
-    /// explanation waiting in Help & FAQ.
+    /// A Good-to-know row: heading beside the icon, with an optional line underneath for
+    /// the points that have a longer explanation waiting in Help & FAQ.
     private func goodEntry(_ systemIcon: String, _ color: Color,
-                           _ title: String, _ text: String) -> some View {
+                           _ title: String, _ text: String?) -> some View {
         HStack(alignment: .top, spacing: 9) {
             Image(systemName: systemIcon).font(.system(size: 15)).foregroundStyle(color).frame(width: 20)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.system(size: 13.5, weight: .semibold))
                     .foregroundStyle(Theme.ink)
-                Text(text)
-                    .font(.system(size: 13.5))
-                    .foregroundStyle(Theme.ink2)
+                if let text {
+                    Text(text)
+                        .font(.system(size: 13.5))
+                        .foregroundStyle(Theme.ink2)
+                }
             }
             .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func goodLine(_ systemIcon: String, _ color: Color, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 9) {
-            Image(systemName: systemIcon).font(.system(size: 15)).foregroundStyle(color).frame(width: 20)
-            Text(text)
-                .font(.system(size: 13.5))
-                .foregroundStyle(Theme.ink)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
