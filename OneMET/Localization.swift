@@ -275,7 +275,7 @@ enum Strings {
 
         // ── Plan tab ──
         "plan.title":        L("Plan", "Plan"),
-        "plan.runGuide":     L("Run Guide", "Guía de sesión"),
+        "plan.exerciseGuide": L("Exercise Guide", "Guía de ejercicio"),
         "plan.sessionDetails": L("Session Details", "Detalles de la sesión"),
         "plan.plannedDuration": L("Planned Duration", "Duración prevista"),
         "plan.difficulty":   L("Difficulty", "Dificultad"),

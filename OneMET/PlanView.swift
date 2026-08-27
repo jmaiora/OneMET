@@ -39,9 +39,13 @@ struct PlanView: View {
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
                                   difficulty: difficulty, unit: unit, lang: lang)
 
+        // Sizes on this screen are chosen so the Calculate button lands above the fold on
+        // a standard phone rather than a scroll down. That's why the spacing is tighter
+        // than the other tabs, the deck is shorter than its natural height, and the dial
+        // card carries no title — each dial already labels itself.
         ZStack {
-            ScreenScaffold {
-                AppHeader(title: lang.t("plan.title"), date: lang.t("plan.runGuide"),
+            ScreenScaffold(spacing: 12) {
+                AppHeader(title: lang.t("plan.title"), date: lang.t("plan.exerciseGuide"),
                           initials: profileStore.profile.initials, accent: accent)
 
                 // The deck sits directly on the page, NOT inside a Card. Card clips to its
@@ -49,24 +53,25 @@ struct PlanView: View {
                 // instead of letting it fly clear, and cut the fan off on the right.
                 SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
                             durationLabel: "\(duration) \(lang.t("workouts.min"))",
-                            difficultyLabel: difficulty.label(lang), lang: lang)
+                            difficultyLabel: difficulty.label(lang), lang: lang,
+                            height: 176)
 
                 // Two dials sharing a row: minutes on the left, effort on the right. Sized
                 // from the available width so they stay a matched pair on any device.
-                Card(title: lang.t("plan.sessionDetails"), icon: "calendar", iconColor: accent) {
+                Card(pad: 12) {
                     GeometryReader { geo in
-                        let dial = min(158, (geo.size.width - 18) / 2)
-                        HStack(spacing: 18) {
+                        let dial = min(124, (geo.size.width - 16) / 2)
+                        HStack(spacing: 16) {
                             DurationDial(minutes: $duration, accent: accent, lang: lang, size: dial)
                                 .frame(maxWidth: .infinity)
                             IntensityDial(met: $met, lang: lang, size: dial)
                                 .frame(maxWidth: .infinity)
                         }
                     }
-                    .frame(height: 196)
+                    .frame(height: 150)
                 }
 
-                Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber) {
+                Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 14) {
                     HStack {
                         Text(lang.t("plan.currentGlucose"))
                             .font(.system(size: 15, weight: .medium))
@@ -85,7 +90,7 @@ struct PlanView: View {
                             Text("—").font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
                         }
                     }
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 8)
                     .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
 
                     SelectRow(label: lang.t("plan.iob"), selection: $iob,
@@ -102,13 +107,12 @@ struct PlanView: View {
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
+                    .padding(.vertical, 14)
                     .background(accent)
                     .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
                     .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 2)
             }
 
             if showCarbs {

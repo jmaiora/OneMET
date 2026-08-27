@@ -130,15 +130,20 @@ struct DurationDial: View {
                  knobColor: accent,
                  size: size,
                  onScrub: scrub) {
+                // Sized to clear the inner diameter at the smallest dial the Plan tab uses
+                // (124pt across, 14pt stroke → 96pt of usable width).
                 VStack(spacing: 0) {
                     Text("\(minutes)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.ink)
                         .monospacedDigit()
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
                     Text(lang.t("workouts.min"))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
+                .frame(width: size * 0.62)
             }
 
             Text(lang.t("plan.plannedDuration").uppercased())
@@ -221,13 +226,16 @@ struct IntensityDial: View {
                  onScrub: scrub) {
                 VStack(spacing: 0) {
                     Text(fmtNum((met * 10).rounded() / 10))
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.ink)
                         .monospacedDigit()
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
                     Text("MET")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
+                .frame(width: size * 0.62)
             }
 
             Text(WorkoutDifficulty(met: met).label(lang).uppercased())

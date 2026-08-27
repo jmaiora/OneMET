@@ -24,6 +24,9 @@ struct SportPicker: View {
     var durationLabel: String
     var difficultyLabel: String
     var lang: AppLanguage = .en
+    /// Deck height. The Plan tab passes a smaller value than the natural one so the
+    /// Calculate button clears the fold without scrolling.
+    var height: CGFloat = 236
 
     /// Live finger offset for the top card, in both axes.
     @State private var drag: CGSize = .zero
@@ -82,7 +85,7 @@ struct SportPicker: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 10) {
             ZStack {
                 // Rendered deepest-first; zIndex pins the order regardless.
                 ForEach(positions.reversed(), id: \.self) { pos in
@@ -90,7 +93,7 @@ struct SportPicker: View {
                 }
                 if let ri = returningIndex { returningCard(sportIndex: ri) }
             }
-            .frame(height: 236)
+            .frame(height: height)
             .background(
                 // The throw distance is a fraction of the card, not a fixed number, so it
                 // clears the same proportion on an SE as on a Pro Max.
@@ -294,18 +297,22 @@ struct SportPicker: View {
                 Spacer()
                 AppIconView(name: s.icon, color: .white, size: 26, weight: .bold)
             }
-            Spacer(minLength: 12)
+            Spacer(minLength: 8)
             Text(s.name(lang))
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
-                .padding(.bottom, 8)
+                .lineLimit(2)
+                .padding(.bottom, 6)
             Text(s.desc(lang))
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.92))
-                .lineSpacing(2)
+                .lineSpacing(1.5)
+                // Capped so a long description can't push the card past the height the
+                // Plan tab budgeted for it.
+                .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(sc)
         .overlay(Color.black.opacity(0.14 * dimAmount))
