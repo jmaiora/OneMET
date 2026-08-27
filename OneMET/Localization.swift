@@ -287,6 +287,10 @@ enum Strings {
         "plan.everyMin":     L("EVERY {0} MIN", "CADA {0} MIN"),
         "plan.perHourTotal": L("~{0} g/h · ~{1} g total", "~{0} g/h · ~{1} g en total"),
         "plan.goodToKnow":   L("Good to know", "Conviene saber"),
+        "plan.calculate":    L("Calculate carbs", "Calcular carbohidratos"),
+        "plan.carbPlan":     L("Carb plan", "Plan de carbohidratos"),
+        // Restates the session the plan was built for: sport, minutes, MET.
+        "plan.forSession":   L("{0} · {1} min · {2} MET", "{0} · {1} min · {2} MET"),
         "plan.time":         L("TIME", "TIEMPO"),
         "plan.difficultyShort": L("DIFFICULTY", "DIFICULTAD"),
         "plan.disclaimer":   L("Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.",

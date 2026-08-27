@@ -7,22 +7,26 @@ import Foundation
 /// time rather than stored, so switching language re-renders them with no state to sync.
 struct Sport: Identifiable, Hashable {
     let id: String
+    /// Typical intensity, and the value the Plan tab's gauge starts at when you pick it.
     let met: Double
     let icon: String
-    let difficulty: WorkoutDifficulty
     let color: String       // hex
+
+    /// Derived from MET rather than stored, so a sport can't claim a band its own
+    /// intensity contradicts — the old table had a 9.1 MET run labelled "moderate".
+    var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
 
     func name(_ lang: AppLanguage) -> String { lang.t("sport.\(id)") }
     func desc(_ lang: AppLanguage) -> String { lang.t("sport.\(id).desc") }
 }
 
 let SPORTS: [Sport] = [
-    Sport(id: "walk",     met: 3.2,  icon: "shoe",     difficulty: .light,    color: "#1F8A5B"),
-    Sport(id: "run",      met: 9.1,  icon: "run",      difficulty: .vigorous, color: "#E0556E"),
-    Sport(id: "cycling",  met: 7.0,  icon: "bike",     difficulty: .moderate, color: "#E8833A"),
-    Sport(id: "swim",     met: 8.0,  icon: "drop",     difficulty: .vigorous, color: "#1FB8C9"),
-    Sport(id: "strength", met: 5.0,  icon: "flame",    difficulty: .moderate, color: "#8E72E8"),
-    Sport(id: "hiit",     met: 10.0, icon: "activity", difficulty: .vigorous, color: "#D6484B")
+    Sport(id: "walk",     met: 3.2,  icon: "shoe",     color: "#1F8A5B"),
+    Sport(id: "run",      met: 9.1,  icon: "run",      color: "#E0556E"),
+    Sport(id: "cycling",  met: 7.0,  icon: "bike",     color: "#E8833A"),
+    Sport(id: "swim",     met: 8.0,  icon: "drop",     color: "#1FB8C9"),
+    Sport(id: "strength", met: 5.0,  icon: "flame",    color: "#8E72E8"),
+    Sport(id: "hiit",     met: 10.0, icon: "activity", color: "#D6484B")
 ]
 
 // Prevention-first exercise guide. Rather than "eat X g every 20 min", it favours
@@ -47,6 +51,18 @@ enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
 
     func label(_ lang: AppLanguage) -> String { lang.t("difficulty.\(rawValue)") }
+
+    /// Band for a MET value, on the usual ACSM cut-points (light under 3, moderate to 6,
+    /// vigorous to 10) with "maximal" reserved for the sprint/anaerobic end, which is the
+    /// only place Riddell's 60 g/h rate belongs.
+    init(met: Double) {
+        switch met {
+        case ..<3:    self = .light
+        case ..<6:    self = .moderate
+        case ..<10:   self = .vigorous
+        default:      self = .maximal
+        }
+    }
 
     // Riddell/EXTOD carbohydrate fuelling rate during exercise (grams per hour).
     var carbsPerHour: Int {
