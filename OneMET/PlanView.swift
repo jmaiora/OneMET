@@ -21,10 +21,31 @@ struct PlanView: View {
     /// Intensity is a continuous MET value now; the Riddell band is derived from it.
     @State private var met: Double = SPORTS[0].met
     @State private var showCarbs = false
+    /// Height of the tab's content area, measured rather than assumed.
+    @State private var availableHeight: CGFloat = 800
 
     private let anim = Animation.easeInOut(duration: 0.25)
 
     private var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
+
+    /// The deck absorbs whatever vertical room the fixed rows leave over, so "Get my fuel
+    /// plan" lands just above the tab bar instead of floating mid-screen with dead space
+    /// under it. Hard-coding a height can only be right on one device; this is right on
+    /// all of them, and degrades to a sensible range at the extremes.
+    private var deckHeight: CGFloat {
+        // Everything on this screen that isn't the deck, including the scaffold's own
+        // padding and the clearance it leaves for the floating tab bar.
+        let header: CGFloat = 70
+        let dialsCard: CGFloat = 174        // 150 dial row + 12 padding top and bottom
+        let currentState: CGFloat = 123
+        let button: CGFloat = 45
+        let deckDots: CGFloat = 16          // page dots plus the deck's internal spacing
+        let scaffold: CGFloat = 12 * 4 + 8 + 110    // row gaps + top pad + tab-bar clearance
+
+        let leftOver = availableHeight
+            - (header + dialsCard + currentState + button + deckDots + scaffold)
+        return min(236, max(150, leftOver))
+    }
 
     var body: some View {
         let d = store.data
@@ -54,7 +75,7 @@ struct PlanView: View {
                 SportPicker(sports: SPORTS, index: $sportIndex, accent: accent,
                             durationLabel: "\(duration) \(lang.t("workouts.min"))",
                             difficultyLabel: difficulty.label(lang), lang: lang,
-                            height: 176)
+                            height: deckHeight)
 
                 // Two dials sharing a row: minutes on the left, effort on the right. Sized
                 // from the available width so they stay a matched pair on any device.
@@ -127,6 +148,13 @@ struct PlanView: View {
                 .zIndex(2)
             }
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { availableHeight = geo.size.height }
+                    .onChange(of: geo.size.height) { availableHeight = $0 }
+            }
+        )
         // Picking a sport parks the gauge at that sport's typical intensity; you're free
         // to drag away from it afterwards.
         .onChange(of: sportIndex) { newIndex in
