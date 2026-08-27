@@ -345,13 +345,14 @@ enum Strings {
 
         // ── Plan: philosophy ──
         "philosophy": L("Most PwD feel best around {0} during exercise. Avoiding lows matters more than perfect numbers — chasing {1} usually means repeated gels and rebound highs.",
-                        "La mayoría de personas con diabetes se prefieren estar en torno a {0} durante el ejercicio. Evitar hipoglucemias importa más que un número perfecto: perseguir {1} suele acabar en geles repetidos y rebotes altos."),
+                        "La mayoría de personas con diabetes prefieren estar en torno a {0} durante el ejercicio. Evitar hipoglucemias importa más que un número perfecto: perseguir {1} suele acabar en geles repetidos y rebotes altos."),
         "learn":      L("Learn your own response: note your start glucose, insulin on board, any carbs, and your end glucose. After 3–5 similar runs you'll usually settle on a repeatable strategy.",
                         "Aprende tu propia respuesta: anota la glucosa de inicio, la insulina activa, los carbohidratos y la glucosa final. Tras 3–5 sesiones parecidas darás con una estrategia repetible."),
         // The one-liners the Plan tab shows; the full versions live in Help & FAQ.
         "philosophy.short": L("Most PwD feel best around {0} before exercise.",
                               "La mayoría de personas con diabetes prefieren estar en torno a {0} antes del ejercicio."),
-        "learn.short":      L("Learn your own response.", "Aprende tu propia respuesta."),
+        "learn.short":      L("Find your own pattern, learn your own response.",
+                              "Encuentra tu propio patrón, aprende tu propia respuesta."),
 
     ]
 

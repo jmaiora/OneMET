@@ -93,15 +93,14 @@ struct PlanView: View {
 
             duringBanner(guide)
 
-            // Headlines only — the full reasoning behind both lives in Settings ▸ Help & FAQ.
-            // Both entries lead with a heading beside the icon so they read as a matched
-            // pair; only the second one carries a line underneath.
+            // Two headlines, both bold beside their icon — the reasoning behind each is in
+            // Settings ▸ Help & FAQ.
             Card(title: lang.t("plan.goodToKnow")) {
                 VStack(alignment: .leading, spacing: 14) {
                     goodEntry("checkmark.seal.fill", Theme.green,
                               lang.t("philosophy.short", unit.range(140, 200)), nil)
                     goodEntry("chart.line.uptrend.xyaxis", accent,
-                              lang.t("help.learnTitle"), lang.t("learn.short"))
+                              lang.t("learn.short"), nil)
                 }
             }
 
