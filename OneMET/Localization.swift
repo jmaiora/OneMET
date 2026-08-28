@@ -167,6 +167,7 @@ enum Strings {
 
         // ── Common ──
         "common.cancel":   L("Cancel", "Cancelar"),
+        "common.done":     L("Done", "Listo"),
         "common.save":     L("Save", "Guardar"),
         "common.now":      L("Now", "Ahora"),
         "common.updating": L("Updating…", "Actualizando…"),

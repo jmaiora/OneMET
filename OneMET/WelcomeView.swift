@@ -62,6 +62,15 @@ struct WelcomeView: View {
             footer(lang)
         }
         .background(Theme.bg.ignoresSafeArea())
+        // The decimal pad has no return key at all, so without this there's no way to put
+        // the keyboard away and reach the rest of the form.
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(lang.t("common.done")) { focus = nil }
+                    .font(.system(size: 17, weight: .semibold))
+            }
+        }
         .onAppear(perform: seed)
         .sheet(item: $editing) { which in
             switch which {
@@ -229,37 +238,71 @@ struct WelcomeView: View {
             .padding(.vertical, 14)
         }
 
-        choiceBlock(title: lang.t("welcome.typePrompt"), footer: lang.t("welcome.aboutLead")) {
-            ForEach(DiabetesType.onboardingChoices) { t in
-                choiceRow(title: t.label(lang),
-                          selected: type == t,
-                          isLast: t == DiabetesType.onboardingChoices.last) {
-                    withAnimation(.easeInOut(duration: 0.18)) { type = t }
-                }
-            }
+        // Full width with the question above it: "Non-diabetic" can't share a row with a
+        // question this long and still be legible.
+        VStack(alignment: .leading, spacing: 7) {
+            Text(lang.t("welcome.typePrompt").uppercased())
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.ink2)
+                .tracking(0.2)
+                .padding(.horizontal, 4)
+
+            SegmentedPicker(options: DiabetesType.onboardingChoices.map {
+                                (value: $0, label: $0.label(lang))
+                            },
+                            selection: $type)
+
+            Text(lang.t("welcome.aboutLead"))
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.ink3)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
         }
 
-        // Language sits under the personal questions rather than over them. It applies
-        // live, so tapping it re-renders everything above in the chosen language.
-        choiceBlock(title: lang.t("welcome.language")) {
-            ForEach(AppLanguage.allCases) { l in
-                choiceRow(title: l.nativeName,
-                          selected: loc.language == l,
-                          isLast: l == AppLanguage.allCases.last) {
-                    withAnimation(.easeInOut(duration: 0.18)) { loc.language = l }
-                }
+        // Language and units share a card, label left and control right. Language sits
+        // under the personal questions rather than over them; it applies live, so tapping
+        // it re-renders everything above in the chosen language.
+        VStack(alignment: .leading, spacing: 7) {
+            VStack(spacing: 0) {
+                segmentRow(title: lang.t("welcome.language"),
+                           options: AppLanguage.allCases.map { (value: $0, label: $0.nativeName) },
+                           selection: $loc.language)
+                Rectangle().fill(Theme.sep).frame(height: 0.5).padding(.leading, 14)
+                segmentRow(title: lang.t("welcome.units"),
+                           // The short form, not longName — a segment has no room for
+                           // "milligrams per decilitre".
+                           options: GlucoseUnit.allCases.map { (value: $0, label: $0.rawValue) },
+                           selection: $unit)
             }
-        }
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
 
-        choiceBlock(title: lang.t("welcome.units"), footer: lang.t("welcome.unitsNote")) {
-            ForEach(GlucoseUnit.allCases) { u in
-                choiceRow(title: u.longName,
-                          selected: unit == u,
-                          isLast: u == GlucoseUnit.allCases.last) {
-                    withAnimation(.easeInOut(duration: 0.18)) { unit = u }
-                }
-            }
+            Text(lang.t("welcome.unitsNote"))
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.ink3)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
         }
+    }
+
+    /// Label on the left, segmented control on the right.
+    private func segmentRow<V: Hashable>(title: String,
+                                         options: [(value: V, label: String)],
+                                         selection: Binding<V>) -> some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 6)
+            SegmentedPicker(options: options, selection: selection)
+                .frame(maxWidth: 190)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Step 2 · Apple Health
@@ -481,54 +524,54 @@ struct WelcomeView: View {
         }
     }
 
-    @ViewBuilder
-    private func choiceBlock<C: View>(title: String, footer: String? = nil,
-                                      @ViewBuilder content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title.uppercased())
-                .font(.system(size: 12.5, weight: .semibold))
-                .foregroundStyle(Theme.ink2)
-                .tracking(0.2)
-                .padding(.horizontal, 4)
+}
 
-            VStack(spacing: 0) { content() }
-                .background(Theme.card)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+// MARK: - Segmented picker
 
-            if let footer {
-                Text(footer)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.ink3)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 4)
-            }
-        }
-    }
+/// A track with its options side by side and the chosen one filled — the same control
+/// the rest of the app's settings use. Preferred over a list of radio rows for two or
+/// three short choices: it shows every option and the current answer in one line.
+struct SegmentedPicker<Value: Hashable>: View {
+    let options: [(value: Value, label: String)]
+    @Binding var selection: Value
+    var tint: Color = Theme.green
 
-    private func choiceRow(title: String, selected: Bool, isLast: Bool,
-                           action: @escaping () -> Void) -> some View {
-        VStack(spacing: 0) {
-            Button(action: action) {
-                HStack(spacing: 12) {
-                    Text(title)
-                        .font(.system(size: 16, weight: selected ? .semibold : .regular))
-                        .foregroundStyle(Theme.ink)
-                    Spacer(minLength: 8)
-                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 20))
-                        .foregroundStyle(selected ? accent : Theme.ink3)
+    /// Lets the filled pill slide between segments instead of blinking across.
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(options.indices, id: \.self) { i in
+                let option = options[i]
+                let on = option.value == selection
+                Button {
+                    guard !on else { return }
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        selection = option.value
+                    }
+                } label: {
+                    Text(option.label)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(on ? .white : Theme.ink2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background {
+                            if on {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(tint)
+                                    .matchedGeometryEffect(id: "segmentedPill", in: pill)
+                            }
+                        }
+                        .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if !isLast {
-                Rectangle().fill(Theme.sep).frame(height: 0.5).padding(.leading, 16)
+                .buttonStyle(.plain)
             }
         }
+        .padding(4)
+        .background(Theme.ink3.opacity(0.16),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
