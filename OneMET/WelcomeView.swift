@@ -34,6 +34,7 @@ struct WelcomeView: View {
     @State private var weightText = ""
     @State private var type: DiabetesType = .type1
     @State private var healthAsked = false
+    @State private var seeded = false
     @State private var editing: WelcomeSource?
     @FocusState private var focus: Field?
 
@@ -72,7 +73,13 @@ struct WelcomeView: View {
     }
 
     /// Pre-fill from whatever is already saved, so re-running setup isn't a blank slate.
+    ///
+    /// Runs exactly once. `onAppear` fires again when a glucose-source sheet is dismissed,
+    /// and re-seeding there would reset the name and weight to the still-empty saved
+    /// profile — silently throwing away everything typed on step 1.
     private func seed() {
+        guard !seeded else { return }
+        seeded = true
         let p = profileStore.profile
         unit = p.glucoseUnit
         name = p.name
@@ -159,9 +166,19 @@ struct WelcomeView: View {
         // Setup doesn't ask for a year; only clear a stored one if the type can't have a
         // diagnosis at all. Otherwise leave whatever Settings holds.
         if !type.hasDiagnosis { p.diagnosisYear = nil }
+        // Accept both "72.5" and "72,5" — the decimal pad gives whichever the locale uses.
         let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
         p.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
         profileStore.profile = p
+
+        // Push straight into the data store as well, rather than waiting for RootView's
+        // onChange to relay it. Flipping hasOnboarded below triggers load(), and the order
+        // in which two onChange handlers fire within one update isn't guaranteed — if the
+        // hasOnboarded one wins, that first load would compute MET·minutes against the
+        // default 70 kg instead of the weight just entered.
+        store.profile = p
+        store.language = loc.language
+
         withAnimation(.easeInOut(duration: 0.3)) { loc.hasOnboarded = true }
     }
 
