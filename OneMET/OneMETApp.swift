@@ -71,7 +71,8 @@ struct RootView: View {
             // First run: sits above everything, including the tab bar. Dismisses itself
             // by setting loc.hasOnboarded.
             if !loc.hasOnboarded {
-                WelcomeView(loc: loc, profileStore: profileStore, accent: accent)
+                WelcomeView(loc: loc, profileStore: profileStore,
+                            glucoseSource: glucoseSource, accent: accent)
                     .transition(.opacity)
                     .zIndex(20)
             }
