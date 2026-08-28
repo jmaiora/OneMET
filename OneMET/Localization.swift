@@ -135,8 +135,7 @@ enum Strings {
         "src.nsSubtitle":      L("Your own server · full history", "Tu propio servidor · historial completo"),
         "src.dexSubtitle":     L("Share / Follow · last 24 h", "Share / Follow · últimas 24 h"),
         "src.libreSubtitle":   L("Follower account · last 12 h", "Cuenta seguidora · últimas 12 h"),
-        // ── Welcome: step 2, about you ──
-        "welcome.aboutTitle":  L("About you", "Sobre ti"),
+        // ── Welcome: about you ──
         "welcome.aboutLead":   L("Used to work out your MET·minutes and to tailor the exercise guidance. It stays on your phone.",
                                  "Se usa para calcular tus MET·minutos y adaptar la guía de ejercicio. Se queda en tu teléfono."),
         "welcome.namePrompt":  L("What should we call you?", "¿Cómo quieres que te llamemos?"),
@@ -145,10 +144,8 @@ enum Strings {
         "welcome.weightNote":  L("Needed for MET·minutes. Leave it blank and OneMET will use the weight in Apple Health.",
                                  "Necesario para los MET·minutos. Déjalo vacío y OneMET usará el peso de Apple Salud."),
         "welcome.typePrompt":  L("Do you have diabetes?", "¿Tienes diabetes?"),
-        "welcome.yearPrompt":  L("Diagnosed in", "Diagnóstico en"),
-        "welcome.yearNote":    L("Optional.", "Opcional."),
 
-        // ── Welcome: step 3, Apple Health ──
+        // ── Welcome: Apple Health ──
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),
         "welcome.healthLead":  L("OneMET reads your workouts, heart rate and activity from Apple Health, and uses them to line your sessions up against your glucose.",
                                  "OneMET lee tus entrenamientos, tu frecuencia cardiaca y tu actividad de Apple Salud, y los cruza con tu glucosa."),

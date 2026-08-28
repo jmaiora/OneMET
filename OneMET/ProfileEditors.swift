@@ -35,8 +35,12 @@ struct EditIdentitySheet: View {
                     Picker(lang.t("edit.diabetesType"), selection: $draft.diabetesType) {
                         ForEach(DiabetesType.allCases) { Text($0.label(lang)).tag($0) }
                     }
-                    Toggle(lang.t("edit.setDiagYear"), isOn: $hasYear.animation())
-                    if hasYear {
+                    // Nothing to date without a diagnosis — this is the only place the
+                    // year is asked now, setup having dropped it.
+                    if draft.diabetesType.hasDiagnosis {
+                        Toggle(lang.t("edit.setDiagYear"), isOn: $hasYear.animation())
+                    }
+                    if hasYear && draft.diabetesType.hasDiagnosis {
                         Stepper(value: $year, in: 1940...currentYear) {
                             HStack { Text(lang.t("edit.diagYear")); Spacer()
                                 Text(String(year)).foregroundStyle(.secondary) }
@@ -62,7 +66,7 @@ struct EditIdentitySheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(lang.t("common.save")) {
-                        draft.diagnosisYear = hasYear ? year : nil
+                        draft.diagnosisYear = (hasYear && draft.diabetesType.hasDiagnosis) ? year : nil
                         let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
                         draft.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
                         store.profile = draft

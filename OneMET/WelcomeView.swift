@@ -1,16 +1,21 @@
 import SwiftUI
 
-// WelcomeView.swift — first-run setup, as four short steps.
+// WelcomeView.swift — first-run setup, as three steps.
 //
-//   1. Language & units   — first because everything after it has to be readable.
-//   2. About you          — name, weight, diabetes type, year diagnosed.
-//   3. Apple Health       — explained before iOS throws its permission sheet up, so the
-//                           request isn't the first thing you see with no context.
-//   4. Glucose source     — optional; Apple Health covers it if you skip.
+//   1. About you       — name, weight, diabetes type, then language and units. One scroll.
+//   2. Apple Health    — explained before iOS throws its permission sheet up, so the
+//                        request isn't the first thing you see with no context.
+//   3. Glucose source  — optional; Apple Health covers it if you skip.
 //
-// Nothing here is mandatory except the language, and every answer is editable afterwards
-// in Settings ▸ Profile. The profile is written once, at the end, so backing out midway
-// leaves nothing half-saved.
+// The language picker sits below the personal questions rather than above them, which
+// means the first screen may open in the wrong language. That's fine: it applies live, so
+// choosing it re-renders the fields above in place — and it keeps the opening question a
+// human one rather than a settings chore.
+//
+// Nothing here is mandatory, and every answer is editable afterwards in Settings ▸
+// Profile. The profile is written once, at the end, so backing out midway leaves nothing
+// half-saved. The diagnosis year isn't asked here at all — it's a detail, and it lives in
+// the Settings identity sheet.
 
 struct WelcomeView: View {
     @ObservedObject var loc: LocalizationStore
@@ -20,7 +25,7 @@ struct WelcomeView: View {
     var accent: Color = Theme.accent
 
     @State private var step = 0
-    private let stepCount = 4
+    private let stepCount = 3
 
     // Held locally and committed on the last step, except language, which applies
     // immediately so you can watch the screen change into the language you chose.
@@ -28,8 +33,6 @@ struct WelcomeView: View {
     @State private var name = ""
     @State private var weightText = ""
     @State private var type: DiabetesType = .type1
-    @State private var hasYear = false
-    @State private var year = Calendar.current.component(.year, from: Date())
     @State private var healthAsked = false
     @State private var editing: WelcomeSource?
     @FocusState private var focus: Field?
@@ -45,9 +48,8 @@ struct WelcomeView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     switch step {
-                    case 0: basicsStep(lang)
-                    case 1: aboutStep(lang)
-                    case 2: healthStep(lang)
+                    case 0: youStep(lang)
+                    case 1: healthStep(lang)
                     default: sourcesStep(lang)
                     }
                 }
@@ -76,8 +78,6 @@ struct WelcomeView: View {
         name = p.name
         weightText = p.weightKg.map { String(format: "%.1f", $0) } ?? ""
         type = p.diabetesType
-        hasYear = p.diagnosisYear != nil
-        year = p.diagnosisYear ?? Calendar.current.component(.year, from: Date())
     }
 
     // MARK: - Chrome
@@ -156,17 +156,19 @@ struct WelcomeView: View {
         p.name = name.trimmingCharacters(in: .whitespaces)
         p.glucoseUnit = unit
         p.diabetesType = type
-        p.diagnosisYear = (type.hasDiagnosis && hasYear) ? year : nil
+        // Setup doesn't ask for a year; only clear a stored one if the type can't have a
+        // diagnosis at all. Otherwise leave whatever Settings holds.
+        if !type.hasDiagnosis { p.diagnosisYear = nil }
         let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
         p.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
         profileStore.profile = p
         withAnimation(.easeInOut(duration: 0.3)) { loc.hasOnboarded = true }
     }
 
-    // MARK: - Step 1 · language and units
+    // MARK: - Step 1 · about you, then language and units
 
     @ViewBuilder
-    private func basicsStep(_ lang: AppLanguage) -> some View {
+    private func youStep(_ lang: AppLanguage) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous).fill(accent)
@@ -186,34 +188,6 @@ struct WelcomeView: View {
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
-
-        // Applied live, so the rest of the screen redraws in the language you tap.
-        choiceBlock(title: lang.t("welcome.language")) {
-            ForEach(AppLanguage.allCases) { l in
-                choiceRow(title: l.nativeName,
-                          selected: loc.language == l,
-                          isLast: l == AppLanguage.allCases.last) {
-                    withAnimation(.easeInOut(duration: 0.18)) { loc.language = l }
-                }
-            }
-        }
-
-        choiceBlock(title: lang.t("welcome.units"), footer: lang.t("welcome.unitsNote")) {
-            ForEach(GlucoseUnit.allCases) { u in
-                choiceRow(title: u.longName,
-                          selected: unit == u,
-                          isLast: u == GlucoseUnit.allCases.last) {
-                    withAnimation(.easeInOut(duration: 0.18)) { unit = u }
-                }
-            }
-        }
-    }
-
-    // MARK: - Step 2 · about you
-
-    @ViewBuilder
-    private func aboutStep(_ lang: AppLanguage) -> some View {
-        stepHeading(lang.t("welcome.aboutTitle"), lang.t("welcome.aboutLead"))
 
         fieldBlock(title: lang.t("welcome.namePrompt")) {
             TextField(lang.t("welcome.namePlace"), text: $name)
@@ -238,7 +212,7 @@ struct WelcomeView: View {
             .padding(.vertical, 14)
         }
 
-        choiceBlock(title: lang.t("welcome.typePrompt")) {
+        choiceBlock(title: lang.t("welcome.typePrompt"), footer: lang.t("welcome.aboutLead")) {
             ForEach(DiabetesType.onboardingChoices) { t in
                 choiceRow(title: t.label(lang),
                           selected: type == t,
@@ -248,27 +222,30 @@ struct WelcomeView: View {
             }
         }
 
-        // Nothing to date without a diagnosis, so the year disappears for non-diabetic.
-        if type.hasDiagnosis {
-            fieldBlock(title: lang.t("welcome.yearPrompt"), footer: lang.t("welcome.yearNote")) {
-                Stepper(value: $year, in: 1940...Calendar.current.component(.year, from: Date())) {
-                    HStack {
-                        Text(hasYear ? String(year) : "—")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(hasYear ? Theme.ink : Theme.ink3)
-                            .monospacedDigit()
-                        Spacer()
-                    }
+        // Language sits under the personal questions rather than over them. It applies
+        // live, so tapping it re-renders everything above in the chosen language.
+        choiceBlock(title: lang.t("welcome.language")) {
+            ForEach(AppLanguage.allCases) { l in
+                choiceRow(title: l.nativeName,
+                          selected: loc.language == l,
+                          isLast: l == AppLanguage.allCases.last) {
+                    withAnimation(.easeInOut(duration: 0.18)) { loc.language = l }
                 }
-                .onChange(of: year) { _ in hasYear = true }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
-            .transition(.opacity)
+        }
+
+        choiceBlock(title: lang.t("welcome.units"), footer: lang.t("welcome.unitsNote")) {
+            ForEach(GlucoseUnit.allCases) { u in
+                choiceRow(title: u.longName,
+                          selected: unit == u,
+                          isLast: u == GlucoseUnit.allCases.last) {
+                    withAnimation(.easeInOut(duration: 0.18)) { unit = u }
+                }
+            }
         }
     }
 
-    // MARK: - Step 3 · Apple Health
+    // MARK: - Step 2 · Apple Health
 
     @ViewBuilder
     private func healthStep(_ lang: AppLanguage) -> some View {
@@ -340,7 +317,7 @@ struct WelcomeView: View {
          HealthItem(id: "glucose", label: lang.t("summary.glucose"), symbol: "drop.fill")]
     }
 
-    // MARK: - Step 4 · glucose source
+    // MARK: - Step 3 · glucose source
 
     @ViewBuilder
     private func sourcesStep(_ lang: AppLanguage) -> some View {
