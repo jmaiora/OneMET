@@ -90,7 +90,17 @@ struct RootView: View {
             store.glucoseConfig = glucoseSource.config
             store.dexcomConfig = glucoseSource.dexcom
             store.libreConfig = glucoseSource.libre
-            await store.load()
+            // Held back during first run. load() asks HealthKit for authorization, and
+            // iOS shows that sheet exactly once per install — firing it here would spend
+            // the one prompt before the user has seen a word of explanation, and leave the
+            // welcome screen's "Allow access" button doing nothing visible.
+            if loc.hasOnboarded { await store.load() }
+        }
+        // Setup finished: now do the launch load, including the Health prompt if the
+        // welcome screen didn't already trigger it.
+        .onChange(of: loc.hasOnboarded) { done in
+            guard done else { return }
+            Task { await store.load() }
         }
         .onChange(of: profileStore.profile) { newValue in
             store.profile = newValue
@@ -118,7 +128,9 @@ struct RootView: View {
             Task { await store.refresh() }
         }
         .onChange(of: scenePhase) { phase in
-            if phase == .active { Task { await store.refresh() } }
+            // Nothing to refresh into while setup is still on screen.
+            guard phase == .active, loc.hasOnboarded else { return }
+            Task { await store.refresh() }
         }
     }
 
