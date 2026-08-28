@@ -135,6 +135,35 @@ enum Strings {
         "src.nsSubtitle":      L("Your own server · full history", "Tu propio servidor · historial completo"),
         "src.dexSubtitle":     L("Share / Follow · last 24 h", "Share / Follow · últimas 24 h"),
         "src.libreSubtitle":   L("Follower account · last 12 h", "Cuenta seguidora · últimas 12 h"),
+        // ── Welcome: step 2, about you ──
+        "welcome.aboutTitle":  L("About you", "Sobre ti"),
+        "welcome.aboutLead":   L("Used to work out your MET·minutes and to tailor the exercise guidance. It stays on your phone.",
+                                 "Se usa para calcular tus MET·minutos y adaptar la guía de ejercicio. Se queda en tu teléfono."),
+        "welcome.namePrompt":  L("What should we call you?", "¿Cómo quieres que te llamemos?"),
+        "welcome.namePlace":   L("Your name", "Tu nombre"),
+        "welcome.weightPrompt": L("Your weight", "Tu peso"),
+        "welcome.weightNote":  L("Needed for MET·minutes. Leave it blank and OneMET will use the weight in Apple Health.",
+                                 "Necesario para los MET·minutos. Déjalo vacío y OneMET usará el peso de Apple Salud."),
+        "welcome.typePrompt":  L("Do you have diabetes?", "¿Tienes diabetes?"),
+        "welcome.yearPrompt":  L("Diagnosed in", "Diagnóstico en"),
+        "welcome.yearNote":    L("Optional.", "Opcional."),
+
+        // ── Welcome: step 3, Apple Health ──
+        "welcome.healthTitle": L("Apple Health", "Apple Salud"),
+        "welcome.healthLead":  L("OneMET reads your workouts, heart rate and activity from Apple Health, and uses them to line your sessions up against your glucose.",
+                                 "OneMET lee tus entrenamientos, tu frecuencia cardiaca y tu actividad de Apple Salud, y los cruza con tu glucosa."),
+        "welcome.healthNote":  L("Read-only, apart from workouts OneMET writes back. iOS will ask you which categories to allow — Workouts is the one that matters most.",
+                                 "Solo lectura, salvo los entrenamientos que OneMET escribe. iOS te preguntará qué categorías permitir: Entrenamientos es la más importante."),
+        "welcome.healthAllow": L("Allow access", "Permitir acceso"),
+        "welcome.healthDone":  L("Access requested", "Acceso solicitado"),
+        "welcome.healthSkip":  L("Health data isn't available on this device.",
+                                 "Los datos de Salud no están disponibles en este dispositivo."),
+
+        // ── Welcome: navigation ──
+        "welcome.next":        L("Next", "Siguiente"),
+        "welcome.back":        L("Back", "Atrás"),
+        "welcome.skip":        L("Skip", "Omitir"),
+        "welcome.step":        L("Step {0} of {1}", "Paso {0} de {1}"),
         "welcome.start":       L("Get started", "Empezar"),
         "welcome.disclaimer":  L("OneMET offers illustrative guidance, not medical advice.",
                                  "OneMET ofrece orientación ilustrativa, no consejo médico."),
@@ -438,6 +467,7 @@ enum Strings {
         "dtype.lada":        L("LADA", "LADA"),
         "dtype.mody":        L("MODY", "MODY"),
         "dtype.gestational": L("Gestational", "Gestacional"),
+        "dtype.nonDiabetic": L("Non-diabetic", "Sin diabetes"),
         "dtype.other":       L("Other", "Otro"),
 
         // ── Editors ──

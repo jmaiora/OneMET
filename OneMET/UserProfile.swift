@@ -5,9 +5,16 @@ import Foundation
 // Raw values are stable storage ids and double as localization key suffixes; nothing
 // displays them directly, so renaming a label never invalidates a saved profile.
 enum DiabetesType: String, CaseIterable, Codable, Identifiable {
-    case type1, type2, lada, mody, gestational, other
+    case type1, type2, lada, mody, gestational, nonDiabetic, other
     var id: String { rawValue }
     func label(_ lang: AppLanguage) -> String { lang.t("dtype.\(rawValue)") }
+
+    /// No diagnosis, so nothing to date — setup hides the year for this one.
+    var hasDiagnosis: Bool { self != .nonDiabetic }
+
+    /// The three offered during first-run setup; the rarer types stay in the full picker
+    /// in Settings so the onboarding question is a quick three-way choice.
+    static let onboardingChoices: [DiabetesType] = [.type1, .type2, .nonDiabetic]
 }
 
 enum InsulinDelivery: String, CaseIterable, Codable, Identifiable, Hashable {
