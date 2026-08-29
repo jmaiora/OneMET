@@ -120,25 +120,32 @@ struct PlanView: View {
                               }, accent: accent)
                 }
 
-                Button { withAnimation(anim) { showCarbs = true } } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "fork.knife").font(.system(size: 16, weight: .semibold))
-                        Text(lang.t("plan.calculate"))
-                            .font(.system(size: 17, weight: .semibold))
-                            .minimumScaleFactor(0.85)
-                            .lineLimit(1)
+                // The carbohydrate model was derived for type 1 diabetes on insulin. For
+                // everyone else the honest answer is an explanation, not a number — see
+                // UserProfile.fuellingModelApplies.
+                if profileStore.profile.fuellingModelApplies {
+                    Button { withAnimation(anim) { showCarbs = true } } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "fork.knife").font(.system(size: 16, weight: .semibold))
+                            Text(lang.t("plan.calculate"))
+                                .font(.system(size: 17, weight: .semibold))
+                                .minimumScaleFactor(0.85)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(accent)
-                    .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
+                    .buttonStyle(.plain)
+                } else {
+                    outOfScopeCard
                 }
-                .buttonStyle(.plain)
             }
 
-            if showCarbs {
+            if showCarbs && profileStore.profile.fuellingModelApplies {
                 CarbPlanView(guide: guide, sport: sport, durationMin: duration, met: met,
                              accent: accent, unit: unit, lang: lang) {
                     withAnimation(anim) { showCarbs = false }
@@ -162,6 +169,47 @@ struct PlanView: View {
                 met = SPORTS[newIndex].met
             }
         }
+    }
+
+    /// Shown in place of the fuel-plan button when the model doesn't apply. The reason
+    /// differs — no diabetes at all, versus diabetes managed without insulin — and so
+    /// does what the person can do about it, so the two are worded separately.
+    private var outOfScopeCard: some View {
+        let p = profileStore.profile
+        let noDiabetes = p.diabetesType == .nonDiabetic
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 9) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 17))
+                    .foregroundStyle(accent)
+                Text(lang.t("plan.scopeTitle"))
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(lang.t(noDiabetes ? "plan.scopeNoDiabetes" : "plan.scopeNoInsulin"))
+                .font(.system(size: 13.5))
+                .foregroundStyle(Theme.ink2)
+                .lineSpacing(2.5)
+                .fixedSize(horizontal: false, vertical: true)
+            // Only actionable when it's the insulin answer that ruled the plan out.
+            if !noDiabetes {
+                Text(lang.t("plan.scopeChange"))
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(Theme.ink3)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(lang.t("plan.scopeRest"))
+                .font(.system(size: 12.5))
+                .foregroundStyle(Theme.ink3)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
     }
 }
 

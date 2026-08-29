@@ -33,6 +33,7 @@ struct WelcomeView: View {
     @State private var name = ""
     @State private var weightText = ""
     @State private var type: DiabetesType = .type1
+    @State private var delivery: InsulinDelivery = .pump
     @State private var healthAsked = false
     @State private var seeded = false
     @State private var editing: WelcomeSource?
@@ -94,6 +95,7 @@ struct WelcomeView: View {
         name = p.name
         weightText = p.weightKg.map { String(format: "%.1f", $0) } ?? ""
         type = p.diabetesType
+        delivery = p.insulinDelivery
     }
 
     // MARK: - Chrome
@@ -172,6 +174,10 @@ struct WelcomeView: View {
         p.name = name.trimmingCharacters(in: .whitespaces)
         p.glucoseUnit = unit
         p.diabetesType = type
+        // Type 1 and LADA are insulin-requiring by definition, so setup never asks and the
+        // stored method is left alone. Without diabetes there is no insulin to record.
+        if type == .nonDiabetic { p.insulinDelivery = .noInsulin }
+        else if !type.impliesInsulin { p.insulinDelivery = delivery }
         // Setup doesn't ask for a year; only clear a stored one if the type can't have a
         // diagnosis at all. Otherwise leave whatever Settings holds.
         if !type.hasDiagnosis { p.diagnosisYear = nil }
@@ -258,6 +264,33 @@ struct WelcomeView: View {
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 4)
+        }
+
+        // Asked only where the answer isn't already implied: type 1 and LADA require
+        // insulin by definition, and without diabetes there is none to ask about. This is
+        // the question that decides whether the fuelling plan applies at all.
+        if !type.impliesInsulin && type != .nonDiabetic {
+            VStack(alignment: .leading, spacing: 7) {
+                Text(lang.t("welcome.insulinPrompt").uppercased())
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(Theme.ink2)
+                    .tracking(0.2)
+                    .padding(.horizontal, 4)
+
+                SegmentedPicker(options: [
+                    (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
+                    (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
+                    (value: InsulinDelivery.noInsulin, label: InsulinDelivery.noInsulin.label(lang)),
+                ], selection: $delivery)
+
+                Text(lang.t("welcome.insulinNote"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.ink3)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+            }
+            .transition(.opacity)
         }
 
         // Language and units share a card, label left and control right. Language sits

@@ -144,6 +144,9 @@ enum Strings {
         "welcome.weightNote":  L("Needed for MET·minutes. Leave it blank and OneMET will use the weight in Apple Health.",
                                  "Necesario para los MET·minutos. Déjalo vacío y OneMET usará el peso de Apple Salud."),
         "welcome.typePrompt":  L("Do you have diabetes?", "¿Tienes diabetes?"),
+        "welcome.insulinPrompt": L("Do you take insulin?", "¿Te administras insulina?"),
+        "welcome.insulinNote": L("This decides whether the exercise fuelling plan applies to you. The carbohydrate guidance exists to prevent insulin-driven hypoglycaemia, so it is only offered to people using insulin.",
+                                 "Esto determina si el plan de carbohidratos se aplica en tu caso. Esa orientación existe para prevenir hipoglucemias causadas por la insulina, así que solo se ofrece a quien usa insulina."),
 
         // ── Welcome: Apple Health ──
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),
@@ -329,6 +332,17 @@ enum Strings {
         "plan.carbPlan":     L("Your fuel plan", "Tu plan de carbohidratos"),
         // Restates the session the plan was built for: sport, minutes, MET.
         "plan.forSession":   L("{0} · {1} min · {2} MET", "{0} · {1} min · {2} MET"),
+        // Shown in place of the fuel-plan button when the model doesn't apply.
+        "plan.scopeTitle":   L("No carbohydrate plan for this profile",
+                               "Sin plan de carbohidratos para este perfil"),
+        "plan.scopeNoDiabetes": L("OneMET's fuelling plan is built for people using insulin. Without diabetes your body regulates glucose during exercise on its own, so there is no hypoglycaemia to plan around — what to eat becomes a performance question, and general sports-nutrition guidance answers it better than this app can.",
+                                  "El plan de carbohidratos de OneMET está pensado para quienes usan insulina. Sin diabetes, tu cuerpo regula la glucosa durante el ejercicio por sí solo, así que no hay hipoglucemia que prevenir: qué comer pasa a ser una cuestión de rendimiento, y la nutrición deportiva general lo responde mejor que esta app."),
+        "plan.scopeNoInsulin": L("OneMET's fuelling plan is built for people using insulin. On metformin, a GLP-1 agonist or an SGLT2 inhibitor the risk of exercise hypoglycaemia is low, and eating carbohydrate to prevent it would work against the glycaemic benefit that makes the exercise worth doing.",
+                                 "El plan de carbohidratos de OneMET está pensado para quienes usan insulina. Con metformina, un agonista GLP-1 o un inhibidor SGLT2 el riesgo de hipoglucemia por ejercicio es bajo, y comer carbohidratos para prevenirla iría en contra del beneficio glucémico que hace que merezca la pena entrenar."),
+        "plan.scopeChange":  L("If that changes, set it in Settings ▸ Profile ▸ Insulin Delivery and the plan will appear.",
+                               "Si eso cambia, indícalo en Ajustes ▸ Perfil ▸ Administración de insulina y el plan aparecerá."),
+        "plan.scopeRest":    L("Everything else still works: your MET·minutes, rings, glucose and session history are unaffected.",
+                               "El resto sigue funcionando: tus MET·minutos, anillos, glucosa e historial de sesiones no cambian."),
         "plan.time":         L("TIME", "TIEMPO"),
         "plan.difficultyShort": L("DIFFICULTY", "DIFICULTAD"),
         "plan.disclaimer":   L("Illustrative guidance, not medical advice. Insulin changes and carbohydrate decisions should be agreed with your clinician.",
@@ -456,8 +470,9 @@ enum Strings {
         "settings.share":        L("Share with Clinician", "Compartir con tu médico"),
 
         // ── Insulin delivery ──
-        "insulin.pump": L("Insulin Pump", "Bomba de insulina"),
-        "insulin.mdi":  L("Injections (MDI)", "Inyecciones (MDI)"),
+        "insulin.pump":      L("Insulin Pump", "Bomba de insulina"),
+        "insulin.mdi":       L("Injections (MDI)", "Inyecciones (MDI)"),
+        "insulin.noInsulin": L("No insulin", "Sin insulina"),
 
         // ── Diabetes type ──
         "dtype.type1":       L("Type 1", "Tipo 1"),
@@ -498,8 +513,8 @@ enum Strings {
                                  "Ratio insulina/carbohidratos: 1 unidad cubre estos gramos de carbohidrato."),
         "edit.carbRatio":      L("Ratio", "Ratio"),
         "edit.insulinTitle":   L("Insulin Delivery", "Administración de insulina"),
-        "edit.insulinFooter":  L("How you take insulin. This tailors the Plan tab's before-workout strategy — basal reductions for a pump, meal-bolus timing on injections.",
-                                 "Cómo te administras la insulina. Adapta la estrategia previa al ejercicio en la pestaña Plan: reducción de basal con bomba, ajuste del bolo de comida con plumas."),
+        "edit.insulinFooter":  L("How you take insulin. This tailors the Plan tab's before-exercise strategy — basal reductions for a pump, meal-bolus timing on injections — and decides whether the carbohydrate plan is offered at all, since it exists to prevent insulin-driven hypoglycaemia.",
+                                 "Cómo te administras la insulina. Adapta la estrategia previa al ejercicio en la pestaña Plan (reducción de basal con bomba, ajuste del bolo de comida con plumas) y determina si se ofrece el plan de carbohidratos, ya que existe para prevenir hipoglucemias causadas por la insulina."),
         "edit.delivery":       L("Delivery", "Administración"),
 
         // ── Glucose source sheets ──
@@ -540,6 +555,9 @@ enum Strings {
         "help.insightTitle": L("How the workout insight is worked out", "Cómo se calcula el análisis del entrenamiento"),
         "help.insightBody":  L("For each session OneMET compares your glucose at the start with the value at the end, and also tracks the lowest reading from the start of the session through the hour afterwards. A large fall only prompts a carb suggestion if it actually took you near your low threshold — dropping 60 points and landing at 190 needs no fuelling, so the app says so instead.",
                                "En cada sesión OneMET compara tu glucosa al empezar con la del final, y además sigue el valor más bajo desde el inicio hasta una hora después. Una bajada grande solo genera una sugerencia de carbohidratos si de verdad te acercó a tu umbral bajo: caer 60 puntos y quedarte en 190 no necesita comer nada, y la app lo dice así."),
+        "help.scopeTitle":   L("Who the fuelling plan is for", "Para quién es el plan de carbohidratos"),
+        "help.scopeBody":    L("The carbohydrate guidance follows the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD. Both were written for type 1 diabetes on injected or pumped insulin, and the hypoglycaemia they prevent is caused by that insulin rather than by the diagnosis. OneMET therefore offers the plan to people using insulin — including type 2 on insulin — and explains itself instead to everyone else. Note that neither source has been validated as an algorithm: the individual thresholds are published, the way this app combines them is not.",
+                               "La orientación sobre carbohidratos sigue el consenso de The Lancet (2017) sobre ejercicio en diabetes tipo 1 (Riddell et al.) y EXTOD. Ambos se escribieron para diabetes tipo 1 con insulina inyectada o en bomba, y la hipoglucemia que previenen la causa esa insulina, no el diagnóstico. Por eso OneMET ofrece el plan a quienes usan insulina —incluida la diabetes tipo 2 con insulina— y al resto le da una explicación. Ten en cuenta que ninguna de las dos fuentes está validada como algoritmo: los umbrales están publicados, la forma en que esta app los combina no."),
         "help.sourcesTitle": L("Where the numbers come from", "De dónde salen los datos"),
         "help.sourcesBody":  L("Workouts, heart rate and activity come from Apple Health. Glucose comes from whichever source you switch on in Settings — Dexcom Share, LibreLinkUp or Nightscout — falling back to Apple Health. Follower services only keep a short window (Dexcom ~24 h, LibreLinkUp ~12 h), so the 14-day figures always come from Nightscout or Apple Health.",
                                "Los entrenamientos, la frecuencia cardiaca y la actividad vienen de Apple Salud. La glucosa viene de la fuente que actives en Ajustes — Dexcom Share, LibreLinkUp o Nightscout — y si no, de Apple Salud. Los servicios de seguidor solo guardan una ventana corta (Dexcom ~24 h, LibreLinkUp ~12 h), así que las cifras de 14 días salen siempre de Nightscout o de Apple Salud."),

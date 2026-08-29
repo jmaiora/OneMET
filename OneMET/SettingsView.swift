@@ -293,6 +293,8 @@ struct HelpView: View {
                   lang.t("help.metBody"))
             entry("waveform.path.ecg", Theme.violet, lang.t("help.insightTitle"),
                   lang.t("help.insightBody"))
+            entry("person.fill.checkmark", Theme.amber, lang.t("help.scopeTitle"),
+                  lang.t("help.scopeBody"))
             entry("drop.fill", Theme.teal, lang.t("help.sourcesTitle"),
                   lang.t("help.sourcesBody"))
 

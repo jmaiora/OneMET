@@ -15,12 +15,19 @@ enum DiabetesType: String, CaseIterable, Codable, Identifiable {
     /// The three offered during first-run setup; the rarer types stay in the full picker
     /// in Settings so the onboarding question is a quick three-way choice.
     static let onboardingChoices: [DiabetesType] = [.type1, .type2, .nonDiabetic]
+
+    /// True where exogenous insulin is part of the definition, so there's no point asking.
+    var impliesInsulin: Bool { self == .type1 || self == .lada }
 }
 
 enum InsulinDelivery: String, CaseIterable, Codable, Identifiable, Hashable {
-    case pump, mdi
+    // `noInsulin` rather than `none`, which shadows Optional.none at call sites.
+    case pump, mdi, noInsulin
     var id: String { rawValue }
     var isPump: Bool { self == .pump }
+    /// The variable that actually drives exercise hypoglycaemia risk — see
+    /// `UserProfile.fuellingModelApplies`.
+    var usesInsulin: Bool { self != .noInsulin }
     func label(_ lang: AppLanguage) -> String { lang.t("insulin.\(rawValue)") }
 }
 
@@ -48,6 +55,7 @@ extension InsulinDelivery {
         switch raw.lowercased() {
         case "insulin pump":     self = .pump
         case "injections (mdi)": self = .mdi
+        case "none", "no insulin": self = .noInsulin
         default:                 return nil
         }
     }
@@ -75,6 +83,22 @@ struct UserProfile: Encodable, Equatable {
         let letters = name.split(separator: " ").prefix(2).compactMap { $0.first }
         let s = String(letters).uppercased()
         return s.isEmpty ? "?" : s
+    }
+
+    /// Whether the Plan tab's carbohydrate model applies to this person.
+    ///
+    /// It was derived for type 1 diabetes on exogenous insulin (Riddell 2017 / EXTOD), and
+    /// the hypoglycaemia it exists to prevent comes from the *insulin*, not the diagnosis.
+    /// Type 2 on metformin, a GLP-1 agonist or an SGLT2 inhibitor carries little exercise
+    /// hypoglycaemia risk, so prophylactic carbohydrate would work directly against the
+    /// glycaemic benefit that makes the exercise worth doing. Without diabetes, glucose is
+    /// counter-regulated normally and fuelling becomes a performance question instead.
+    ///
+    /// So the gate is insulin use, with the two insulin-requiring diagnoses short-circuited.
+    var fuellingModelApplies: Bool {
+        if diabetesType == .nonDiabetic { return false }
+        if diabetesType.impliesInsulin { return true }
+        return insulinDelivery.usesInsulin
     }
 
     var glucoseRangeText: String { glucoseUnit.range(glucoseLow, glucoseHigh) }
