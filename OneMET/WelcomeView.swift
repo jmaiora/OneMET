@@ -97,7 +97,9 @@ struct WelcomeView: View {
         // Setup offers only type 1 and type 2. Anything rarer set in Settings would leave
         // the segmented control with nothing highlighted, so fall back to type 1.
         type = DiabetesType.onboardingChoices.contains(p.diabetesType) ? p.diabetesType : .type1
-        delivery = p.insulinDelivery
+        // Same reason: setup offers only pump and injections, so a stored "no insulin"
+        // would leave that control blank.
+        delivery = p.insulinDelivery.usesInsulin ? p.insulinDelivery : .pump
     }
 
     // MARK: - Chrome
@@ -176,10 +178,8 @@ struct WelcomeView: View {
         p.name = name.trimmingCharacters(in: .whitespaces)
         p.glucoseUnit = unit
         p.diabetesType = type
-        // Type 1 and LADA are insulin-requiring by definition, so setup never asks and the
-        // stored method is left alone. Without diabetes there is no insulin to record.
-        if type == .nonDiabetic { p.insulinDelivery = .noInsulin }
-        else if !type.impliesInsulin { p.insulinDelivery = delivery }
+        // Both types answer the delivery question, so it's always written.
+        p.insulinDelivery = delivery
         // Setup doesn't ask for a year; only clear a stored one if the type can't have a
         // diagnosis at all. Otherwise leave whatever Settings holds.
         if !type.hasDiagnosis { p.diagnosisYear = nil }
@@ -280,31 +280,28 @@ struct WelcomeView: View {
                 .padding(.horizontal, 4)
         }
 
-        // Asked only where the answer isn't already implied: type 1 and LADA require
-        // insulin by definition, and without diabetes there is none to ask about. This is
-        // the question that decides whether the fuelling plan applies at all.
-        if !type.impliesInsulin && type != .nonDiabetic {
-            VStack(alignment: .leading, spacing: 7) {
-                Text(lang.t("welcome.insulinPrompt").uppercased())
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(Theme.ink2)
-                    .tracking(0.2)
-                    .padding(.horizontal, 4)
+        // Asked identically for both types. Setup assumes insulin — the type 2 note above
+        // says so — and offers only the two delivery methods. "No insulin" remains
+        // selectable in Settings for anyone whose treatment changes, and the Plan tab
+        // explains itself rather than computing when it's set.
+        VStack(alignment: .leading, spacing: 7) {
+            Text(lang.t("welcome.insulinPrompt").uppercased())
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.ink2)
+                .tracking(0.2)
+                .padding(.horizontal, 4)
 
-                SegmentedPicker(options: [
-                    (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
-                    (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
-                    (value: InsulinDelivery.noInsulin, label: InsulinDelivery.noInsulin.label(lang)),
-                ], selection: $delivery)
+            SegmentedPicker(options: [
+                (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
+                (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
+            ], selection: $delivery)
 
-                Text(lang.t("welcome.insulinNote"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.ink3)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 4)
-            }
-            .transition(.opacity)
+            Text(lang.t("welcome.insulinNote"))
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.ink3)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 4)
         }
 
         // Language and units share a card, label left and control right. Language sits

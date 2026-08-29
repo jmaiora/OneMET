@@ -144,11 +144,11 @@ enum Strings {
         "welcome.weightNote":  L("Needed for MET·minutes. Leave it blank and OneMET will use the weight in Apple Health.",
                                  "Necesario para los MET·minutos. Déjalo vacío y OneMET usará el peso de Apple Salud."),
         "welcome.typePrompt":  L("Which type of diabetes?", "¿Qué tipo de diabetes?"),
-        "welcome.type2Note":   L("The exercise fuelling guidance is designed for type 2 diabetes treated with insulin. Without insulin the rest of the app still works — you simply won't be offered a carbohydrate plan.",
-                                 "La orientación sobre carbohidratos está pensada para diabetes tipo 2 tratada con insulina. Sin insulina el resto de la app sigue funcionando: simplemente no se te ofrecerá un plan de carbohidratos."),
-        "welcome.insulinPrompt": L("Do you take insulin?", "¿Te administras insulina?"),
-        "welcome.insulinNote": L("This decides whether the exercise fuelling plan applies to you. The carbohydrate guidance exists to prevent insulin-driven hypoglycaemia, so it is only offered to people using insulin.",
-                                 "Esto determina si el plan de carbohidratos se aplica en tu caso. Esa orientación existe para prevenir hipoglucemias causadas por la insulina, así que solo se ofrece a quien usa insulina."),
+        "welcome.type2Note":   L("OneMET is designed for people using insulin. The fuelling guidance comes from evidence in insulin-treated diabetes and doesn't apply on metformin, a GLP-1 agonist or an SGLT2 inhibitor alone.",
+                                 "OneMET está pensada para personas que usan insulina. La orientación sobre carbohidratos procede de evidencia en diabetes tratada con insulina y no se aplica solo con metformina, un agonista GLP-1 o un inhibidor SGLT2."),
+        "welcome.insulinPrompt": L("How do you take insulin?", "¿Cómo te administras la insulina?"),
+        "welcome.insulinNote": L("This tailors the before-exercise strategy: a basal reduction on a pump, or a smaller meal bolus on injections.",
+                                 "Adapta la estrategia previa al ejercicio: reducción de basal con bomba, o un bolo de comida más pequeño con plumas."),
 
         // ── Welcome: Apple Health ──
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),
