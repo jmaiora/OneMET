@@ -94,7 +94,9 @@ struct WelcomeView: View {
         unit = p.glucoseUnit
         name = p.name
         weightText = p.weightKg.map { String(format: "%.1f", $0) } ?? ""
-        type = p.diabetesType
+        // Setup offers only type 1 and type 2. Anything rarer set in Settings would leave
+        // the segmented control with nothing highlighted, so fall back to type 1.
+        type = DiabetesType.onboardingChoices.contains(p.diabetesType) ? p.diabetesType : .type1
         delivery = p.insulinDelivery
     }
 
@@ -244,8 +246,8 @@ struct WelcomeView: View {
             .padding(.vertical, 14)
         }
 
-        // Full width with the question above it: "Non-diabetic" can't share a row with a
-        // question this long and still be legible.
+        // Type 1 or type 2. The rarer types live in the Settings picker; the opening
+        // question stays a straight binary.
         VStack(alignment: .leading, spacing: 7) {
             Text(lang.t("welcome.typePrompt").uppercased())
                 .font(.system(size: 12.5, weight: .semibold))
@@ -257,6 +259,18 @@ struct WelcomeView: View {
                                 (value: $0, label: $0.label(lang))
                             },
                             selection: $type)
+
+            // Type 2 gets the scope stated up front, before the insulin question below
+            // decides it — so the answer is given knowing what it's for.
+            if type == .type2 {
+                Text(lang.t("welcome.type2Note"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.ink2)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+                    .transition(.opacity)
+            }
 
             Text(lang.t("welcome.aboutLead"))
                 .font(.system(size: 12))

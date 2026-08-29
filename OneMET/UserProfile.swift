@@ -12,9 +12,10 @@ enum DiabetesType: String, CaseIterable, Codable, Identifiable {
     /// No diagnosis, so nothing to date — setup hides the year for this one.
     var hasDiagnosis: Bool { self != .nonDiabetic }
 
-    /// The three offered during first-run setup; the rarer types stay in the full picker
-    /// in Settings so the onboarding question is a quick three-way choice.
-    static let onboardingChoices: [DiabetesType] = [.type1, .type2, .nonDiabetic]
+    /// Offered during first-run setup. Only the two the app is built for — the rarer
+    /// types, and non-diabetic, stay available in the full Settings picker, but the
+    /// opening question is a straight binary.
+    static let onboardingChoices: [DiabetesType] = [.type1, .type2]
 
     /// True where exogenous insulin is part of the definition, so there's no point asking.
     var impliesInsulin: Bool { self == .type1 || self == .lada }
