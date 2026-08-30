@@ -190,6 +190,7 @@ enum SampleData {
                                   hr: hr, glucoseDelta: delta, curve: c.curve,
                                   activityStart: c.activityStart, activityEnd: c.activityEnd,
                                   insight: workoutInsight(name: name, durMin: durMin, delta: delta,
+                                                          startMgdl: c.curve[c.activityStart],
                                                           nadirMgdl: c.curve[c.activityStart...].min(),
                                                           unit: .mgdl, lang: .en))
         }

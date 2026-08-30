@@ -41,11 +41,33 @@ func weekLabel(_ weeksAgo: Int, lang: AppLanguage = .en) -> String {
 /// no fuelling, only a smaller drop that actually approaches the low threshold does.
 let carbAdviceCeilingMgdl: Double = 120
 
-/// Insight copy for a session. `nadirMgdl` is the lowest glucose seen from the start of
-/// the session through the hour after it — the value that decides whether the drop
-/// actually mattered. Pass nil when there's no CGM data for the session.
+/// Where the carbohydrate could actually have gone, mirroring the prospective model so
+/// the two halves of the app can't contradict each other:
+///
+///   * nothing *before* a session that started above `preCarbCeilingMgdl` — the Plan tab
+///     gives zero starting carbs there and would not have sent you out fuelled;
+///   * nothing *during* a session no longer than one feed interval, since it never earns
+///     a mid-session feed.
+///
+/// When neither window exists — a short session that began high and still fell — the only
+/// honest advice left is to carry fast carbs and use them on the way down.
+func carbTimingKey(startMgdl: Double?, durMin: Int) -> String {
+    let canPreFuel = (startMgdl ?? 0) <= preCarbCeilingMgdl
+    let canFeed = durMin > carbFeedIntervalMin
+    switch (canPreFuel, canFeed) {
+    case (true, false):  return "timing.before"
+    case (false, true):  return "timing.during"
+    case (true, true):   return "timing.both"
+    case (false, false): return "timing.carry"
+    }
+}
+
+/// Insight copy for a session. `startMgdl` is the reading at the start and `nadirMgdl` the
+/// lowest from there through the hour after — the first decides *where* carbohydrate
+/// belongs, the second whether any is warranted at all. Pass nil when there's no CGM data.
 func workoutInsight(name: String, durMin: Int, delta: Int,
-                    nadirMgdl: Double?, unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
+                    startMgdl: Double?, nadirMgdl: Double?,
+                    unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
     let mins = String(durMin)
@@ -58,7 +80,8 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
         if delta <= -25 {
             let carbs = String(Int((Double(abs(delta)) * 0.4).rounded()))
             let floor = nadirMgdl.map { unit.amount($0) } ?? lang.t("insight.dropUnknownNadir")
-            return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs)
+            return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs,
+                          lang.t(carbTimingKey(startMgdl: startMgdl, durMin: durMin)))
         }
         return lang.t("insight.dropModerate", size)
     }

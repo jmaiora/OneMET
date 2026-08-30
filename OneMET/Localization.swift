@@ -419,10 +419,20 @@ enum Strings {
         // ── Workout insights ──
         "insight.dropNoCarbs": L("This {0} lowered glucose by {1} over {2} min, but you never went below {3} — no extra carbs needed for sessions like this.",
                                  "Este {0} bajó la glucosa {1} en {2} min, pero no bajaste de {3}: no necesitas carbohidratos extra en sesiones así."),
-        "insight.dropCarbs":   L("This {0} lowered glucose by {1} over {2} min, down to {3} — consider adding {4} g carbs before similar sessions.",
-                                 "Este {0} bajó la glucosa {1} en {2} min, hasta {3}: plantéate tomar {4} g de carbohidratos antes de sesiones parecidas."),
-        "insight.dropModerate": L("Moderate drop of {0} during this session — a small additional snack beforehand can help keep you in range.",
-                                  "Bajada moderada de {0} durante la sesión: un pequeño tentempié previo puede ayudarte a mantenerte en rango."),
+        "insight.dropCarbs":   L("This {0} lowered glucose by {1} over {2} min, down to {3} — consider {4} g of carbs {5}.",
+                                 "Este {0} bajó la glucosa {1} en {2} min, hasta {3}: plantéate {4} g de carbohidratos {5}."),
+        // Where the carbohydrate belongs — see carbTimingKey. A session that began high
+        // can't be pre-fuelled, and a short one has no mid-session feed to add to.
+        "timing.before":       L("taken before similar sessions", "tomados antes de sesiones parecidas"),
+        "timing.during":       L("taken during similar sessions", "tomados durante sesiones parecidas"),
+        "timing.both":         L("taken before and during similar sessions",
+                                 "tomados antes y durante sesiones parecidas"),
+        "timing.carry":        L("carried with you and taken as soon as it starts to fall",
+                                 "llevados encima y tomados en cuanto empiece a bajar"),
+        // Timing-neutral: a moderate drop can be met before or during depending on how the
+        // session started, and naming one would sometimes be wrong.
+        "insight.dropModerate": L("Moderate drop of {0} during this session — a small additional snack can help keep you in range.",
+                                  "Bajada moderada de {0} durante la sesión: un pequeño tentempié puede ayudarte a mantenerte en rango."),
         "insight.riseBig":     L("This {0} raised glucose by {1} over {2} min — common with short, intense or anaerobic efforts.",
                                  "Este {0} subió la glucosa {1} en {2} min: es habitual en esfuerzos cortos, intensos o anaeróbicos."),
         "insight.riseSmall":   L("Glucose rose {0} during this session — typical of higher-intensity work.",
@@ -555,8 +565,8 @@ enum Strings {
         "help.metBody":      L("A MET is a multiple of your resting metabolic rate: walking briskly is about 3–4 MET, running 8–10. Multiply by the minutes you spent there and you get MET·minutes — one number that captures both how hard and how long you went, which is why OneMET rings on it rather than on calories alone.",
                                "Un MET es un múltiplo de tu metabolismo en reposo: caminar a buen ritmo son unos 3–4 MET, correr 8–10. Multiplícalo por los minutos y obtienes MET·minutos: un solo número que recoge intensidad y duración, y por eso el anillo de OneMET se basa en él y no solo en las calorías."),
         "help.insightTitle": L("How the workout insight is worked out", "Cómo se calcula el análisis del entrenamiento"),
-        "help.insightBody":  L("For each session OneMET compares your glucose at the start with the value at the end, and also tracks the lowest reading from the start of the session through the hour afterwards. A large fall only prompts a carb suggestion if it actually took you near your low threshold — dropping 60 points and landing at 190 needs no fuelling, so the app says so instead.",
-                               "En cada sesión OneMET compara tu glucosa al empezar con la del final, y además sigue el valor más bajo desde el inicio hasta una hora después. Una bajada grande solo genera una sugerencia de carbohidratos si de verdad te acercó a tu umbral bajo: caer 60 puntos y quedarte en 190 no necesita comer nada, y la app lo dice así."),
+        "help.insightBody":  L("For each session OneMET compares your glucose at the start with the value at the end, and also tracks the lowest reading from the start of the session through the hour afterwards. A large fall only prompts a carb suggestion if it actually took you near your low threshold — dropping 60 points and landing at 190 needs no fuelling, so the app says so instead. Where it suggests taking those carbs follows the same rules the Plan tab uses: nothing before a session that began too high to be fuelled, and nothing during one too short to earn a mid-session feed.",
+                               "En cada sesión OneMET compara tu glucosa al empezar con la del final, y además sigue el valor más bajo desde el inicio hasta una hora después. Una bajada grande solo genera una sugerencia de carbohidratos si de verdad te acercó a tu umbral bajo: caer 60 puntos y quedarte en 190 no necesita comer nada, y la app lo dice así. Cuándo tomarlos sigue las mismas reglas que la pestaña Plan: nada antes de una sesión que empezó demasiado alta para comer, y nada durante una demasiado corta para llevar una toma intermedia."),
         "help.scopeTitle":   L("Who the fuelling plan is for", "Para quién es el plan de carbohidratos"),
         "help.scopeBody":    L("The carbohydrate guidance follows the 2017 Lancet consensus on exercise in type 1 diabetes (Riddell et al.) and EXTOD. Both were written for type 1 diabetes on injected or pumped insulin, and the hypoglycaemia they prevent is caused by that insulin rather than by the diagnosis. OneMET therefore offers the plan to people using insulin — including type 2 on insulin — and explains itself instead to everyone else. Note that neither source has been validated as an algorithm: the individual thresholds are published, the way this app combines them is not.",
                                "La orientación sobre carbohidratos sigue el consenso de The Lancet (2017) sobre ejercicio en diabetes tipo 1 (Riddell et al.) y EXTOD. Ambos se escribieron para diabetes tipo 1 con insulina inyectada o en bomba, y la hipoglucemia que previenen la causa esa insulina, no el diagnóstico. Por eso OneMET ofrece el plan a quienes usan insulina —incluida la diabetes tipo 2 con insulina— y al resto le da una explicación. Ten en cuenta que ninguna de las dos fuentes está validada como algoritmo: los umbrales están publicados, la forma en que esta app los combina no."),

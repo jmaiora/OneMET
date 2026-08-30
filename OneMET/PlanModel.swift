@@ -85,15 +85,24 @@ enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// Above this pre-exercise glucose no starting carbohydrate is given, whatever the
+/// intensity. Shared with the retrospective insight, which must not advise eating
+/// "before" a session the prospective model would have sent out unfuelled.
+let preCarbCeilingMgdl: Double = 180
+
+/// Interval between mid-session feeds. A session no longer than this never earns one,
+/// so there is no "during" to advise either.
+let carbFeedIntervalMin = 45
+
 // Carbs to take at the start of a session — a glucose-based base (Riddell-style
 // pre-exercise bands) plus a small bump for harder efforts. Returns 0 when glucose is
-// already high (> 180), regardless of intensity. No live reading → assume in-range.
+// already high, regardless of intensity. No live reading → assume in-range.
 func startCarbGrams(glucoseMgdl: Double?, difficulty: WorkoutDifficulty) -> Int {
     let base: Int
     if let g = glucoseMgdl, g > 0 {
         if g < 90 { base = 20 }
         else if g < 126 { base = 15 }
-        else if g <= 180 { base = 10 }
+        else if g <= preCarbCeilingMgdl { base = 10 }
         else { base = 0 }
     } else {
         base = 10
@@ -199,7 +208,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // During — Riddell/EXTOD carbohydrate fuelling, driven by the selected difficulty.
     // No cap: the feeding rate scales with effort and longer sessions get more feeds.
     // A recommended intake at the start, then refuels every 45 min.
-    let feedIntervalMin = 45
+    let feedIntervalMin = carbFeedIntervalMin
     let duringPerHourG = Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0

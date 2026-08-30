@@ -702,6 +702,9 @@ final class HealthDataStore: ObservableObject {
         // Post-session lows are the real risk, so the window deliberately runs past the
         // end of the workout rather than stopping at activityEnd.
         let nadir: Double? = readings.isEmpty ? nil : curve[activityStart...].min()
+        // The reading the session began on — decides whether carbohydrate advice can
+        // sensibly point at "before" it.
+        let startGlucose: Double? = readings.isEmpty ? nil : curve[activityStart]
 
         let name = workoutName(w.workoutActivityType)
         return WorkoutSession(
@@ -722,7 +725,8 @@ final class HealthDataStore: ObservableObject {
             activityStart: activityStart,
             activityEnd: activityEnd,
             insight: workoutInsight(name: name, durMin: durMin, delta: delta,
-                                    nadirMgdl: nadir, unit: profile.glucoseUnit, lang: language)
+                                    startMgdl: startGlucose, nadirMgdl: nadir,
+                                    unit: profile.glucoseUnit, lang: language)
         )
     }
 
