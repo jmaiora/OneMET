@@ -124,7 +124,7 @@ enum Strings {
         // One line, deliberately. The opening screen states what the app is and then gets
         // out of the way; the explanations it used to carry live in Help & FAQ.
         "welcome.subtitle":    L("Glucose and activity, side by side",
-                                 "Glucosa y actividad, lado a lado"),
+                                 "Integrando glucosa y actividad"),
         "welcome.language":    L("Language", "Idioma"),
         "welcome.units":       L("Glucose units", "Unidades de glucosa"),
         "welcome.sources":     L("Glucose source", "Fuente de glucosa"),
