@@ -121,12 +121,12 @@ enum Strings {
 
         // ── Welcome ──
         "welcome.title":       L("Welcome to OneMET", "Bienvenido a OneMET"),
-        "welcome.subtitle":    L("Glucose and activity, side by side. A couple of quick choices and you're set — you can change all of this later in Settings.",
-                                 "Glucosa y actividad, lado a lado. Un par de ajustes rápidos y listo: puedes cambiarlo todo más tarde en Ajustes."),
+        // One line, deliberately. The opening screen states what the app is and then gets
+        // out of the way; the explanations it used to carry live in Help & FAQ.
+        "welcome.subtitle":    L("Glucose and activity, side by side",
+                                 "Glucosa y actividad, lado a lado"),
         "welcome.language":    L("Language", "Idioma"),
         "welcome.units":       L("Glucose units", "Unidades de glucosa"),
-        "welcome.unitsNote":   L("Readings are always stored in mg/dL — this only changes how they're written.",
-                                 "Las lecturas siempre se guardan en mg/dL: esto solo cambia cómo se muestran."),
         "welcome.sources":     L("Glucose source", "Fuente de glucosa"),
         "welcome.sourcesNote": L("Optional. Without one, OneMET reads glucose from Apple Health. You can connect or change this any time in Settings.",
                                  "Opcional. Sin ninguna, OneMET lee la glucosa de Apple Salud. Puedes conectarla o cambiarla cuando quieras en Ajustes."),
@@ -136,19 +136,14 @@ enum Strings {
         "src.dexSubtitle":     L("Share / Follow · last 24 h", "Share / Follow · últimas 24 h"),
         "src.libreSubtitle":   L("Follower account · last 12 h", "Cuenta seguidora · últimas 12 h"),
         // ── Welcome: about you ──
-        "welcome.aboutLead":   L("Used to work out your MET·minutes and to tailor the exercise guidance. It stays on your phone.",
-                                 "Se usa para calcular tus MET·minutos y adaptar la guía de ejercicio. Se queda en tu teléfono."),
+        // Prompts only. The notes that used to sit under each control were removed at the
+        // user's request; the scope statement they carried is in help.scopeBody, and the
+        // Plan tab still refuses to compute for anyone outside it.
         "welcome.namePrompt":  L("What should we call you?", "¿Cómo quieres que te llamemos?"),
         "welcome.namePlace":   L("Your name", "Tu nombre"),
         "welcome.weightPrompt": L("Your weight", "Tu peso"),
-        "welcome.weightNote":  L("Needed for MET·minutes. Leave it blank and OneMET will use the weight in Apple Health.",
-                                 "Necesario para los MET·minutos. Déjalo vacío y OneMET usará el peso de Apple Salud."),
         "welcome.typePrompt":  L("Which type of diabetes?", "¿Qué tipo de diabetes?"),
-        "welcome.type2Note":   L("OneMET is designed for people using insulin. The fuelling guidance comes from evidence in insulin-treated diabetes and doesn't apply on metformin, a GLP-1 agonist or an SGLT2 inhibitor alone.",
-                                 "OneMET está pensada para personas que usan insulina. La orientación sobre carbohidratos procede de evidencia en diabetes tratada con insulina y no se aplica solo con metformina, un agonista GLP-1 o un inhibidor SGLT2."),
         "welcome.insulinPrompt": L("How do you take insulin?", "¿Cómo te administras la insulina?"),
-        "welcome.insulinNote": L("This tailors the before-exercise strategy: a basal reduction on a pump, or a smaller meal bolus on injections.",
-                                 "Adapta la estrategia previa al ejercicio: reducción de basal con bomba, o un bolo de comida más pequeño con plumas."),
 
         // ── Welcome: Apple Health ──
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),

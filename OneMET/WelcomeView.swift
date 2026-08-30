@@ -216,9 +216,11 @@ struct WelcomeView: View {
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
+            // Full ink rather than the softer ink2 a subtitle would normally take: it is
+            // the only line of prose left on the screen, so it reads as part of the title.
             Text(lang.t("welcome.subtitle"))
                 .font(.system(size: 15))
-                .foregroundStyle(Theme.ink2)
+                .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -232,7 +234,7 @@ struct WelcomeView: View {
                 .padding(.vertical, 14)
         }
 
-        fieldBlock(title: lang.t("welcome.weightPrompt"), footer: lang.t("welcome.weightNote")) {
+        fieldBlock(title: lang.t("welcome.weightPrompt")) {
             HStack {
                 TextField("—", text: $weightText)
                     .keyboardType(.decimalPad)
@@ -259,31 +261,12 @@ struct WelcomeView: View {
                                 (value: $0, label: $0.label(lang))
                             },
                             selection: $type)
-
-            // Type 2 gets the scope stated up front, before the insulin question below
-            // decides it — so the answer is given knowing what it's for.
-            if type == .type2 {
-                Text(lang.t("welcome.type2Note"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.ink2)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 4)
-                    .transition(.opacity)
-            }
-
-            Text(lang.t("welcome.aboutLead"))
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.ink3)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
         }
 
-        // Asked identically for both types. Setup assumes insulin — the type 2 note above
-        // says so — and offers only the two delivery methods. "No insulin" remains
-        // selectable in Settings for anyone whose treatment changes, and the Plan tab
-        // explains itself rather than computing when it's set.
+        // Asked identically for both types. Setup assumes insulin and offers only the two
+        // delivery methods; the note that used to spell that out for type 2 was removed
+        // from this screen, so the scope now rests on Help & FAQ and on the Plan tab,
+        // which explains itself rather than computing when "no insulin" is set in Settings.
         VStack(alignment: .leading, spacing: 7) {
             Text(lang.t("welcome.insulinPrompt").uppercased())
                 .font(.system(size: 12.5, weight: .semibold))
@@ -295,13 +278,6 @@ struct WelcomeView: View {
                 (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
                 (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
             ], selection: $delivery)
-
-            Text(lang.t("welcome.insulinNote"))
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.ink3)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
         }
 
         // Language and units share a card, label left and control right. Language sits
@@ -321,13 +297,6 @@ struct WelcomeView: View {
             }
             .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-
-            Text(lang.t("welcome.unitsNote"))
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.ink3)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
         }
     }
 
