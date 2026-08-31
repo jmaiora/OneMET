@@ -229,6 +229,10 @@ struct WelcomeView: View {
             TextField(lang.t("welcome.namePlace"), text: $name)
                 .textInputAutocapitalization(.words)
                 .font(.system(size: 17))
+                // Spelled out rather than left to the system: the card underneath is a
+                // hardcoded white, so the default label colour would be white-on-white.
+                .foregroundStyle(Theme.ink)
+                .tint(accent)
                 .focused($focus, equals: .name)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
@@ -239,6 +243,8 @@ struct WelcomeView: View {
                 TextField("—", text: $weightText)
                     .keyboardType(.decimalPad)
                     .font(.system(size: 17))
+                    .foregroundStyle(Theme.ink)
+                    .tint(accent)
                     .focused($focus, equals: .weight)
                 Text("kg")
                     .font(.system(size: 15, weight: .semibold))

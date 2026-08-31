@@ -5,6 +5,12 @@ struct OneMETApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                // Theme is a fixed light palette — white cards, dark ink — with no dark
+                // counterpart. Under iOS dark mode the system's own text and placeholder
+                // colours flip to white and disappear on those cards, which is what made
+                // the name and weight fields look empty while you typed. Pin the light
+                // appearance until there is a real dark palette to switch to.
+                .preferredColorScheme(.light)
         }
     }
 }
