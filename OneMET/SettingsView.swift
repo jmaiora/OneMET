@@ -89,15 +89,15 @@ struct SettingsView: View {
                                isLast: true) { editor = .nightscout }
                 }
 
+                IOSList(header: lang.t("settings.data")) {
+                    IOSListRow(title: lang.t("settings.export"), dot: accent) { exportWorkouts() }
+                    IOSListRow(title: lang.t("settings.share"), dot: Theme.teal, isLast: true) { shareWithClinician() }
+                }
+
                 // No Profile row here — the identity card at the top is already the way in.
                 IOSList(header: lang.t("settings.more")) {
                     IOSListRow(title: lang.t("settings.help"), detail: lang.t("settings.helpSub"),
                                dot: Theme.violet, isLast: true) { withAnimation(anim) { showHelp = true } }
-                }
-
-                IOSList(header: lang.t("settings.data")) {
-                    IOSListRow(title: lang.t("settings.export"), dot: accent) { exportWorkouts() }
-                    IOSListRow(title: lang.t("settings.share"), dot: Theme.teal, isLast: true) { shareWithClinician() }
                 }
             }
 
