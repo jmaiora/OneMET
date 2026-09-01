@@ -414,21 +414,19 @@ enum Strings {
         // ── Workout insights ──
         "insight.dropNoCarbs": L("This {0} lowered glucose by {1} over {2} min, but you never went below {3} — no extra carbs needed for sessions like this.",
                                  "Este {0} bajó la glucosa {1} en {2} min, pero no bajaste de {3}: no necesitas carbohidratos extra en sesiones así."),
-        // "adding … to what you take", not "consider N g": the reading is retrospective, so
-        // the person may well have eaten already, possibly the full amount the Plan tab
-        // suggested. The figure is an increment on whatever they did, not a total.
+        // "adding", not a bare "consider N g": the reading is retrospective, so the person
+        // may well have eaten already, possibly the full amount the Plan tab suggested.
+        // The figure is an increment on whatever they did, not a total.
         "insight.dropCarbs":   L("This {0} lowered glucose by {1} over {2} min, down to {3} — consider adding {4} g of carbs {5}.",
                                  "Este {0} bajó la glucosa {1} en {2} min, hasta {3}: plantéate añadir {4} g de carbohidratos {5}."),
         // Where the extra carbohydrate belongs — see carbTimingKey. A session that began
         // high can't be pre-fuelled, and a short one has no mid-session feed to add to.
-        "timing.before":       L("to what you take before similar sessions",
-                                 "a lo que tomas antes de sesiones parecidas"),
-        "timing.during":       L("to what you take during similar sessions",
-                                 "a lo que tomas durante sesiones parecidas"),
-        "timing.both":         L("to what you take before and during similar sessions",
-                                 "a lo que tomas antes y durante sesiones parecidas"),
-        "timing.carry":        L("to what you carry with you, taken as soon as it starts to fall",
-                                 "a lo que llevas encima, para tomarlos en cuanto empiece a bajar"),
+        "timing.before":       L("before similar sessions", "antes de sesiones parecidas"),
+        "timing.during":       L("during similar sessions", "durante sesiones parecidas"),
+        "timing.both":         L("before and during similar sessions",
+                                 "antes y durante sesiones parecidas"),
+        "timing.carry":        L("to carry with you and take as soon as it starts to fall",
+                                 "para llevar encima y tomar en cuanto empiece a bajar"),
         // Timing-neutral: a moderate drop can be met before or during depending on how the
         // session started, and naming one would sometimes be wrong.
         "insight.dropModerate": L("Moderate drop of {0} during this session — a small additional snack can help keep you in range.",
