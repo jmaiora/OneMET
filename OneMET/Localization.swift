@@ -197,12 +197,20 @@ enum Strings {
         "summary.carbs":          L("Carbs", "Carbohidratos"),
         "summary.insulin":        L("Insulin", "Insulina"),
         "summary.goal":           L("Goal", "Objetivo"),
-        "summary.noWorkoutYet":   L("Log a workout to see how activity shifts your glucose.",
-                                    "Registra un entrenamiento para ver cómo la actividad mueve tu glucosa."),
-        // The banner's call to action into the Plan tab. Two wordings for the two states:
-        // an empty day is an invitation, a day with a session behind it is a second one.
-        "summary.chooseActivity": L("Choose your activity", "Elige tu actividad"),
-        "summary.planAnother":    L("Plan another activity", "Planifica otra actividad"),
+        // States the day rather than issuing an instruction: the button underneath is what
+        // tells you what to do now.
+        "summary.noWorkoutYet":   L("No activity recorded yet today.",
+                                    "Aún no hay actividad registrada hoy."),
+        // The banner's call to action into the Plan tab: a bold prompt over a quieter line
+        // that keeps it honest — tapping opens the plan, it doesn't start a workout.
+        // Two wordings for the two states. The empty day gets the encouraging one; a day
+        // with a session already behind it gets a plainer label, because pushing someone
+        // towards a second session is not something the app should do on its own.
+        "summary.chooseActivity":    L("Get active", "¡Actívate!"),
+        "summary.chooseActivitySub": L("Plan today's session", "Planifica la sesión de hoy"),
+        "summary.planAnother":       L("Plan another session", "Planifica otra sesión"),
+        "summary.planAnotherSub":    L("Carbs and timing for the next one",
+                                       "Carbohidratos y tiempos para la siguiente"),
 
         // ── Glucose status ──
         "glucose.low":     L("Low", "Baja"),

@@ -89,6 +89,8 @@ struct SummaryView: View {
                           accent: accent,
                           actionTitle: lang.t(d.insight.isEmpty ? "summary.chooseActivity"
                                                                : "summary.planAnother"),
+                          actionSubtitle: lang.t(d.insight.isEmpty ? "summary.chooseActivitySub"
+                                                                   : "summary.planAnotherSub"),
                           action: onGoPlan)
 
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
@@ -148,9 +150,11 @@ struct InsightBanner: View {
     var title: String
     var text: String
     var accent: Color
-    /// Optional call to action under the text. Both default to nil so the banner can still
-    /// be used as a plain read-only strip.
+    /// Optional call to action under the text: a full-width button carrying a bold line to
+    /// prompt with and a quieter one saying what tapping it actually does. All three
+    /// default to nil, so the banner can still be used as a plain read-only strip.
     var actionTitle: String? = nil
+    var actionSubtitle: String? = nil
     var action: (() -> Void)? = nil
 
     var body: some View {
@@ -168,24 +172,37 @@ struct InsightBanner: View {
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Reversed out of the accent background — white fill, accent label — so it
-            // reads as a button rather than as more of the banner's own text.
+            // Reversed out of the accent background — white fill, accent label — and run
+            // full width, so it reads as the thing to do on this screen rather than as
+            // more of the banner's own text.
             if let actionTitle, let action {
                 Button(action: action) {
-                    HStack(spacing: 6) {
-                        Text(actionTitle)
-                            .font(.system(size: 14.5, weight: .semibold))
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(actionTitle)
+                                .font(.system(size: 18, weight: .bold))
+                            if let actionSubtitle {
+                                Text(actionSubtitle)
+                                    .font(.system(size: 12.5, weight: .medium))
+                                    .opacity(0.72)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .multilineTextAlignment(.leading)
+                        Spacer(minLength: 8)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
+                            .opacity(0.6)
                     }
                     .foregroundStyle(accent)
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.white)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 5)
+                .padding(.top, 9)
             }
         }
         .padding(16)
