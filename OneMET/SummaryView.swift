@@ -10,6 +10,8 @@ struct SummaryView: View {
     var lang: AppLanguage = .en
     var onOpenGlucose: () -> Void
     var onGoActivity: () -> Void
+    /// Jump to the Plan tab, from the insight banner's call to action.
+    var onGoPlan: () -> Void
 
     var body: some View {
         let d = store.data
@@ -80,9 +82,14 @@ struct SummaryView: View {
             }
 
             // ── Insight banner. Empty snapshot insight = no workout today. ──
+            // Either way the banner ends in a way into the Plan tab: an invitation to pick
+            // something when the day is still empty, a second helping when it isn't.
             InsightBanner(title: lang.t("summary.activityInsight"),
                           text: d.insight.isEmpty ? lang.t("summary.noWorkoutYet") : d.insight,
-                          accent: accent)
+                          accent: accent,
+                          actionTitle: lang.t(d.insight.isEmpty ? "summary.chooseActivity"
+                                                               : "summary.planAnother"),
+                          action: onGoPlan)
 
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: lang.t("summary.beforeWorkout"), icon: "bolt", iconColor: accent) {
@@ -141,6 +148,10 @@ struct InsightBanner: View {
     var title: String
     var text: String
     var accent: Color
+    /// Optional call to action under the text. Both default to nil so the banner can still
+    /// be used as a plain read-only strip.
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -156,6 +167,26 @@ struct InsightBanner: View {
                 .foregroundStyle(.white)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
+
+            // Reversed out of the accent background — white fill, accent label — so it
+            // reads as a button rather than as more of the banner's own text.
+            if let actionTitle, let action {
+                Button(action: action) {
+                    HStack(spacing: 6) {
+                        Text(actionTitle)
+                            .font(.system(size: 14.5, weight: .semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 10)
+                    .background(.white)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 5)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,7 +223,7 @@ struct NutritionCard: View {
 #Preview {
     ZStack(alignment: .bottom) {
         Theme.bg.ignoresSafeArea()
-        SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {})
+        SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {}, onGoPlan: {})
             .environmentObject(HealthDataStore())
             .environmentObject(ProfileStore())
     }

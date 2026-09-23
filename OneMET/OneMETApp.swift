@@ -149,7 +149,8 @@ struct RootView: View {
                 unit: unit,
                 lang: lang,
                 onOpenGlucose: { withAnimation(anim) { showGlucose = true } },
-                onGoActivity: { tab = .workouts }
+                onGoActivity: { tab = .workouts },
+                onGoPlan: { tab = .plan }
             )
         case .workouts:
             WorkoutsView(accent: accent, lang: lang, onOpenWorkout: { s in

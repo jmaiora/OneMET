@@ -199,6 +199,10 @@ enum Strings {
         "summary.goal":           L("Goal", "Objetivo"),
         "summary.noWorkoutYet":   L("Log a workout to see how activity shifts your glucose.",
                                     "Registra un entrenamiento para ver cómo la actividad mueve tu glucosa."),
+        // The banner's call to action into the Plan tab. Two wordings for the two states:
+        // an empty day is an invitation, a day with a session behind it is a second one.
+        "summary.chooseActivity": L("Choose your activity", "Elige tu actividad"),
+        "summary.planAnother":    L("Plan another activity", "Planifica otra actividad"),
 
         // ── Glucose status ──
         "glucose.low":     L("Low", "Baja"),
