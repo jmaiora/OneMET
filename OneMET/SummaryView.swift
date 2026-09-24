@@ -81,17 +81,27 @@ struct SummaryView: View {
                 .padding(.top, 9)
             }
 
-            // ── Insight banner. Empty snapshot insight = no workout today. ──
-            // Either way the banner ends in a way into the Plan tab: an invitation to pick
-            // something when the day is still empty, a second helping when it isn't.
-            InsightBanner(title: lang.t("summary.activityInsight"),
-                          text: d.insight.isEmpty ? lang.t("summary.noWorkoutYet") : d.insight,
-                          accent: accent,
-                          actionTitle: lang.t(d.insight.isEmpty ? "summary.chooseActivity"
-                                                               : "summary.planAnother"),
-                          actionSubtitle: lang.t(d.insight.isEmpty ? "summary.chooseActivitySub"
-                                                                   : "summary.planAnotherSub"),
-                          action: onGoPlan)
+            // ── Insight banner, or the prompt that replaces it on an empty day. ──
+            // Empty snapshot insight = no workout today. With nothing to report there is
+            // no insight to dress up, so the blue box stops wrapping the whole thing and
+            // wraps only the way into the Plan tab — the one action worth taking on an
+            // otherwise empty Summary. Once there is a session to talk about, the banner
+            // returns and its call to action goes back to being a quiet second helping.
+            if d.insight.isEmpty {
+                ActivityPrompt(title: lang.t("summary.activityInsight"),
+                               text: lang.t("summary.noWorkoutYet"),
+                               actionTitle: lang.t("summary.chooseActivity"),
+                               actionSubtitle: lang.t("summary.chooseActivitySub"),
+                               accent: accent,
+                               action: onGoPlan)
+            } else {
+                InsightBanner(title: lang.t("summary.activityInsight"),
+                              text: d.insight,
+                              accent: accent,
+                              actionTitle: lang.t("summary.planAnother"),
+                              actionSubtitle: lang.t("summary.planAnotherSub"),
+                              action: onGoPlan)
+            }
 
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: lang.t("summary.beforeWorkout"), icon: "bolt", iconColor: accent) {
@@ -141,6 +151,73 @@ struct SummaryView: View {
                 MetMinTrendBars(data: Array(d.metMinTrend.suffix(7)), accent: Theme.ringMet, height: 150)
             }
         }
+    }
+}
+
+// MARK: - Empty-day activity prompt
+
+/// The empty-state counterpart to `InsightBanner`: same two lines of copy, but unboxed
+/// and in ordinary ink, sitting straight on the page. Everything blue is spent on the
+/// button instead, at a size that makes it the obvious thing to tap when the day holds
+/// nothing else. The label keeps its bolt so the block still reads as the activity slot.
+struct ActivityPrompt: View {
+    var title: String
+    var text: String
+    var actionTitle: String
+    var actionSubtitle: String
+    var accent: Color
+    var action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 7) {
+                AppIconView(name: "bolt", color: accent, size: 15)
+                Text(title)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.ink2)
+                    .tracking(0.2)
+            }
+
+            Text(text)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: action) {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(actionTitle)
+                            // Deliberately the largest type on the screen after the
+                            // glucose reading itself.
+                            .font(.system(size: 27, weight: .heavy))
+                            .minimumScaleFactor(0.7)
+                        Text(actionSubtitle)
+                            .font(.system(size: 14, weight: .medium))
+                            .opacity(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .multilineTextAlignment(.leading)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 17, weight: .bold))
+                        .opacity(0.75)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 17)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(accent)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
+                .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 3)
+        }
+        // The unboxed lines would otherwise sit flush to the scaffold's own margin, a
+        // shade further out than the boxed cards above and below them.
+        .padding(.horizontal, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
