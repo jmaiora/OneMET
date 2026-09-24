@@ -13,6 +13,11 @@ struct SummaryView: View {
     /// Jump to the Plan tab, from the insight banner's call to action.
     var onGoPlan: () -> Void
 
+    /// Half of the vertical budget that decides whether an empty day's call to action
+    /// clears the fold; the other half is `ActivityPrompt.diameter`. Tuned together for a
+    /// standard-size iPhone — on a 4.7" screen both want a notch less.
+    private let chartHeight: CGFloat = 112
+
     var body: some View {
         let d = store.data
         let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
@@ -48,16 +53,19 @@ struct SummaryView: View {
 
                 if let tw = d.todayWorkout, !tw.curve.isEmpty {
                     // A workout was recorded today → show its pre/during/post glucose overlay.
-                    WorkoutChart(session: tw, accent: accent, height: 158, unit: unit, lang: lang,
+                    // A shade taller than the plain trace: the overlay carries the
+                    // pre/during/post bands as well as the curve.
+                    WorkoutChart(session: tw, accent: accent, height: chartHeight + 28,
+                                 unit: unit, lang: lang,
                                  low: d.targetLow, high: d.targetHigh)
                 } else {
-                    GlucoseChart(height: 158, unit: unit, lang: lang, accent: accent,
+                    GlucoseChart(height: chartHeight, unit: unit, lang: lang, accent: accent,
                                  data: d.glucose, currentIdx: d.currentIdx,
                                  runFrom: d.runFrom, runTo: d.runTo,
                                  low: d.targetLow, high: d.targetHigh)
                 }
 
-                Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 12)
+                Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 10)
 
                 HStack {
                     Text(lang.t("summary.timeInRange"))
@@ -69,7 +77,7 @@ struct SummaryView: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Theme.green)
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
 
                 TIRBar(tir: d.tir)
 
@@ -78,7 +86,7 @@ struct SummaryView: View {
                     TIRLegend(label: lang.t("summary.inRange"), value: d.tir.inRange, color: Theme.green)
                     TIRLegend(label: lang.t("summary.high"), value: d.tir.high, color: Theme.amber)
                 }
-                .padding(.top, 9)
+                .padding(.top, 7)
             }
 
             // ── Insight banner, or the prompt that replaces it on an empty day. ──
@@ -157,9 +165,9 @@ struct SummaryView: View {
 // MARK: - Empty-day activity prompt
 
 /// The empty-state counterpart to `InsightBanner`: same two lines of copy, but unboxed
-/// and in ordinary ink, sitting straight on the page. Everything blue is spent on the
-/// button instead, at a size that makes it the obvious thing to tap when the day holds
-/// nothing else. The label keeps its bolt so the block still reads as the activity slot.
+/// and in ordinary ink, sitting straight on the page. Everything blue is spent on one
+/// ringed disc below them, which is the only thing worth tapping on a day with nothing
+/// recorded in it. The label keeps its bolt so the block still reads as the activity slot.
 struct ActivityPrompt: View {
     var title: String
     var text: String
@@ -167,6 +175,10 @@ struct ActivityPrompt: View {
     var actionSubtitle: String
     var accent: Color
     var action: () -> Void
+
+    /// Paired with `SummaryView.chartHeight`: between them they decide whether the disc
+    /// clears the fold. Raising one means lowering the other.
+    private let diameter: CGFloat = 170
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
@@ -184,35 +196,50 @@ struct ActivityPrompt: View {
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button(action: action) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(actionTitle)
-                            // Deliberately the largest type on the screen after the
-                            // glucose reading itself.
-                            .font(.system(size: 27, weight: .heavy))
-                            .minimumScaleFactor(0.7)
-                        Text(actionSubtitle)
-                            .font(.system(size: 14, weight: .medium))
-                            .opacity(0.85)
-                            .fixedSize(horizontal: false, vertical: true)
+            // A disc rather than a bar: round, centred and unattached to any card, so
+            // it reads as a target to hit rather than a row to read. The open ring around
+            // it borrows the activity rings' language without pretending to show progress
+            // — there is none to show on a day with no session in it.
+            HStack {
+                Spacer(minLength: 0)
+                Button(action: action) {
+                    ZStack {
+                        Circle()
+                            .stroke(accent.opacity(0.16), lineWidth: 9)
+                            .frame(width: diameter + 18, height: diameter + 18)
+
+                        Circle()
+                            .fill(accent)
+                            .frame(width: diameter, height: diameter)
+                            .shadow(color: accent.opacity(0.32), radius: 14, x: 0, y: 8)
+
+                        VStack(spacing: 4) {
+                            Image(systemName: "figure.run")
+                                .font(.system(size: 26, weight: .semibold))
+                            Text(actionTitle)
+                                .font(.system(size: 24, weight: .heavy))
+                                .lineLimit(1)
+                                // "Get active" and "¡Actívate!" differ enough in width
+                                // that a fixed size would clip one of them.
+                                .minimumScaleFactor(0.55)
+                            Text(actionSubtitle)
+                                .font(.system(size: 12, weight: .medium))
+                                .opacity(0.9)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+                        .foregroundStyle(.white)
+                        // Keeps the copy off the curve.
+                        .frame(width: diameter * 0.72)
                     }
-                    .multilineTextAlignment(.leading)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 17, weight: .bold))
-                        .opacity(0.75)
+                    // Sized to the ring, not the row, so the tap area is the disc itself.
+                    .frame(width: diameter + 18, height: diameter + 18)
+                    .contentShape(Circle())
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 17)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(accent)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
-                .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
+                .buttonStyle(.plain)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 3)
+            .padding(.top, 6)
         }
         // The unboxed lines would otherwise sit flush to the scaffold's own margin, a
         // shade further out than the boxed cards above and below them.
