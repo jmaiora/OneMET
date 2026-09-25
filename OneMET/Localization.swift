@@ -205,9 +205,9 @@ enum Strings {
         // that keeps it honest — tapping opens the plan, it doesn't start a workout.
         // Two wordings for the two states. The empty day gets the invitation; a day with a
         // session already behind it gets a plainer label, because pushing someone towards
-        // a second session is not something the app should do on its own. The Spanish is
-        // an invitation to choose, not a cheer — the exclamation read as haranguing.
-        "summary.chooseActivity":    L("Get active", "Elige actividad"),
+        // a second session is not something the app should do on its own. The Spanish keeps
+        // the verb but not the exclamation mark: that was where the haranguing tone lived.
+        "summary.chooseActivity":    L("Get active", "Actívate"),
         "summary.chooseActivitySub": L("Plan today's session", "Planifica la sesión de hoy"),
         "summary.planAnother":       L("Plan another session", "Planifica otra sesión"),
         "summary.planAnotherSub":    L("Carbs and timing for the next one",
