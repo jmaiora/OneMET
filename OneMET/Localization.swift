@@ -203,10 +203,11 @@ enum Strings {
                                     "Aún no hay actividad registrada hoy."),
         // The banner's call to action into the Plan tab: a bold prompt over a quieter line
         // that keeps it honest — tapping opens the plan, it doesn't start a workout.
-        // Two wordings for the two states. The empty day gets the encouraging one; a day
-        // with a session already behind it gets a plainer label, because pushing someone
-        // towards a second session is not something the app should do on its own.
-        "summary.chooseActivity":    L("Get active", "¡Actívate!"),
+        // Two wordings for the two states. The empty day gets the invitation; a day with a
+        // session already behind it gets a plainer label, because pushing someone towards
+        // a second session is not something the app should do on its own. The Spanish is
+        // an invitation to choose, not a cheer — the exclamation read as haranguing.
+        "summary.chooseActivity":    L("Get active", "Elige actividad"),
         "summary.chooseActivitySub": L("Plan today's session", "Planifica la sesión de hoy"),
         "summary.planAnother":       L("Plan another session", "Planifica otra sesión"),
         "summary.planAnotherSub":    L("Carbs and timing for the next one",

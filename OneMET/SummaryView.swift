@@ -218,10 +218,13 @@ struct ActivityPrompt: View {
                                 .font(.system(size: 26, weight: .semibold))
                             Text(actionTitle)
                                 .font(.system(size: 24, weight: .heavy))
-                                .lineLimit(1)
-                                // "Get active" and "¡Actívate!" differ enough in width
-                                // that a fixed size would clip one of them.
-                                .minimumScaleFactor(0.55)
+                                // Two lines rather than one shrunk to fit: "Elige
+                                // actividad" is too wide for the disc on a single line,
+                                // and wrapping it keeps the type big, which is the whole
+                                // point of the disc. "Get active" still fits on one.
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.75)
                             Text(actionSubtitle)
                                 .font(.system(size: 12, weight: .medium))
                                 .opacity(0.9)
