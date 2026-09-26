@@ -19,9 +19,13 @@ ICON = os.path.join(XC, "AppIcon.appiconset")
 OUT = os.path.join(ICON, "icon-1024.png")
 
 # First existing candidate wins; add your artwork filename here if it changes.
-CANDIDATES = ["Icono_MET.png", "source.png", "logo.png"]
+CANDIDATES = ["icon-1c-1024.png", "Icono_MET.png", "source.png", "logo.png"]
 SIZE = 1024
-MARGIN = 0.06          # 6% padding so the mark isn't flush against the edge
+# The current artwork is already a finished full-bleed 1024 icon: its gradient runs to
+# all four edges. Padding it would shrink the mark AND expose a band of flat background
+# sampled from corners that aren't the same colour, so there is nothing to inset.
+# Restore 0.06 if the source ever goes back to being a mark on a plain backdrop.
+MARGIN = 0.0
 
 
 def find_source():
