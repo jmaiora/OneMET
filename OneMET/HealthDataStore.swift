@@ -182,6 +182,11 @@ final class HealthDataStore: ObservableObject {
     @Published var statusMessage: String? = nil
     @Published var needsHealthAccess = false   // HealthKit would still show a permission sheet
     @Published var workoutDiagnostic: String? = nil   // why the workout list is empty
+    /// Latest body mass Health reports, nil until a refresh has read one. Separate from
+    /// `profile.weightKg`, which is the manual override — the Profile screen shows this
+    /// when there is no override, so the field isn't blank for someone who never typed a
+    /// weight (setup doesn't ask for one any more).
+    @Published private(set) var healthMassKg: Double? = nil
 
     /// The user's personal data; set by the app before loading. Drives mass, MET goal, glucose range.
     var profile = UserProfile()
@@ -310,6 +315,7 @@ final class HealthDataStore: ObservableObject {
     /// Remembers the answer in `cachedMassKg` for the fast poll to reuse.
     private func resolveMassKg() async -> Double {
         let hkMass = try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))
+        healthMassKg = hkMass
         cachedMassKg = profile.weightKg ?? hkMass ?? 70
         return cachedMassKg
     }

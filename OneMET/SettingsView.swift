@@ -121,7 +121,8 @@ struct SettingsView: View {
         }
         .sheet(item: $editor) { which in
             switch which {
-            case .identity:   EditIdentitySheet(store: profileStore, lang: lang)
+            case .identity:   EditIdentitySheet(store: profileStore, lang: lang,
+                                                healthMassKg: store.healthMassKg)
             case .language:   EditLanguageSheet(loc: loc, lang: lang)
             case .glucose:    EditGlucoseRangeSheet(store: profileStore, lang: lang)
             case .units:      EditGlucoseUnitSheet(store: profileStore, lang: lang)
@@ -208,6 +209,7 @@ struct SettingsView: View {
 struct ProfileMenuView: View {
     @EnvironmentObject var profileStore: ProfileStore
     @EnvironmentObject var loc: LocalizationStore
+    @EnvironmentObject var store: HealthDataStore
     var accent: Color
     var lang: AppLanguage = .en
     @Binding var editor: ProfileEditor?
@@ -234,8 +236,11 @@ struct ProfileMenuView: View {
                 IOSListRow(title: lang.t("edit.profile"),
                            detail: p.isConfigured ? p.name : lang.t("common.notSet"),
                            dot: accent) { editor = .identity }
+                // The override if set, else whatever Health last reported. "Not set" is
+                // now only true when Health has nothing either — no permission, or no
+                // weight ever recorded.
                 IOSListRow(title: lang.t("settings.weight"),
-                           detail: p.weightKg == nil ? lang.t("common.notSet") : p.weightText,
+                           detail: weightDetail(p, lang: lang),
                            dot: Theme.teal, isLast: true) { editor = .identity }
             }
 
@@ -255,6 +260,13 @@ struct ProfileMenuView: View {
                            dot: accent, isLast: true) { editor = .insulin }
             }
         }
+    }
+
+    /// Manual override first, then Health's reading, then an honest "not set".
+    private func weightDetail(_ p: UserProfile, lang: AppLanguage) -> String {
+        if p.weightKg != nil { return p.weightText }
+        if let hk = store.healthMassKg { return String(format: "%.1f kg", hk) }
+        return lang.t("common.notSet")
     }
 }
 

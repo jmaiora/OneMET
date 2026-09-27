@@ -15,15 +15,25 @@ struct EditIdentitySheet: View {
     @State private var hasYear: Bool
     @State private var year: Int
     @State private var weightText: String
+    /// What Health reports, passed in by the caller. Kept so save can tell an untouched
+    /// prefill apart from a number the user actually chose.
+    private let healthMassKg: Double?
 
-    init(store: ProfileStore, lang: AppLanguage = .en) {
+    init(store: ProfileStore, lang: AppLanguage = .en, healthMassKg: Double? = nil) {
         self.store = store
         self.lang = lang
+        self.healthMassKg = healthMassKg
         let p = store.profile
         _draft = State(initialValue: p)
         _hasYear = State(initialValue: p.diagnosisYear != nil)
         _year = State(initialValue: p.diagnosisYear ?? currentYear)
-        _weightText = State(initialValue: p.weightKg.map { String(format: "%.1f", $0) } ?? "")
+        // Show the override if there is one, otherwise Health's figure — a blank field
+        // here reads as "the app doesn't know my weight", which isn't true.
+        _weightText = State(initialValue: Self.format(p.weightKg ?? healthMassKg))
+    }
+
+    private static func format(_ kg: Double?) -> String {
+        kg.map { String(format: "%.1f", $0) } ?? ""
     }
 
     var body: some View {
@@ -67,8 +77,17 @@ struct EditIdentitySheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(lang.t("common.save")) {
                         draft.diagnosisYear = (hasYear && draft.diabetesType.hasDiagnosis) ? year : nil
+                        // Saving an untouched prefill must not turn a live Health reading
+                        // into a frozen override — the number would then stop tracking the
+                        // scale, and nothing on screen would say why. Only a figure that
+                        // differs from what Health reports counts as a deliberate choice.
+                        //
+                        // Compared as the formatted string, not as a Double: the field is
+                        // seeded with one decimal, so a Health reading of 72.34 shows as
+                        // "72.3" and would never equal the raw value again.
                         let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
-                        draft.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
+                        let untouched = cleaned == Self.format(healthMassKg)
+                        draft.weightKg = (cleaned.isEmpty || untouched) ? nil : Double(cleaned)
                         store.profile = draft
                         dismiss()
                     }
