@@ -2,7 +2,9 @@ import SwiftUI
 
 // WelcomeView.swift — first-run setup, as three steps.
 //
-//   1. About you       — name, weight, diabetes type, then language and units. One scroll.
+//   1. About you       — name, diabetes type, then language and units. One scroll.
+//                        Weight isn't asked: Health already knows it, and step 2 is about
+//                        to connect to Health anyway. Settings ▸ Profile can override it.
 //   2. Apple Health    — explained before iOS throws its permission sheet up, so the
 //                        request isn't the first thing you see with no context.
 //   3. Glucose source  — optional; Apple Health covers it if you skip.
@@ -31,7 +33,6 @@ struct WelcomeView: View {
     // immediately so you can watch the screen change into the language you chose.
     @State private var unit: GlucoseUnit = .mgdl
     @State private var name = ""
-    @State private var weightText = ""
     @State private var type: DiabetesType = .type1
     @State private var delivery: InsulinDelivery = .pump
     @State private var healthAsked = false
@@ -39,7 +40,7 @@ struct WelcomeView: View {
     @State private var editing: WelcomeSource?
     @FocusState private var focus: Field?
 
-    private enum Field: Hashable { case name, weight }
+    private enum Field: Hashable { case name }
 
     var body: some View {
         let lang = loc.language
@@ -63,15 +64,8 @@ struct WelcomeView: View {
             footer(lang)
         }
         .background(Theme.bg.ignoresSafeArea())
-        // The decimal pad has no return key at all, so without this there's no way to put
-        // the keyboard away and reach the rest of the form.
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(lang.t("common.done")) { focus = nil }
-                    .font(.system(size: 17, weight: .semibold))
-            }
-        }
+        // The keyboard toolbar that used to live here existed only for the weight field's
+        // decimal pad, which has no return key. The name field's keyboard has one.
         .onAppear(perform: seed)
         .sheet(item: $editing) { which in
             switch which {
@@ -85,15 +79,14 @@ struct WelcomeView: View {
     /// Pre-fill from whatever is already saved, so re-running setup isn't a blank slate.
     ///
     /// Runs exactly once. `onAppear` fires again when a glucose-source sheet is dismissed,
-    /// and re-seeding there would reset the name and weight to the still-empty saved
-    /// profile — silently throwing away everything typed on step 1.
+    /// and re-seeding there would reset the name to the still-empty saved profile —
+    /// silently throwing away what was typed on step 1.
     private func seed() {
         guard !seeded else { return }
         seeded = true
         let p = profileStore.profile
         unit = p.glucoseUnit
         name = p.name
-        weightText = p.weightKg.map { String(format: "%.1f", $0) } ?? ""
         // Setup offers only type 1 and type 2. Anything rarer set in Settings would leave
         // the segmented control with nothing highlighted, so fall back to type 1.
         type = DiabetesType.onboardingChoices.contains(p.diabetesType) ? p.diabetesType : .type1
@@ -183,16 +176,15 @@ struct WelcomeView: View {
         // Setup doesn't ask for a year; only clear a stored one if the type can't have a
         // diagnosis at all. Otherwise leave whatever Settings holds.
         if !type.hasDiagnosis { p.diagnosisYear = nil }
-        // Accept both "72.5" and "72,5" — the decimal pad gives whichever the locale uses.
-        let cleaned = weightText.replacingOccurrences(of: ",", with: ".")
-        p.weightKg = cleaned.isEmpty ? nil : Double(cleaned)
+        // Weight is deliberately not set here. Setup no longer asks for it: `weightKg` is
+        // an override, and leaving it nil is what lets the MET maths read the live figure
+        // from Health. Settings ▸ Profile is where someone can pin a number instead.
         profileStore.profile = p
 
         // Push straight into the data store as well, rather than waiting for RootView's
         // onChange to relay it. Flipping hasOnboarded below triggers load(), and the order
         // in which two onChange handlers fire within one update isn't guaranteed — if the
-        // hasOnboarded one wins, that first load would compute MET·minutes against the
-        // default 70 kg instead of the weight just entered.
+        // hasOnboarded one wins, that first load would run against a default profile.
         store.profile = p
         store.language = loc.language
 
@@ -236,22 +228,6 @@ struct WelcomeView: View {
                 .focused($focus, equals: .name)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
-        }
-
-        fieldBlock(title: lang.t("welcome.weightPrompt")) {
-            HStack {
-                TextField("—", text: $weightText)
-                    .keyboardType(.decimalPad)
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.ink)
-                    .tint(accent)
-                    .focused($focus, equals: .weight)
-                Text("kg")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ink2)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
 
         // Type 1 or type 2. The rarer types live in the Settings picker; the opening

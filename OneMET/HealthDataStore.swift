@@ -198,6 +198,16 @@ final class HealthDataStore: ObservableObject {
 
     private let svc = HealthKitService()
     private let cal = Calendar.current
+
+    /// Body mass last resolved for the MET maths, remembered between refreshes.
+    ///
+    /// Setup doesn't ask for a weight any more, so `profile.weightKg` is nil unless
+    /// someone pinned one in Settings, and the real figure comes from Health — an async
+    /// read the fast glucose poll has no business repeating every minute. Caching it
+    /// keeps the two refresh paths agreeing: before this, the poll fell back to a flat
+    /// 70 kg, so today's MET·minutes jumped every time it ran and settled again on the
+    /// next full refresh.
+    private var cachedMassKg: Double = 70
     private var pollTask: Task<Void, Never>?
     /// One glucose fetch per refresh, shared by the day chart and every workout curve.
     private var glucoseCache: (from: Date, to: Date, readings: [(date: Date, v: Double)])?
@@ -296,6 +306,14 @@ final class HealthDataStore: ObservableObject {
         await refresh()
     }
 
+    /// Manual override if there is one, else Health's latest body mass, else a default.
+    /// Remembers the answer in `cachedMassKg` for the fast poll to reuse.
+    private func resolveMassKg() async -> Double {
+        let hkMass = try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))
+        cachedMassKg = profile.weightKg ?? hkMass ?? 70
+        return cachedMassKg
+    }
+
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
@@ -303,8 +321,7 @@ final class HealthDataStore: ObservableObject {
 
         let now = Date()
         let startOfDay = cal.startOfDay(for: now)
-        let hkMass = try? await svc.latest(.bodyMass, unit: .gramUnit(with: .kilo))
-        let massKg = profile.weightKg ?? hkMass ?? 70
+        let massKg = await resolveMassKg()
 
         var snap = HealthSnapshot(rings: Rings(
             move: RingMetric(value: 0, goal: 500, unit: "KCAL"),
@@ -344,7 +361,9 @@ final class HealthDataStore: ObservableObject {
                            to: now.addingTimeInterval(60 * 60))
 
         await loadGlucoseToday(&snap, startOfDay: startOfDay, now: now)
-        let massKg = profile.weightKg ?? 70
+        // The Settings override wins the moment it's set; otherwise reuse what the last
+        // full refresh read from Health rather than issuing another read here.
+        let massKg = profile.weightKg ?? cachedMassKg
         await loadWorkoutsToday(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
         await refreshTodayWorkouts(&snap, startOfDay: startOfDay, now: now, massKg: massKg)
         data = snap
