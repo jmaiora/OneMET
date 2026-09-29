@@ -188,20 +188,20 @@ struct PlanView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(lang.t(noDiabetes ? "plan.scopeNoDiabetes" : "plan.scopeNoInsulin"))
-                .font(.system(size: 13.5))
+                .font(Theme.noteFont)
+                .lineSpacing(Theme.noteLineSpacing)
                 .foregroundStyle(Theme.ink2)
-                .lineSpacing(2.5)
                 .fixedSize(horizontal: false, vertical: true)
             // Only actionable when it's the insulin answer that ruled the plan out.
             if !noDiabetes {
                 Text(lang.t("plan.scopeChange"))
-                    .font(.system(size: 12.5))
+                    .font(Theme.fineFont)
                     .foregroundStyle(Theme.ink3)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(lang.t("plan.scopeRest"))
-                .font(.system(size: 12.5))
+                .font(Theme.fineFont)
                 .foregroundStyle(Theme.ink3)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)

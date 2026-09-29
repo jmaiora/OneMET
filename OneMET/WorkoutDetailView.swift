@@ -64,7 +64,7 @@ struct WorkoutDetailView: View {
                                  high: profileStore.profile.glucoseHigh)
                 } else {
                     Text(lang.t("workouts.noCgm"))
-                        .font(.system(size: 12))
+                        .font(Theme.noteFont)
                         .foregroundStyle(Theme.ink2)
                 }
             }

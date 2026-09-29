@@ -153,7 +153,7 @@ struct WelcomeView: View {
             .buttonStyle(.plain)
 
             Text(lang.t("welcome.disclaimer"))
-                .font(.system(size: 11.5))
+                .font(Theme.fineFont)
                 .foregroundStyle(Theme.ink3)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -346,12 +346,12 @@ struct WelcomeView: View {
             .buttonStyle(.plain)
         } else {
             Text(lang.t("welcome.healthSkip"))
-                .font(.system(size: 13))
+                .font(Theme.noteFont)
                 .foregroundStyle(Theme.ink3)
         }
 
         Text(lang.t("welcome.healthNote"))
-            .font(.system(size: 12))
+            .font(Theme.noteFont)
             .foregroundStyle(Theme.ink3)
             .lineSpacing(2)
             .fixedSize(horizontal: false, vertical: true)
@@ -510,7 +510,7 @@ struct WelcomeView: View {
 
             if let footer {
                 Text(footer)
-                    .font(.system(size: 12))
+                    .font(Theme.noteFont)
                     .foregroundStyle(Theme.ink3)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)

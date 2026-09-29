@@ -41,9 +41,9 @@ struct WorkoutsView: View {
             if d.workoutHistory.isEmpty {
                 Card(title: lang.t("workouts.noneShown"), icon: "run", iconColor: Theme.amber) {
                     Text(store.workoutDiagnostic ?? lang.t("workouts.noneYet"))
-                        .font(.system(size: 13.5))
+                        .font(Theme.noteFont)
+                        .lineSpacing(Theme.noteLineSpacing)
                         .foregroundStyle(Theme.ink)
-                        .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

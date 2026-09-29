@@ -121,9 +121,9 @@ struct SummaryView: View {
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(lang.t("summary.beforeNote"))
-                        .font(.system(size: 11.5, weight: .medium))
+                        .font(Theme.noteFont.weight(.medium))
                         .foregroundStyle(Theme.ink3)
-                        .lineSpacing(2)
+                        .lineSpacing(Theme.noteLineSpacing)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -290,7 +290,7 @@ struct InsightBanner: View {
                                 .font(.system(size: 18, weight: .bold))
                             if let actionSubtitle {
                                 Text(actionSubtitle)
-                                    .font(.system(size: 12.5, weight: .medium))
+                                    .font(Theme.fineFont.weight(.medium))
                                     .opacity(0.72)
                                     .fixedSize(horizontal: false, vertical: true)
                             }

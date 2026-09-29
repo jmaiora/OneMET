@@ -316,13 +316,13 @@ struct HelpView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.amber)
                     Text(lang.t("plan.disclaimer"))
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(Theme.noteFont.weight(.medium))
+                        .lineSpacing(Theme.noteLineSpacing)
                         .foregroundStyle(Theme.ink2)
-                        .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(lang.t("plan.sources").trimmingCharacters(in: .whitespaces))
-                    .font(.system(size: 11.5))
+                    .font(Theme.fineFont)
                     .foregroundStyle(Theme.ink2)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -348,9 +348,9 @@ struct HelpView: View {
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(body)
-                        .font(.system(size: 13.5))
+                        .font(Theme.articleFont)
+                        .lineSpacing(Theme.articleLineSpacing)
                         .foregroundStyle(Theme.ink2)
-                        .lineSpacing(2.5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

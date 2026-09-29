@@ -128,10 +128,10 @@ struct CarbPlanView: View {
                     .foregroundStyle(.white.opacity(0.85))
             }
             (Text(guide.duringText)
-                + Text("1").font(.system(size: 9, weight: .bold)).baselineOffset(6))
-                .font(.system(size: 13.5, weight: .medium))
+                + Text("1").font(.system(size: 10, weight: .bold)).baselineOffset(7))
+                .font(Theme.noteFont.weight(.medium))
+                .lineSpacing(Theme.noteLineSpacing)
                 .foregroundStyle(.white.opacity(0.95))
-                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -161,11 +161,12 @@ struct CarbPlanView: View {
             Image(systemName: systemIcon).font(.system(size: 15)).foregroundStyle(color).frame(width: 20)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 13.5, weight: .semibold))
+                    .font(Theme.noteFont.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                 if let text {
                     Text(text)
-                        .font(.system(size: 13.5))
+                        .font(Theme.noteFont)
+                        .lineSpacing(Theme.noteLineSpacing)
                         .foregroundStyle(Theme.ink2)
                 }
             }
@@ -184,14 +185,14 @@ struct CarbPlanView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.amber)
                 Text(lang.t("plan.disclaimer"))
-                    .font(.system(size: 12.5, weight: .medium))
+                    .font(Theme.noteFont.weight(.medium))
+                    .lineSpacing(Theme.noteLineSpacing)
                     .foregroundStyle(Theme.ink2)
-                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            (Text("1").font(.system(size: 9, weight: .bold)).baselineOffset(4)
+            (Text("1").font(.system(size: 10, weight: .bold)).baselineOffset(5)
                 + Text(lang.t("plan.sources")))
-                .font(.system(size: 11.5))
+                .font(Theme.fineFont)
                 .foregroundStyle(Theme.ink2)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)

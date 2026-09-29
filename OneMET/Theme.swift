@@ -39,6 +39,27 @@ enum Theme {
     static let radius: CGFloat = 20
     static let targetLow:  Double = 70
     static let targetHigh: Double = 180
+
+    // MARK: Prose type scale
+    //
+    // Anything the user is meant to *read* — guidance, recommendations, disclaimers,
+    // the Help articles — uses these rather than the small sizes that suit metadata and
+    // chart labels. They track the system's own body text (iOS body is 17 pt), because
+    // health advice set at 11–12 pt is advice that doesn't get read. Captions, chips,
+    // axis labels and list metadata are deliberately NOT covered here and stay small.
+
+    /// Long-form explanation: Help & FAQ articles, and anything of that length.
+    static let articleFont = Font.system(size: 17)
+    static let articleLineSpacing: CGFloat = 4
+
+    /// Guidance and notes in place: disclaimers, scope explanations, the sentence under
+    /// a control that tells you what it will do.
+    static let noteFont = Font.system(size: 15.5)
+    static let noteLineSpacing: CGFloat = 3
+
+    /// Small print that is genuinely ancillary — citations, source lines. Still a long
+    /// way above the 11.5 pt it replaced.
+    static let fineFont = Font.system(size: 14)
 }
 
 func glucoseColor(_ v: Double) -> Color {
