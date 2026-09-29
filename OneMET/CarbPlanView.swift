@@ -108,7 +108,7 @@ struct CarbPlanView: View {
                     .foregroundStyle(.white)
                 Spacer(minLength: 8)
                 Text(guide.bandDetail.uppercased())
-                    .font(.system(size: 10.5, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
@@ -124,7 +124,7 @@ struct CarbPlanView: View {
                     }
                 }
                 Text(lang.t("plan.perHourTotal", String(guide.duringPerHourG), String(guide.duringTotalG)))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Theme.fineFont.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.85))
             }
             (Text(guide.duringText)
@@ -147,7 +147,7 @@ struct CarbPlanView: View {
                 .font(.system(size: 27, weight: .heavy))
                 .foregroundStyle(.white)
             Text(small)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.8))
                 .tracking(0.3)
         }

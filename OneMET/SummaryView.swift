@@ -226,7 +226,10 @@ struct ActivityPrompt: View {
                                 .multilineTextAlignment(.center)
                                 .minimumScaleFactor(0.8)
                             Text(actionSubtitle)
-                                .font(.system(size: 12, weight: .medium))
+                                .font(Theme.fineFont.weight(.medium))
+                                // Can shrink a little if a translation runs long: inside a
+                                // disc there is no room to simply wrap further.
+                                .minimumScaleFactor(0.85)
                                 .opacity(0.9)
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)

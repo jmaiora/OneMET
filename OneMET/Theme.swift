@@ -49,17 +49,18 @@ enum Theme {
     // axis labels and list metadata are deliberately NOT covered here and stay small.
 
     /// Long-form explanation: Help & FAQ articles, and anything of that length.
-    static let articleFont = Font.system(size: 17)
-    static let articleLineSpacing: CGFloat = 4
+    static let articleFont = Font.system(size: 18)
+    static let articleLineSpacing: CGFloat = 5
 
     /// Guidance and notes in place: disclaimers, scope explanations, the sentence under
-    /// a control that tells you what it will do.
-    static let noteFont = Font.system(size: 15.5)
-    static let noteLineSpacing: CGFloat = 3
+    /// a control that tells you what it will do. At iOS body size, because this is the
+    /// text that actually carries the advice.
+    static let noteFont = Font.system(size: 17)
+    static let noteLineSpacing: CGFloat = 4
 
-    /// Small print that is genuinely ancillary — citations, source lines. Still a long
-    /// way above the 11.5 pt it replaced.
-    static let fineFont = Font.system(size: 14)
+    /// Small print that is genuinely ancillary — citations, source lines, the second line
+    /// of a button. Still well above the 11.5 pt it replaced.
+    static let fineFont = Font.system(size: 15)
 }
 
 func glucoseColor(_ v: Double) -> Color {
