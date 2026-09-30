@@ -308,6 +308,8 @@ struct HelpView: View {
                   lang.t("help.metBody"))
             entry("waveform.path.ecg", Theme.violet, lang.t("help.insightTitle"),
                   lang.t("help.insightBody"))
+            entry("clock.fill", Theme.ringMet, lang.t("help.intervalTitle"),
+                  lang.t("help.intervalBody"))
             entry("person.fill.checkmark", Theme.amber, lang.t("help.scopeTitle"),
                   lang.t("help.scopeBody"))
             entry("drop.fill", Theme.teal, lang.t("help.sourcesTitle"),
