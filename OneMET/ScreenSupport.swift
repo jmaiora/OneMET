@@ -270,3 +270,19 @@ struct IOSListRow: View {
         }
     }
 }
+
+// MARK: - Height reader
+
+extension View {
+    /// Reports this view's rendered height on appear and whenever it changes. For layouts
+    /// that have to size one element from what the others actually take up.
+    func readHeight(_ onChange: @escaping (CGFloat) -> Void) -> some View {
+        background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { onChange(geo.size.height) }
+                    .onChange(of: geo.size.height) { onChange($0) }
+            }
+        )
+    }
+}

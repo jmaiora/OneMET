@@ -23,31 +23,35 @@ struct PlanView: View {
     @State private var showCarbs = false
     /// Height of the tab's content area, measured rather than assumed.
     @State private var availableHeight: CGFloat = 800
+    /// Rendered heights of everything on the screen that isn't the deck itself. Measured,
+    /// not estimated: every guessed constant was a few points off and the errors added up
+    /// to visible dead space under the button.
+    @State private var headerHeight: CGFloat = 70
+    @State private var deckDots: CGFloat = -1        // picker height minus the deck (the page dots)
+    @State private var belowHeight: CGFloat = 400    // dials, Current State, button
 
     private let anim = Animation.easeInOut(duration: 0.25)
 
     private var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
 
+    /// 124pt dial + 8 spacing + its label underneath, which grows with the iOS text size.
+    private var dialRow: CGFloat { 132 + 18 * Theme.textScale }
+
     /// The deck absorbs whatever vertical room the fixed rows leave over, so "Get my fuel
     /// plan" lands just above the tab bar instead of floating mid-screen with dead space
     /// under it. Hard-coding a height can only be right on one device; this is right on
     /// all of them, and degrades to a sensible range at the extremes.
-    /// 124pt dial + 8 spacing + its label underneath, which grows with the iOS text size.
-    private var dialRow: CGFloat { 132 + 18 * Theme.textScale }
+    @State private var deckHeight: CGFloat = 200
 
-    private var deckHeight: CGFloat {
-        // Everything on this screen that isn't the deck, including the scaffold's own
-        // padding and the clearance it leaves for the floating tab bar.
-        let header: CGFloat = 70 * Theme.textScale
-        let dialsCard: CGFloat = dialRow + 24   // dial row + 12 padding top and bottom
-        let currentState: CGFloat = 128 * Theme.textScale   // +5 for the larger label tier
-        let button: CGFloat = 45 * Theme.textScale
-        let deckDots: CGFloat = 16          // page dots plus the deck's internal spacing
-        let scaffold: CGFloat = 12 * 4 + 8 + 110    // row gaps + top pad + tab-bar clearance
-
-        let leftOver = availableHeight
-            - (header + dialsCard + currentState + button + deckDots + scaffold)
-        return min(236, max(150, leftOver))
+    /// Everything that isn't the deck: the scaffold's top padding and tab-bar clearance,
+    /// the two row gaps either side of the deck, and the measured rows.
+    private func fitDeck() {
+        guard deckDots >= 0 else { return }
+        let fixed = 8 + headerHeight + 12 + deckDots + 12 + belowHeight + 110
+        // Floor keeps the cards usable on an SE (which then scrolls); the ceiling stops
+        // them turning into posters on a Pro Max.
+        let fitted = min(320, max(170, (availableHeight - fixed).rounded(.down)))
+        if abs(fitted - deckHeight) >= 1 { deckHeight = fitted }
     }
 
     var body: some View {
@@ -71,6 +75,7 @@ struct PlanView: View {
             ScreenScaffold(spacing: 12) {
                 AppHeader(title: lang.t("plan.title"), date: lang.t("plan.exerciseGuide"),
                           initials: profileStore.profile.initials, accent: accent)
+                    .readHeight { headerHeight = $0; fitDeck() }
 
                 // The deck sits directly on the page, NOT inside a Card. Card clips to its
                 // rounded rect, which chopped the thrown card off at the container edge
@@ -79,73 +84,82 @@ struct PlanView: View {
                             durationLabel: "\(duration) \(lang.t("workouts.min"))",
                             difficultyLabel: difficulty.label(lang), lang: lang,
                             height: deckHeight)
-
-                // Two dials sharing a row: minutes on the left, effort on the right. Sized
-                // from the available width so they stay a matched pair on any device.
-                Card(pad: 12) {
-                    GeometryReader { geo in
-                        let dial = min(124, (geo.size.width - 16) / 2)
-                        HStack(spacing: 16) {
-                            DurationDial(minutes: $duration, accent: accent, lang: lang, size: dial)
-                                .frame(maxWidth: .infinity)
-                            IntensityDial(met: $met, lang: lang, size: dial)
-                                .frame(maxWidth: .infinity)
-                        }
+                    // Subtract the deck height this render used, captured now: reading the
+                    // state inside the callback could see a newer value than was laid out.
+                    .readHeight { [renderedDeck = deckHeight] h in
+                        deckDots = max(0, h - renderedDeck); fitDeck()
                     }
-                    .frame(height: dialRow)
-                }
 
-                Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 14) {
-                    HStack {
-                        Text(lang.t("plan.currentGlucose"))
-                            .font(.app(size: 15, weight: .medium))
-                            .foregroundStyle(Theme.ink)
-                        Spacer()
-                        if let g = glucose, let st = gStatus {
-                            HStack(spacing: 5) {
-                                Text(unit.value(g))
-                                    .font(.app(size: 15, weight: .semibold))
-                                    .foregroundStyle(st.color)
-                                    .monospacedDigit()
-                                Text(unit.rawValue).font(.app(size: 14.5)).foregroundStyle(Theme.ink2)
-                                TrendArrow(dir: trend, color: st.color)
+                // Grouped only so its height can be measured; same 12pt gaps as the page.
+                VStack(spacing: 12) {
+                    // Two dials sharing a row: minutes on the left, effort on the right. Sized
+                    // from the available width so they stay a matched pair on any device.
+                    Card(pad: 12) {
+                        GeometryReader { geo in
+                            let dial = min(124, (geo.size.width - 16) / 2)
+                            HStack(spacing: 16) {
+                                DurationDial(minutes: $duration, accent: accent, lang: lang, size: dial)
+                                    .frame(maxWidth: .infinity)
+                                IntensityDial(met: $met, lang: lang, size: dial)
+                                    .frame(maxWidth: .infinity)
                             }
-                        } else {
-                            Text("—").font(.app(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
                         }
+                        .frame(height: dialRow)
                     }
-                    .padding(.vertical, 8)
-                    .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
 
-                    SelectRow(label: lang.t("plan.iob"), selection: $iob,
-                              options: [0, 0.5, 1.0, 1.5, 2.0, 3.0].map {
-                                  (value: $0, label: String(format: "%.1f U", $0))
-                              }, accent: accent)
-                }
-
-                // The carbohydrate model was derived for type 1 diabetes on insulin. For
-                // everyone else the honest answer is an explanation, not a number — see
-                // UserProfile.fuellingModelApplies.
-                if profileStore.profile.fuellingModelApplies {
-                    Button { withAnimation(anim) { showCarbs = true } } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "fork.knife").font(.app(size: 16, weight: .semibold))
-                            Text(lang.t("plan.calculate"))
-                                .font(.app(size: 17, weight: .semibold))
-                                .minimumScaleFactor(0.85)
-                                .lineLimit(1)
+                    Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 14) {
+                        HStack {
+                            Text(lang.t("plan.currentGlucose"))
+                                .font(.app(size: 15, weight: .medium))
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            if let g = glucose, let st = gStatus {
+                                HStack(spacing: 5) {
+                                    Text(unit.value(g))
+                                        .font(.app(size: 15, weight: .semibold))
+                                        .foregroundStyle(st.color)
+                                        .monospacedDigit()
+                                    Text(unit.rawValue).font(.app(size: 14.5)).foregroundStyle(Theme.ink2)
+                                    TrendArrow(dir: trend, color: st.color)
+                                }
+                            } else {
+                                Text("—").font(.app(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
+                            }
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(accent)
-                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
+                        .padding(.vertical, 8)
+                        .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
+
+                        SelectRow(label: lang.t("plan.iob"), selection: $iob,
+                                  options: [0, 0.5, 1.0, 1.5, 2.0, 3.0].map {
+                                      (value: $0, label: String(format: "%.1f U", $0))
+                                  }, accent: accent)
                     }
-                    .buttonStyle(.plain)
-                } else {
-                    outOfScopeCard
+
+                    // The carbohydrate model was derived for type 1 diabetes on insulin. For
+                    // everyone else the honest answer is an explanation, not a number — see
+                    // UserProfile.fuellingModelApplies.
+                    if profileStore.profile.fuellingModelApplies {
+                        Button { withAnimation(anim) { showCarbs = true } } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "fork.knife").font(.app(size: 16, weight: .semibold))
+                                Text(lang.t("plan.calculate"))
+                                    .font(.app(size: 17, weight: .semibold))
+                                    .minimumScaleFactor(0.85)
+                                    .lineLimit(1)
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                            .shadow(color: accent.opacity(0.3), radius: 10, x: 0, y: 6)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        outOfScopeCard
+                    }
                 }
+                .readHeight { belowHeight = $0; fitDeck() }
             }
 
             if showCarbs && profileStore.profile.fuellingModelApplies {
@@ -161,8 +175,8 @@ struct PlanView: View {
         .background(
             GeometryReader { geo in
                 Color.clear
-                    .onAppear { availableHeight = geo.size.height }
-                    .onChange(of: geo.size.height) { availableHeight = $0 }
+                    .onAppear { availableHeight = geo.size.height; fitDeck() }
+                    .onChange(of: geo.size.height) { availableHeight = $0; fitDeck() }
             }
         )
         // Picking a sport parks the gauge at that sport's typical intensity; you're free
