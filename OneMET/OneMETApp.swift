@@ -26,6 +26,7 @@ struct RootView: View {
     @StateObject private var glucoseSource = GlucoseSourceStore()
     @StateObject private var loc = LocalizationStore()
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var openWorkout: WorkoutSession?
@@ -47,6 +48,12 @@ struct RootView: View {
     }
 
     var body: some View {
+        // Fonts are sized through Font.app, which reads Theme.textScale. Set it before any
+        // child body runs, then key the tree on the text size so every view is rebuilt when
+        // it changes in iOS Settings — otherwise views whose inputs didn't change would keep
+        // their old sizes until something else redrew them. Stores and the selected tab
+        // live here, above the id, so they survive; only in-screen view state resets.
+        let _ = Theme.setTextScale(dynamicTypeSize)
         ZStack(alignment: .bottom) {
             Theme.bg.ignoresSafeArea()
 
@@ -83,6 +90,9 @@ struct RootView: View {
                     .zIndex(20)
             }
         }
+        .id(dynamicTypeSize)
+        // The few system text styles in use get the same ceiling as Theme.textScale.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .ignoresSafeArea(edges: .bottom)
         .tint(accent)
         .environment(\.locale, lang.locale)

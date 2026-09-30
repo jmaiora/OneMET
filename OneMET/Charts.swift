@@ -78,7 +78,7 @@ struct GlucoseChart: View {
             guard n > 1 else { return }
 
             let w = size.width, h = size.height
-            let padT: CGFloat = 10, padB: CGFloat = 22, padL: CGFloat = 0, padR: CGFloat = 30
+            let padT: CGFloat = 10, padB: CGFloat = 22 * Theme.textScale, padL: CGFloat = 0, padR: CGFloat = 34 * Theme.textScale
             let gMin: CGFloat = 40, gMax: CGFloat = 240
 
             func X(_ i: Int) -> CGFloat { padL + CGFloat(i) / CGFloat(n - 1) * (w - padL - padR) }
@@ -96,9 +96,9 @@ struct GlucoseChart: View {
             }
             let highLabel = unit.value(high)
             let lowLabel = unit.value(low)
-            ctx.draw(Text(highLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),
+            ctx.draw(Text(highLabel).font(.app(size: 13, weight: .semibold)).foregroundColor(Theme.ink2),
                      at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text(lowLabel).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2),
+            ctx.draw(Text(lowLabel).font(.app(size: 13, weight: .semibold)).foregroundColor(Theme.ink2),
                      at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // run highlight
@@ -106,7 +106,7 @@ struct GlucoseChart: View {
             if showRun && runFrom != nil && runTo != nil && re > rs {
                 ctx.fill(Path(CGRect(x: X(rs), y: padT, width: X(re) - X(rs), height: h - padT - padB)),
                          with: .color(accent.opacity(0.06)))
-                ctx.draw(Text(lang.t("chart.run")).font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
+                ctx.draw(Text(lang.t("chart.run")).font(.app(size: 11, weight: .semibold)).foregroundColor(accent),
                          at: CGPoint(x: (X(rs) + X(re)) / 2, y: padT + 7), anchor: .center)
             }
 
@@ -137,7 +137,7 @@ struct GlucoseChart: View {
                 if idx >= -2 && idx <= n + 2 {
                     let lab = hLab == 0 ? "12A" : hLab == 12 ? "12P" : hLab < 12 ? "\(hLab)A" : "\(hLab - 12)P"
                     let xx = X(max(0, min(n - 1, idx)))
-                    ctx.draw(Text(lab).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2),
+                    ctx.draw(Text(lab).font(.app(size: 12.5, weight: .semibold)).foregroundColor(Theme.ink2),
                              at: CGPoint(x: xx, y: h - 5), anchor: .center)
                 }
                 hLab += 6
@@ -157,7 +157,7 @@ struct MetBars: View {
     var body: some View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
-            let padB: CGFloat = 16, padT: CGFloat = 6
+            let padB: CGFloat = 16 * Theme.textScale, padT: CGFloat = 6
             let maxV = max(data.max() ?? 1, 1)
             let n = data.count
             let slot = w / CGFloat(n)
@@ -175,7 +175,7 @@ struct MetBars: View {
             for i in [0, 3, 6, 9, 11] {
                 let hr = i * 2
                 let lab = hr == 0 ? "12A" : hr == 12 ? "12P" : hr < 12 ? "\(hr)A" : "\(hr - 12)P"
-                ctx.draw(Text(lab).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+                ctx.draw(Text(lab).font(.app(size: 11)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 3), anchor: .center)
             }
         }
@@ -272,7 +272,7 @@ struct TrendBars: View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
             guard !data.isEmpty else { return }
-            let padB: CGFloat = 18, padT: CGFloat = 6
+            let padB: CGFloat = 18 * Theme.textScale, padT: CGFloat = 6
             let n = data.count
             let slot = w / CGFloat(n)
             let bw = slot * 0.56
@@ -281,7 +281,7 @@ struct TrendBars: View {
             var goal = Path()
             goal.move(to: CGPoint(x: 0, y: Y(70))); goal.addLine(to: CGPoint(x: w, y: Y(70)))
             ctx.stroke(goal, with: .color(Theme.green.opacity(0.4)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-            ctx.draw(Text(lang.t("chart.goal70")).font(.system(size: 9.5, weight: .semibold)).foregroundColor(Theme.green),
+            ctx.draw(Text(lang.t("chart.goal70")).font(.app(size: 11, weight: .semibold)).foregroundColor(Theme.green),
                      at: CGPoint(x: 2, y: Y(70) - 4), anchor: .bottomLeading)
 
             for (i, v) in data.enumerated() {
@@ -294,7 +294,7 @@ struct TrendBars: View {
             }
             for i in [0, 6, 13] {
                 let lab = i == 13 ? lang.t("chart.today") : lang.t("chart.daysAgo", String(14 - i))
-                ctx.draw(Text(lab).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+                ctx.draw(Text(lab).font(.app(size: 11)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: CGFloat(i) * slot + slot / 2, y: h - 4), anchor: .center)
             }
         }
@@ -314,7 +314,7 @@ struct CorrScatter: View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
             guard !data.isEmpty else { return }
-            let padL: CGFloat = 28, padB: CGFloat = 24, padT: CGFloat = 8, padR: CGFloat = 8
+            let padL: CGFloat = 28 * Theme.textScale, padB: CGFloat = 24 * Theme.textScale, padT: CGFloat = 8, padR: CGFloat = 8
             let xMin: CGFloat = 1, xMax: CGFloat = 11, yMin: CGFloat = 55, yMax: CGFloat = 95
             func X(_ v: Double) -> CGFloat { padL + (CGFloat(v) - xMin) / (xMax - xMin) * (w - padL - padR) }
             func Y(_ v: Double) -> CGFloat { padT + (1 - (CGFloat(v) - yMin) / (yMax - yMin)) * (h - padT - padB) }
@@ -323,14 +323,14 @@ struct CorrScatter: View {
                 var line = Path()
                 line.move(to: CGPoint(x: padL, y: Y(g))); line.addLine(to: CGPoint(x: w - padR, y: Y(g)))
                 ctx.stroke(line, with: .color(Theme.hair), style: StrokeStyle(lineWidth: 1))
-                ctx.draw(Text("\(Int(g))%").font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+                ctx.draw(Text("\(Int(g))%").font(.app(size: 11)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: 2, y: Y(g)), anchor: .leading)
             }
             // intensity reference lines (moderate 3, vigorous 6)
             for mv in [3.0, 6.0] {
                 var vline = Path(); vline.move(to: CGPoint(x: X(mv), y: padT)); vline.addLine(to: CGPoint(x: X(mv), y: h - padB))
                 ctx.stroke(vline, with: .color(Theme.hair), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                ctx.draw(Text("\(Int(mv))").font(.system(size: 9)).foregroundColor(Theme.ink3),
+                ctx.draw(Text("\(Int(mv))").font(.app(size: 10.5)).foregroundColor(Theme.ink3),
                          at: CGPoint(x: X(mv), y: h - padB + 9), anchor: .center)
             }
             let sorted = data.sorted { $0.met < $1.met }
@@ -341,7 +341,7 @@ struct CorrScatter: View {
                 ctx.fill(Path(ellipseIn: CGRect(x: X(d.met) - 4.5, y: Y(d.tirPct) - 4.5, width: 9, height: 9)),
                          with: .color(accent.opacity(0.85)))
             }
-            ctx.draw(Text(lang.t("chart.avgWorkoutMet")).font(.system(size: 9.5)).foregroundColor(Theme.ink3),
+            ctx.draw(Text(lang.t("chart.avgWorkoutMet")).font(.app(size: 11)).foregroundColor(Theme.ink3),
                      at: CGPoint(x: (padL + w - padR) / 2, y: h - 4), anchor: .center)
         }
         .frame(height: height)
@@ -359,7 +359,7 @@ struct WorkoutMetBars: View {
         Canvas { ctx, size in
             guard !workouts.isEmpty else { return }
             let w = size.width, h = size.height
-            let padT: CGFloat = 14, padB: CGFloat = showLabels ? 24 : 8
+            let padT: CGFloat = 14, padB: CGFloat = showLabels ? 24 * Theme.textScale : 8
             let maxMet = max(12, (workouts.map { $0.avgMet }.max() ?? 12))
             let n = workouts.count
             let slot = w / CGFloat(n)
@@ -372,7 +372,7 @@ struct WorkoutMetBars: View {
                 line.move(to: CGPoint(x: 0, y: Y(ref))); line.addLine(to: CGPoint(x: w, y: Y(ref)))
                 ctx.stroke(line, with: .color(Theme.ink3.opacity(0.45)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 if showLabels {
-                    ctx.draw(Text("\(Int(ref)) · \(lab)").font(.system(size: 9)).foregroundColor(Theme.ink3),
+                    ctx.draw(Text("\(Int(ref)) · \(lab)").font(.app(size: 10.5)).foregroundColor(Theme.ink3),
                              at: CGPoint(x: 2, y: Y(ref) - 6), anchor: .bottomLeading)
                 }
             }
@@ -384,11 +384,11 @@ struct WorkoutMetBars: View {
                 let color: Color = met >= 6 ? Theme.amber : (met >= 3 ? Theme.green : Theme.ink3)
                 let rect = CGRect(x: cx - bw / 2, y: h - padB - max(bh, 2), width: bw, height: max(bh, 2))
                 ctx.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(color))
-                ctx.draw(Text(fmtNum(met)).font(.system(size: 10, weight: .semibold)).foregroundColor(Theme.ink),
+                ctx.draw(Text(fmtNum(met)).font(.app(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink),
                          at: CGPoint(x: cx, y: h - padB - bh - 3), anchor: .bottom)
                 if showLabels {
                     let short = wo.name.split(separator: " ").first.map(String.init) ?? wo.name
-                    ctx.draw(Text(short).font(.system(size: 9.5)).foregroundColor(Theme.ink2),
+                    ctx.draw(Text(short).font(.app(size: 11)).foregroundColor(Theme.ink2),
                              at: CGPoint(x: cx, y: h - 4), anchor: .center)
                 }
             }
@@ -415,7 +415,7 @@ struct WorkoutChart: View {
             let n = data.count
             guard n > 1 else { return }
             let w = size.width, h = size.height
-            let padT: CGFloat = 10, padB: CGFloat = 22, padL: CGFloat = 0, padR: CGFloat = 30
+            let padT: CGFloat = 10, padB: CGFloat = 22 * Theme.textScale, padL: CGFloat = 0, padR: CGFloat = 34 * Theme.textScale
             let gMin: CGFloat = 40, gMax: CGFloat = 240
 
             func X(_ i: Int) -> CGFloat { padL + CGFloat(i) / CGFloat(n - 1) * (w - padL - padR) }
@@ -431,14 +431,14 @@ struct WorkoutChart: View {
                 var l = Path(); l.move(to: CGPoint(x: padL, y: yy)); l.addLine(to: CGPoint(x: w - padR, y: yy))
                 ctx.stroke(l, with: .color(Theme.green.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
             }
-            ctx.draw(Text(unit.value(high)).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
-            ctx.draw(Text(unit.value(low)).font(.system(size: 11.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
+            ctx.draw(Text(unit.value(high)).font(.app(size: 13, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yHigh), anchor: .leading)
+            ctx.draw(Text(unit.value(low)).font(.app(size: 13, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR + 4, y: yLow), anchor: .leading)
 
             // activity window
             let rs = X(session.activityStart), re = X(session.activityEnd)
             if re > rs {
                 ctx.fill(Path(CGRect(x: rs, y: padT, width: re - rs, height: h - padT - padB)), with: .color(accent.opacity(0.06)))
-                ctx.draw(Text(session.name.uppercased()).font(.system(size: 9.5, weight: .semibold)).foregroundColor(accent),
+                ctx.draw(Text(session.name.uppercased()).font(.app(size: 11, weight: .semibold)).foregroundColor(accent),
                          at: CGPoint(x: (rs + re) / 2, y: padT + 7), anchor: .center)
             }
 
@@ -452,9 +452,9 @@ struct WorkoutChart: View {
             ctx.stroke(smoothPath(pts), with: .color(accent), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
 
             // phase labels
-            ctx.draw(Text(lang.t("chart.before")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
-            ctx.draw(Text(lang.t("chart.activity")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
-            ctx.draw(Text(lang.t("chart.after")).font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
+            ctx.draw(Text(lang.t("chart.before")).font(.app(size: 12.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: 2, y: h - 5), anchor: .leading)
+            ctx.draw(Text(lang.t("chart.activity")).font(.app(size: 12.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: (rs + re) / 2, y: h - 5), anchor: .center)
+            ctx.draw(Text(lang.t("chart.after")).font(.app(size: 12.5, weight: .semibold)).foregroundColor(Theme.ink2), at: CGPoint(x: w - padR, y: h - 5), anchor: .trailing)
         }
         .frame(height: height)
     }
@@ -475,8 +475,8 @@ struct MetMinTrendBars: View {
         Canvas { ctx, size in
             guard !data.isEmpty else { return }
             let w = size.width, h = size.height
-            let padT: CGFloat = 18    // room for the value on top of each bar
-            let padB: CGFloat = 20    // room for the weekday label
+            let padT: CGFloat = 18 * Theme.textScale    // room for the value on top of each bar
+            let padB: CGFloat = 20 * Theme.textScale    // room for the weekday label
             let maxV = max(data.max() ?? 1, 1)
             let peakIdx = data.firstIndex(of: data.max() ?? 0) ?? (data.count - 1)
             let n = data.count
@@ -497,18 +497,18 @@ struct MetMinTrendBars: View {
                     ctx.fill(Path(roundedRect: rect, cornerRadius: 3),
                              with: .color(accent.opacity((isToday || isPeak) ? 1.0 : 0.5)))
                     ctx.draw(Text("\(Int(v))")
-                                .font(.system(size: 10.5, weight: isPeak ? .bold : .semibold))
+                                .font(.app(size: 12, weight: isPeak ? .bold : .semibold))
                                 .foregroundColor(isPeak ? accent : Theme.ink),
                              at: CGPoint(x: cx, y: top - 3), anchor: .bottom)
                 } else {
-                    ctx.draw(Text("–").font(.system(size: 12, weight: .semibold)).foregroundColor(Theme.ink3),
+                    ctx.draw(Text("–").font(.app(size: 13.5, weight: .semibold)).foregroundColor(Theme.ink3),
                              at: CGPoint(x: cx, y: h - padB - 6), anchor: .bottom)
                 }
 
                 let dayDate = cal.date(byAdding: .day, value: -(n - 1 - i), to: today) ?? today
                 let lab = isToday ? "Today" : Self.wdFmt.string(from: dayDate)
                 ctx.draw(Text(lab)
-                            .font(.system(size: 10.5, weight: isToday ? .bold : .medium))
+                            .font(.app(size: 12, weight: isToday ? .bold : .medium))
                             .foregroundColor(isToday ? accent : Theme.ink2),
                          at: CGPoint(x: cx, y: h - 4), anchor: .center)
             }

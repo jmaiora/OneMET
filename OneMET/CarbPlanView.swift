@@ -30,12 +30,12 @@ struct CarbPlanView: View {
                 // against the wrong assumptions once you've scrolled away from the dials.
                 Text(lang.t("plan.forSession", sport.name(lang), String(durationMin),
                             fmtNum((met * 10).rounded() / 10)).uppercased())
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.app(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(lang.t("plan.carbPlan"))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     // The Spanish title runs to two lines; let it, rather than truncate.
                     .fixedSize(horizontal: false, vertical: true)
@@ -67,14 +67,14 @@ struct CarbPlanView: View {
         let s = statusStyle(guide.status)
         return VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
-                Image(systemName: s.icon).font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
+                Image(systemName: s.icon).font(.app(size: 18, weight: .bold)).foregroundStyle(.white)
                 Text(guide.startTitle)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.app(size: 18, weight: .bold))
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(guide.startReason)
-                .font(.system(size: 15, weight: .medium))
+                .font(.app(size: 15, weight: .medium))
                 .foregroundStyle(.white.opacity(0.95))
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -104,11 +104,11 @@ struct CarbPlanView: View {
             HStack(spacing: 8) {
                 AppIconView(name: "fork", color: .white, size: 16)
                 Text(lang.t("plan.during", difficulty.label(lang)))
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.app(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer(minLength: 8)
                 Text(guide.bandDetail.uppercased())
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.app(size: 13.5, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.85))
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
@@ -128,7 +128,7 @@ struct CarbPlanView: View {
                     .foregroundStyle(.white.opacity(0.85))
             }
             (Text(guide.duringText)
-                + Text("1").font(.system(size: 10, weight: .bold)).baselineOffset(7))
+                + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(7))
                 .font(Theme.noteFont.weight(.medium))
                 .lineSpacing(Theme.noteLineSpacing)
                 .foregroundStyle(.white.opacity(0.95))
@@ -144,10 +144,10 @@ struct CarbPlanView: View {
     private func duringStat(big: String, small: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(big)
-                .font(.system(size: 27, weight: .heavy))
+                .font(.app(size: 27, weight: .heavy))
                 .foregroundStyle(.white)
             Text(small)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.app(size: 13.5, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.8))
                 .tracking(0.3)
         }
@@ -158,7 +158,7 @@ struct CarbPlanView: View {
     private func goodEntry(_ systemIcon: String, _ color: Color,
                            _ title: String, _ text: String?) -> some View {
         HStack(alignment: .top, spacing: 9) {
-            Image(systemName: systemIcon).font(.system(size: 15)).foregroundStyle(color).frame(width: 20)
+            Image(systemName: systemIcon).font(.app(size: 15)).foregroundStyle(color).frame(width: 20)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(Theme.noteFont.weight(.semibold))
@@ -182,7 +182,7 @@ struct CarbPlanView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 13))
+                    .font(.app(size: 14.5))
                     .foregroundStyle(Theme.amber)
                 Text(lang.t("plan.disclaimer"))
                     .font(Theme.noteFont.weight(.medium))
@@ -190,7 +190,7 @@ struct CarbPlanView: View {
                     .foregroundStyle(Theme.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            (Text("1").font(.system(size: 10, weight: .bold)).baselineOffset(5)
+            (Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(5)
                 + Text(lang.t("plan.sources")))
                 .font(Theme.fineFont)
                 .foregroundStyle(Theme.ink2)

@@ -67,7 +67,7 @@ struct WorkoutsView: View {
             if shown < total {
                 Button { visibleWeeks += 2 } label: {
                     Text(lang.t("workouts.loadPast"))
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                         .foregroundStyle(accent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
@@ -99,10 +99,10 @@ struct HistoryRow: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(session.name)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.app(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink)
                         Text("\(session.day) · \(session.time) · \(session.dur)")
-                            .font(.system(size: 12.5))
+                            .font(.app(size: 14))
                             .foregroundStyle(Theme.ink2)
                             .lineLimit(1)
                     }
@@ -111,7 +111,7 @@ struct HistoryRow: View {
                     VStack(alignment: .trailing, spacing: 3) {
                         Chip(unit.deltaAmount(Double(session.glucoseDelta)), color: dropColor)
                         Text(lang.t("workouts.metAvg", fmtNum(session.avgMet)))
-                            .font(.system(size: 11))
+                            .font(.app(size: 12.5))
                             .foregroundStyle(Theme.ink3)
                             .monospacedDigit()
                     }

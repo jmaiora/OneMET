@@ -36,11 +36,11 @@ struct SummaryView: View {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(d.hasGlucose ? unit.value(d.current) : "—")
-                            .font(.system(size: 52, weight: .bold))
+                            .font(.app(size: 52, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
                         Text(unit.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.app(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                         if d.hasGlucose { TrendArrow(dir: d.currentTrend, color: st.color) }
                     }
@@ -69,12 +69,12 @@ struct SummaryView: View {
 
                 HStack {
                     Text(lang.t("summary.timeInRange"))
-                        .font(.system(size: 12.5, weight: .semibold))
+                        .font(.app(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                         .tracking(0.2)
                     Spacer()
                     Text("\(d.tir.inRange)%")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.app(size: 14.5, weight: .bold))
                         .foregroundStyle(Theme.green)
                 }
                 .padding(.bottom, 6)
@@ -116,7 +116,7 @@ struct SummaryView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
                                               unit: unit, lang: lang))
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.app(size: 17, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -147,11 +147,11 @@ struct SummaryView: View {
                  right: lang.t("summary.last7")) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(fmtNum(d.metToday))
-                        .font(.system(size: 30, weight: .bold))
+                        .font(.app(size: 30, weight: .bold))
                         .foregroundStyle(Theme.ink)
                         .monospacedDigit()
                     Text(lang.t("summary.metToday"))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.app(size: 13.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
                 .padding(.bottom, 8)
@@ -185,13 +185,13 @@ struct ActivityPrompt: View {
             HStack(spacing: 7) {
                 AppIconView(name: "bolt", color: accent, size: 15)
                 Text(title)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.app(size: 14.5, weight: .bold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
             }
 
             Text(text)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.app(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -215,9 +215,9 @@ struct ActivityPrompt: View {
 
                         VStack(spacing: 4) {
                             Image(systemName: "figure.run")
-                                .font(.system(size: 26, weight: .semibold))
+                                .font(.app(size: 26, weight: .semibold))
                             Text(actionTitle)
-                                .font(.system(size: 24, weight: .heavy))
+                                .font(.app(size: 24, weight: .heavy))
                                 // Both wordings fit on one line inside the disc, so the
                                 // second line is only there as a safety net for a longer
                                 // translation later. Shrinking is capped: past that the
@@ -272,12 +272,12 @@ struct InsightBanner: View {
             HStack(spacing: 7) {
                 AppIconView(name: "bolt", color: .white, size: 15)
                 Text(title)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.app(size: 14.5, weight: .bold))
                     .foregroundStyle(.white.opacity(0.92))
                     .tracking(0.2)
             }
             Text(text)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.app(size: 17, weight: .semibold))
                 .foregroundStyle(.white)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -290,7 +290,7 @@ struct InsightBanner: View {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(actionTitle)
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.app(size: 18, weight: .bold))
                             if let actionSubtitle {
                                 Text(actionSubtitle)
                                     .font(Theme.fineFont.weight(.medium))
@@ -301,7 +301,7 @@ struct InsightBanner: View {
                         .multilineTextAlignment(.leading)
                         Spacer(minLength: 8)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.app(size: 14, weight: .bold))
                             .opacity(0.6)
                     }
                     .foregroundStyle(accent)

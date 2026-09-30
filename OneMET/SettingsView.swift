@@ -40,17 +40,17 @@ struct SettingsView: View {
                 Button { withAnimation(anim) { showProfile = true } } label: {
                     HStack(spacing: 14) {
                         Text(p.initials)
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.app(size: 24, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 60, height: 60)
                             .background(accent)
                             .clipShape(Circle())
                         VStack(alignment: .leading, spacing: 2) {
                             Text(p.isConfigured ? p.name : lang.t("settings.setUpProfile"))
-                                .font(.system(size: 21, weight: .bold))
+                                .font(.app(size: 21, weight: .bold))
                                 .foregroundStyle(p.isConfigured ? Theme.ink : Theme.ink2)
                             Text(subtitle(p))
-                                .font(.system(size: 14))
+                                .font(.app(size: 14))
                                 .foregroundStyle(Theme.ink2)
                         }
                         Spacer()
@@ -223,11 +223,11 @@ struct ProfileMenuView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(lang.t("settings.account").uppercased())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.app(size: 14.5, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                 Text(lang.t("settings.profile"))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -287,11 +287,11 @@ struct HelpView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(lang.t("help.subtitle").uppercased())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.app(size: 14.5, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                 Text(lang.t("help.title"))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -313,7 +313,7 @@ struct HelpView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13))
+                        .font(.app(size: 14.5))
                         .foregroundStyle(Theme.amber)
                     Text(lang.t("plan.disclaimer"))
                         .font(Theme.noteFont.weight(.medium))
@@ -339,12 +339,12 @@ struct HelpView: View {
         Card {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 15))
+                    .font(.app(size: 15))
                     .foregroundStyle(color)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(body)
@@ -369,8 +369,8 @@ struct BackBar: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
-                Text(title).font(.system(size: 17))
+                Image(systemName: "chevron.left").font(.app(size: 17, weight: .semibold))
+                Text(title).font(.app(size: 17))
             }
             .foregroundStyle(accent)
         }

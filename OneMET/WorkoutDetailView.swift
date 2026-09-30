@@ -17,8 +17,8 @@ struct WorkoutDetailView: View {
         ScreenScaffold {
             Button(action: onBack) {
                 HStack(spacing: 6) {
-                    Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
-                    Text(lang.t("workouts.title")).font(.system(size: 17))
+                    Image(systemName: "chevron.left").font(.app(size: 17, weight: .semibold))
+                    Text(lang.t("workouts.title")).font(.app(size: 17))
                 }
                 .foregroundStyle(accent)
             }
@@ -29,11 +29,11 @@ struct WorkoutDetailView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(w.day) · \(w.time)".uppercased())
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.app(size: 14.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                         .tracking(0.2)
                     Text(w.name)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.app(size: 28, weight: .bold))
                         .foregroundStyle(Theme.ink)
                 }
                 Spacer()

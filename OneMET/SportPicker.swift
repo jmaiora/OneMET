@@ -299,12 +299,12 @@ struct SportPicker: View {
             }
             Spacer(minLength: 8)
             Text(s.name(lang))
-                .font(.system(size: 22, weight: .bold))
+                .font(.app(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(2)
                 .padding(.bottom, 6)
             Text(s.desc(lang))
-                .font(.system(size: 13, weight: .medium))
+                .font(.app(size: 14.5, weight: .medium))
                 .foregroundStyle(.white.opacity(0.92))
                 .lineSpacing(1.5)
                 // Capped so a long description can't push the card past the height the
@@ -322,11 +322,11 @@ struct SportPicker: View {
     private func cardStat(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label.uppercased())
-                .font(.system(size: 11, weight: .bold))
+                .font(.app(size: 12.5, weight: .bold))
                 .foregroundStyle(.white.opacity(0.75))
                 .tracking(0.3)
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.app(size: 18, weight: .bold))
                 .foregroundStyle(.white)
         }
     }

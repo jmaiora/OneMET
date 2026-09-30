@@ -44,7 +44,7 @@ struct BigStat: View {
                 .foregroundStyle(Theme.ink)
                 .monospacedDigit()
             Text(unit)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.app(size: 13.5, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
         }
     }
@@ -59,7 +59,7 @@ struct TrendArrow: View {
 
     var body: some View {
         Image(systemName: "arrow.right")
-            .font(.system(size: 14, weight: .bold))
+            .font(.app(size: 14, weight: .bold))
             .foregroundStyle(color)
             .rotationEffect(.degrees(dir == .up ? -45 : dir == .down ? 45 : 0))
     }
@@ -97,14 +97,14 @@ struct RingStat: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.app(size: 14.5, weight: .semibold))
                     .foregroundStyle(color)
                 Text(fmtNum(value))
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.app(size: 18, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .monospacedDigit()
                 Text("/ \(fmtNum(goal)) \(unit)")
-                    .font(.system(size: 11.5, weight: .medium))
+                    .font(.app(size: 13, weight: .medium))
                     .foregroundStyle(Theme.ink2)
             }
             ProgressBar(value: value, goal: goal, color: color)
@@ -123,7 +123,7 @@ struct TIRLegend: View {
         HStack(spacing: 5) {
             Circle().fill(color).frame(width: 7, height: 7)
             Text("\(label) \(value)%")
-                .font(.system(size: 11.5, weight: .medium))
+                .font(.app(size: 13, weight: .medium))
                 .foregroundStyle(Theme.ink2)
         }
     }
@@ -150,10 +150,10 @@ struct WorkoutRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(w.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                     Text("\(w.time) · \(w.dist) · \(w.dur)")
-                        .font(.system(size: 12.5))
+                        .font(.app(size: 14))
                         .foregroundStyle(Theme.ink2)
                 }
                 Spacer(minLength: 8)
@@ -161,7 +161,7 @@ struct WorkoutRow: View {
                 VStack(alignment: .trailing, spacing: 3) {
                     Chip(unit.deltaAmount(Double(w.glucoseDelta)), color: dropColor)
                     Text(lang.t("workouts.metAvg", fmtNum(w.avgMet)))
-                        .font(.system(size: 11))
+                        .font(.app(size: 12.5))
                         .foregroundStyle(Theme.ink3)
                         .monospacedDigit()
                 }
@@ -192,11 +192,11 @@ struct MealBars: View {
                             .fill(Theme.amber.opacity(0.55 + Double(i) * 0.12))
                             .frame(height: 8)
                         Text(m.name)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.app(size: 11.5, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                             .lineLimit(1)
                         Text("\(m.carbs)g")
-                            .font(.system(size: 10))
+                            .font(.app(size: 11.5))
                             .foregroundStyle(Theme.ink3)
                             .monospacedDigit()
                     }
@@ -217,7 +217,7 @@ struct IOSList<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(header.uppercased())
-                .font(.system(size: 12.5, weight: .semibold))
+                .font(.app(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
                 .padding(.horizontal, 4)
@@ -239,12 +239,12 @@ struct IOSListRow: View {
         HStack(spacing: 12) {
             Circle().fill(dot).frame(width: 10, height: 10)
             Text(title)
-                .font(.system(size: 15))
+                .font(.app(size: 15))
                 .foregroundStyle(Theme.ink)
             Spacer(minLength: 8)
             if let detail {
                 Text(detail)
-                    .font(.system(size: 14))
+                    .font(.app(size: 14))
                     .foregroundStyle(Theme.ink2)
                     .multilineTextAlignment(.trailing)
             }

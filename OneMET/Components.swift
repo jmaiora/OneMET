@@ -93,14 +93,14 @@ struct CardHeader: View {
                     AppIconView(name: icon, color: iconColor ?? Theme.ink, size: 15)
                 }
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.app(size: 15, weight: .semibold))
                     .foregroundStyle(iconColor ?? Theme.ink)
                     .tracking(-0.2)
             }
             Spacer(minLength: 8)
             if let right {
                 Text(right)
-                    .font(.system(size: 13))
+                    .font(.app(size: 14.5))
                     .foregroundStyle(Theme.ink2)
                     .monospacedDigit()
             }
@@ -123,17 +123,17 @@ struct AppHeader: View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(date.uppercased())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.app(size: 14.5, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                 Text(title)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .tracking(0.36)
             }
             Spacer()
             Text(initials)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.app(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)
                 .background(accent)
@@ -157,17 +157,17 @@ struct StatBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label.uppercased())
-                .font(.system(size: 12, weight: .semibold))
+                .font(.app(size: 13.5, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.app(size: 22, weight: .bold))
                     .foregroundStyle(color ?? Theme.ink)
                     .monospacedDigit()
                 if let unit {
                     Text(unit)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.app(size: 13.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
             }
@@ -183,7 +183,7 @@ struct Chip<Content: View>: View {
 
     var body: some View {
         HStack(spacing: 4) { content() }
-            .font(.system(size: 12.5, weight: .semibold))
+            .font(.app(size: 14, weight: .semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
@@ -242,7 +242,7 @@ struct TabBar: View {
                                 size: 22,
                                 weight: on ? .bold : .regular)
                     Text(tab.label(lang))
-                        .font(.system(size: 10, weight: on ? .bold : .medium))
+                        .font(.app(size: 11.5, weight: on ? .bold : .medium))
                         .foregroundStyle(on ? accent : Theme.ink2)
                 }
                 .frame(maxWidth: .infinity)
@@ -277,7 +277,7 @@ struct SelectRow<T: Hashable>: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 15, weight: .medium))
+                .font(.app(size: 15, weight: .medium))
                 .foregroundStyle(Theme.ink)
             Spacer()
             Menu {
@@ -289,7 +289,7 @@ struct SelectRow<T: Hashable>: View {
             } label: {
                 HStack(spacing: 4) {
                     Text(currentLabel)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                         .foregroundStyle(accent)
                     AppIconView(name: "chevron", color: Theme.ink3, size: 13)
                 }

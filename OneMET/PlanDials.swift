@@ -134,22 +134,24 @@ struct DurationDial: View {
                 // (124pt across, 14pt stroke → 96pt of usable width).
                 VStack(spacing: 0) {
                     Text("\(minutes)")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.app(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.ink)
                         .monospacedDigit()
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                     Text(lang.t("workouts.min"))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.app(size: 13.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
                 .frame(width: size * 0.62)
             }
 
             Text(lang.t("plan.plannedDuration").uppercased())
-                .font(.system(size: 11, weight: .semibold))
+                .font(.app(size: 12.5, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.3)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
@@ -226,22 +228,24 @@ struct IntensityDial: View {
                  onScrub: scrub) {
                 VStack(spacing: 0) {
                     Text(fmtNum((met * 10).rounded() / 10))
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.app(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Theme.ink)
                         .monospacedDigit()
                         .minimumScaleFactor(0.7)
                         .lineLimit(1)
                     Text("MET")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.app(size: 13.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                 }
                 .frame(width: size * 0.62)
             }
 
             Text(WorkoutDifficulty(met: met).label(lang).uppercased())
-                .font(.system(size: 11, weight: .semibold))
+                .font(.app(size: 12.5, weight: .semibold))
                 .foregroundStyle(tint)
                 .tracking(0.3)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 

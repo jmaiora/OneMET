@@ -32,13 +32,16 @@ struct PlanView: View {
     /// plan" lands just above the tab bar instead of floating mid-screen with dead space
     /// under it. Hard-coding a height can only be right on one device; this is right on
     /// all of them, and degrades to a sensible range at the extremes.
+    /// 124pt dial + 8 spacing + its label underneath, which grows with the iOS text size.
+    private var dialRow: CGFloat { 132 + 18 * Theme.textScale }
+
     private var deckHeight: CGFloat {
         // Everything on this screen that isn't the deck, including the scaffold's own
         // padding and the clearance it leaves for the floating tab bar.
-        let header: CGFloat = 70
-        let dialsCard: CGFloat = 174        // 150 dial row + 12 padding top and bottom
-        let currentState: CGFloat = 123
-        let button: CGFloat = 45
+        let header: CGFloat = 70 * Theme.textScale
+        let dialsCard: CGFloat = dialRow + 24   // dial row + 12 padding top and bottom
+        let currentState: CGFloat = 128 * Theme.textScale   // +5 for the larger label tier
+        let button: CGFloat = 45 * Theme.textScale
         let deckDots: CGFloat = 16          // page dots plus the deck's internal spacing
         let scaffold: CGFloat = 12 * 4 + 8 + 110    // row gaps + top pad + tab-bar clearance
 
@@ -89,26 +92,26 @@ struct PlanView: View {
                                 .frame(maxWidth: .infinity)
                         }
                     }
-                    .frame(height: 150)
+                    .frame(height: dialRow)
                 }
 
                 Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 14) {
                     HStack {
                         Text(lang.t("plan.currentGlucose"))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.app(size: 15, weight: .medium))
                             .foregroundStyle(Theme.ink)
                         Spacer()
                         if let g = glucose, let st = gStatus {
                             HStack(spacing: 5) {
                                 Text(unit.value(g))
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.app(size: 15, weight: .semibold))
                                     .foregroundStyle(st.color)
                                     .monospacedDigit()
-                                Text(unit.rawValue).font(.system(size: 13)).foregroundStyle(Theme.ink2)
+                                Text(unit.rawValue).font(.app(size: 14.5)).foregroundStyle(Theme.ink2)
                                 TrendArrow(dir: trend, color: st.color)
                             }
                         } else {
-                            Text("—").font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
+                            Text("—").font(.app(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
                         }
                     }
                     .padding(.vertical, 8)
@@ -126,9 +129,9 @@ struct PlanView: View {
                 if profileStore.profile.fuellingModelApplies {
                     Button { withAnimation(anim) { showCarbs = true } } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "fork.knife").font(.system(size: 16, weight: .semibold))
+                            Image(systemName: "fork.knife").font(.app(size: 16, weight: .semibold))
                             Text(lang.t("plan.calculate"))
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.app(size: 17, weight: .semibold))
                                 .minimumScaleFactor(0.85)
                                 .lineLimit(1)
                         }
@@ -180,10 +183,10 @@ struct PlanView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 9) {
                 Image(systemName: "info.circle.fill")
-                    .font(.system(size: 17))
+                    .font(.app(size: 17))
                     .foregroundStyle(accent)
                 Text(lang.t("plan.scopeTitle"))
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.app(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }

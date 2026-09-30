@@ -19,8 +19,8 @@ struct GlucoseDetailView: View {
         ScreenScaffold {
             Button(action: onBack) {
                 HStack(spacing: 6) {
-                    Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
-                    Text(lang.t("summary.title")).font(.system(size: 17))
+                    Image(systemName: "chevron.left").font(.app(size: 17, weight: .semibold))
+                    Text(lang.t("summary.title")).font(.app(size: 17))
                 }
                 .foregroundStyle(accent)
             }
@@ -30,11 +30,11 @@ struct GlucoseDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()
                                          .locale(lang.locale)).uppercased())
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.app(size: 14.5, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                 Text(lang.t("summary.glucose"))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.app(size: 32, weight: .bold))
                     .foregroundStyle(Theme.ink)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -44,11 +44,11 @@ struct GlucoseDetailView: View {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(d.hasGlucose ? unit.value(d.current) : "—")
-                            .font(.system(size: 52, weight: .bold))
+                            .font(.app(size: 52, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
                         Text(unit.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.app(size: 15, weight: .semibold))
                             .foregroundStyle(Theme.ink2)
                     }
                     Spacer()
@@ -79,7 +79,7 @@ struct GlucoseDetailView: View {
                 Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 14)
 
                 Text(lang.t("glucoseDetail.distribution"))
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(.app(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.ink2)
                     .tracking(0.2)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -117,12 +117,12 @@ struct EventsCard: View {
                         HStack(spacing: 12) {
                             Circle().fill(e.color).frame(width: 8, height: 8)
                             Text(e.time)
-                                .font(.system(size: 13))
+                                .font(.app(size: 14.5))
                                 .foregroundStyle(Theme.ink2)
                                 .frame(width: 64, alignment: .leading)
                                 .monospacedDigit()
                             Text(e.text)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.app(size: 14, weight: .medium))
                                 .foregroundStyle(Theme.ink)
                             Spacer(minLength: 0)
                         }

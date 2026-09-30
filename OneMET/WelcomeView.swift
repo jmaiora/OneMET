@@ -103,8 +103,8 @@ struct WelcomeView: View {
                 if step > 0 {
                     Button { focus = nil; withAnimation(.easeInOut(duration: 0.22)) { step -= 1 } } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "chevron.left").font(.system(size: 15, weight: .semibold))
-                            Text(lang.t("welcome.back")).font(.system(size: 16))
+                            Image(systemName: "chevron.left").font(.app(size: 15, weight: .semibold))
+                            Text(lang.t("welcome.back")).font(.app(size: 16))
                         }
                         .foregroundStyle(accent)
                     }
@@ -112,7 +112,7 @@ struct WelcomeView: View {
                 }
                 Spacer()
                 Text(lang.t("welcome.step", String(step + 1), String(stepCount)))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.app(size: 14.5, weight: .medium))
                     .foregroundStyle(Theme.ink3)
             }
 
@@ -142,7 +142,7 @@ struct WelcomeView: View {
                 }
             } label: {
                 Text(lang.t(step < stepCount - 1 ? "welcome.next" : "welcome.start"))
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.app(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
@@ -204,14 +204,14 @@ struct WelcomeView: View {
             .padding(.bottom, 4)
 
             Text(lang.t("welcome.title"))
-                .font(.system(size: 30, weight: .bold))
+                .font(.app(size: 30, weight: .bold))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
             // Full ink rather than the softer ink2 a subtitle would normally take: it is
             // the only line of prose left on the screen, so it reads as part of the title.
             Text(lang.t("welcome.subtitle"))
-                .font(.system(size: 15))
+                .font(.app(size: 15))
                 .foregroundStyle(Theme.ink)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -220,7 +220,7 @@ struct WelcomeView: View {
         fieldBlock(title: lang.t("welcome.namePrompt")) {
             TextField(lang.t("welcome.namePlace"), text: $name)
                 .textInputAutocapitalization(.words)
-                .font(.system(size: 17))
+                .font(.app(size: 17))
                 // Spelled out rather than left to the system: the card underneath is a
                 // hardcoded white, so the default label colour would be white-on-white.
                 .foregroundStyle(Theme.ink)
@@ -234,7 +234,7 @@ struct WelcomeView: View {
         // question stays a straight binary.
         VStack(alignment: .leading, spacing: 7) {
             Text(lang.t("welcome.typePrompt").uppercased())
-                .font(.system(size: 12.5, weight: .semibold))
+                .font(.app(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
                 .padding(.horizontal, 4)
@@ -251,7 +251,7 @@ struct WelcomeView: View {
         // which explains itself rather than computing when "no insulin" is set in Settings.
         VStack(alignment: .leading, spacing: 7) {
             Text(lang.t("welcome.insulinPrompt").uppercased())
-                .font(.system(size: 12.5, weight: .semibold))
+                .font(.app(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
                 .padding(.horizontal, 4)
@@ -288,7 +288,7 @@ struct WelcomeView: View {
                                          selection: Binding<V>) -> some View {
         HStack(spacing: 10) {
             Text(title)
-                .font(.system(size: 16, weight: .medium))
+                .font(.app(size: 16, weight: .medium))
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -310,11 +310,11 @@ struct WelcomeView: View {
             ForEach(healthItems(lang)) { item in
                 HStack(spacing: 11) {
                     Image(systemName: item.symbol)
-                        .font(.system(size: 16))
+                        .font(.app(size: 16))
                         .foregroundStyle(accent)
                         .frame(width: 24)
                     Text(item.label)
-                        .font(.system(size: 15))
+                        .font(.app(size: 15))
                         .foregroundStyle(Theme.ink)
                 }
             }
@@ -333,9 +333,9 @@ struct WelcomeView: View {
             } label: {
                 HStack(spacing: 7) {
                     Image(systemName: healthAsked ? "checkmark" : "heart.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                     Text(lang.t(healthAsked ? "welcome.healthDone" : "welcome.healthAllow"))
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.app(size: 16, weight: .semibold))
                 }
                 .foregroundStyle(healthAsked ? Theme.green : .white)
                 .frame(maxWidth: .infinity)
@@ -440,17 +440,17 @@ struct WelcomeView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 13, style: .continuous).fill(s.tile)
                 Image(systemName: s.symbol)
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.app(size: 22, weight: .semibold))
                     .foregroundStyle(s.mark)
             }
             .frame(width: 52, height: 52)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(lang.t(s.titleKey))
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.app(size: 17, weight: .semibold))
                     .foregroundStyle(Theme.ink)
                 Text(lang.t(s.subtitleKey))
-                    .font(.system(size: 13))
+                    .font(.app(size: 14.5))
                     .foregroundStyle(Theme.ink2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -459,9 +459,9 @@ struct WelcomeView: View {
 
             Button { editing = s } label: {
                 HStack(spacing: 5) {
-                    if done { Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)) }
+                    if done { Image(systemName: "checkmark").font(.app(size: 13.5, weight: .bold)) }
                     Text(lang.t(done ? "welcome.connected" : "welcome.connect"))
-                        .font(.system(size: 14.5, weight: .semibold))
+                        .font(.app(size: 14.5, weight: .semibold))
                 }
                 .foregroundStyle(done ? Theme.green : .white)
                 .padding(.horizontal, 16)
@@ -481,11 +481,11 @@ struct WelcomeView: View {
     private func stepHeading(_ title: String, _ lead: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 28, weight: .bold))
+                .font(.app(size: 28, weight: .bold))
                 .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text(lead)
-                .font(.system(size: 15))
+                .font(.app(size: 15))
                 .foregroundStyle(Theme.ink2)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -499,7 +499,7 @@ struct WelcomeView: View {
                                      @ViewBuilder content: () -> C) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title.uppercased())
-                .font(.system(size: 12.5, weight: .semibold))
+                .font(.app(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
                 .padding(.horizontal, 4)
@@ -546,7 +546,7 @@ struct SegmentedPicker<Value: Hashable>: View {
                     }
                 } label: {
                     Text(option.label)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.app(size: 15, weight: .semibold))
                         .foregroundStyle(on ? .white : Theme.ink2)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
