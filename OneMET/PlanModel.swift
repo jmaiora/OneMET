@@ -90,9 +90,14 @@ enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
 /// "before" a session the prospective model would have sent out unfuelled.
 let preCarbCeilingMgdl: Double = 180
 
-/// Interval between mid-session feeds. A session no longer than this never earns one,
-/// so there is no "during" to advise either.
+/// Default interval between mid-session feeds. A session no longer than this never earns
+/// one, so there is no "during" to advise either. The fuel plan can use a shorter interval
+/// (Settings ▸ Profile, or the slider on the plan itself); the retrospective workout
+/// insight keeps this value as its threshold.
 let carbFeedIntervalMin = 45
+
+/// Range the user may choose the feed interval from, in 5-minute steps.
+let carbFeedIntervalRange = 20...45
 
 // Carbs to take at the start of a session — a glucose-based base (Riddell-style
 // pre-exercise bands) plus a small bump for harder efforts. Returns 0 when glucose is
@@ -136,6 +141,7 @@ struct RunGuide {
 func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
                    deliveryIsPump: Bool, difficulty: WorkoutDifficulty,
+                   feedIntervalMin: Int = carbFeedIntervalMin,
                    unit: GlucoseUnit = .mgdl, lang: AppLanguage = .en) -> RunGuide {
     // ── 2. Match advice to run duration ──
     let bandKey = durationMin < 45 ? "easy" : (durationMin <= 90 ? "moderate" : "long")
@@ -207,8 +213,11 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
 
     // During — Riddell/EXTOD carbohydrate fuelling, driven by the selected difficulty.
     // No cap: the feeding rate scales with effort and longer sessions get more feeds.
-    // A recommended intake at the start, then refuels every 45 min.
-    let feedIntervalMin = carbFeedIntervalMin
+    // A recommended intake at the start, then a refuel every `feedIntervalMin`. The hourly
+    // rate is fixed by the difficulty; the interval only splits it into smaller or larger
+    // feeds.
+    let feedIntervalMin = min(max(feedIntervalMin, carbFeedIntervalRange.lowerBound),
+                              carbFeedIntervalRange.upperBound)
     let duringPerHourG = Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0

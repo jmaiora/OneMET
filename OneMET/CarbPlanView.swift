@@ -17,7 +17,13 @@ struct CarbPlanView: View {
     var accent: Color
     var unit: GlucoseUnit = .mgdl
     var lang: AppLanguage = .en
+    /// Re-plans with a new feed interval (minutes); PlanView rebuilds `guide` from it.
+    var onUpdateInterval: (Int) -> Void = { _ in }
     var onBack: () -> Void
+
+    /// Slider position, in minutes. Only applied to the plan when Update is tapped, so the
+    /// timeline doesn't reshuffle under your finger while you drag.
+    @State private var intervalDraft: Double = Double(carbFeedIntervalMin)
 
     private var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
 
@@ -46,6 +52,11 @@ struct CarbPlanView: View {
 
             duringBanner
 
+            // Only meaningful when there's an hourly rate to split into feeds.
+            if guide.duringPerHourG > 0 {
+                intervalCard
+            }
+
             // Two headlines, both bold beside their icon — the reasoning behind each is in
             // Settings ▸ Help & FAQ.
             Card(title: lang.t("plan.goodToKnow")) {
@@ -58,6 +69,49 @@ struct CarbPlanView: View {
             }
 
             disclaimer
+        }
+        .onAppear { intervalDraft = Double(guide.duringIntervalMin) }
+    }
+
+    // MARK: - Feed interval
+
+    private var intervalCard: some View {
+        let draft = Int(intervalDraft)
+        let changed = draft != guide.duringIntervalMin
+        return Card(title: lang.t("plan.interval"), icon: "clock", iconColor: Theme.ringMet, pad: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(lang.t("plan.intervalEvery", String(draft)))
+                        .font(.app(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .monospacedDigit()
+                    Spacer()
+                }
+                Slider(value: $intervalDraft,
+                       in: Double(carbFeedIntervalRange.lowerBound)...Double(carbFeedIntervalRange.upperBound),
+                       step: 5) {
+                    Text(lang.t("plan.interval"))
+                } minimumValueLabel: {
+                    Text("\(carbFeedIntervalRange.lowerBound) min")
+                        .font(.app(size: 13.5, weight: .medium)).foregroundStyle(Theme.ink2)
+                } maximumValueLabel: {
+                    Text("\(carbFeedIntervalRange.upperBound) min")
+                        .font(.app(size: 13.5, weight: .medium)).foregroundStyle(Theme.ink2)
+                }
+                .tint(Theme.ringMet)
+
+                Button { onUpdateInterval(draft) } label: {
+                    Text(lang.t("plan.update"))
+                        .font(.app(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(changed ? accent : Theme.ink3.opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(!changed)
+            }
         }
     }
 

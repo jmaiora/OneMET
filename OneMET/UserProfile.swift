@@ -73,9 +73,10 @@ struct UserProfile: Encodable, Equatable {
     var carbRatio: Int = 10              // 1 unit : carbRatio g
     var insulinDelivery: InsulinDelivery = .pump   // drives EXTOD carb rates in the Plan tab
     var glucoseUnit: GlucoseUnit = .mgdl // display only — everything is stored in mg/dL
+    var carbIntervalMin: Int = carbFeedIntervalMin   // default gap between fuel-plan feeds
 
     enum CodingKeys: String, CodingKey {
-        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit
+        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit, carbIntervalMin
     }
 
     var isConfigured: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -105,6 +106,7 @@ struct UserProfile: Encodable, Equatable {
     var glucoseRangeText: String { glucoseUnit.range(glucoseLow, glucoseHigh) }
     var metGoalText: String { "\(dailyMetGoal) MET·min" }
     var carbRatioText: String { "1 : \(carbRatio)" }
+    var carbIntervalText: String { "\(carbIntervalMin) min" }
     /// Empty when unset — SettingsView substitutes the localized "Not set".
     var weightText: String { weightKg.map { String(format: "%.1f kg", $0) } ?? "" }
 }
@@ -128,6 +130,9 @@ extension UserProfile: Decodable {
         if let raw = try? c.decodeIfPresent(String.self, forKey: .insulinDelivery),
            let v = InsulinDelivery(stored: raw) { insulinDelivery = v }
         glucoseUnit = try c.decodeIfPresent(GlucoseUnit.self, forKey: .glucoseUnit) ?? glucoseUnit
+        if let m = try c.decodeIfPresent(Int.self, forKey: .carbIntervalMin) {
+            carbIntervalMin = min(max(m, carbFeedIntervalRange.lowerBound), carbFeedIntervalRange.upperBound)
+        }
     }
 }
 

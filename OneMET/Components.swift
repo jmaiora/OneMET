@@ -22,6 +22,7 @@ enum AppIcon {
         case "house":    return "house.fill"
         case "chart":    return "chart.bar.fill"
         case "calendar": return "calendar"
+        case "clock":    return "clock.fill"
         case "bike":     return "bicycle"
         default:         return "circle"
         }

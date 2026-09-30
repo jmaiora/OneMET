@@ -21,6 +21,9 @@ struct PlanView: View {
     /// Intensity is a continuous MET value now; the Riddell band is derived from it.
     @State private var met: Double = SPORTS[0].met
     @State private var showCarbs = false
+    /// Feed interval chosen on the fuel plan itself; nil = the profile default. Cleared
+    /// each time the plan is opened, so a one-off change doesn't silently stick.
+    @State private var feedOverride: Int? = nil
     /// Height of the tab's content area, measured rather than assumed.
     @State private var availableHeight: CGFloat = 800
     /// Rendered heights of everything on the screen that isn't the deck itself. Measured,
@@ -70,7 +73,9 @@ struct PlanView: View {
                                   glucoseMgdl: glucose,
                                   trendFalling: trend == .down, trendRising: trend == .up,
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
-                                  difficulty: difficulty, unit: unit, lang: lang)
+                                  difficulty: difficulty,
+                                  feedIntervalMin: feedOverride ?? profileStore.profile.carbIntervalMin,
+                                  unit: unit, lang: lang)
 
         // Sizes on this screen are chosen so the Calculate button lands above the fold on
         // a standard phone rather than a scroll down. That's why the spacing is tighter
@@ -145,7 +150,7 @@ struct PlanView: View {
                     // everyone else the honest answer is an explanation, not a number — see
                     // UserProfile.fuellingModelApplies.
                     if profileStore.profile.fuellingModelApplies {
-                        Button { withAnimation(anim) { showCarbs = true } } label: {
+                        Button { feedOverride = nil; withAnimation(anim) { showCarbs = true } } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "fork.knife").font(.app(size: 16, weight: .semibold))
                                 Text(lang.t("plan.calculate"))
@@ -170,7 +175,8 @@ struct PlanView: View {
 
             if showCarbs && profileStore.profile.fuellingModelApplies {
                 CarbPlanView(guide: guide, sport: sport, durationMin: duration, met: met,
-                             accent: accent, unit: unit, lang: lang) {
+                             accent: accent, unit: unit, lang: lang,
+                             onUpdateInterval: { feedOverride = $0 }) {
                     withAnimation(anim) { showCarbs = false }
                 }
                 .background(Theme.bg.ignoresSafeArea())

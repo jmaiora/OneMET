@@ -256,6 +256,57 @@ struct EditMetGoalSheet: View {
     }
 }
 
+// MARK: - Carb intake interval
+
+struct EditCarbIntervalSheet: View {
+    @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
+    @Environment(\.dismiss) private var dismiss
+    @State private var minutes: Double
+
+    init(store: ProfileStore, lang: AppLanguage = .en) {
+        self.store = store
+        self.lang = lang
+        _minutes = State(initialValue: Double(store.profile.carbIntervalMin))
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(footer: Text(lang.t("edit.intervalFooter"))) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(lang.t("plan.interval"))
+                            Spacer()
+                            Text(lang.t("plan.intervalEvery", String(Int(minutes))))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(value: $minutes,
+                               in: Double(carbFeedIntervalRange.lowerBound)...Double(carbFeedIntervalRange.upperBound),
+                               step: 5) {
+                            Text(lang.t("plan.interval"))
+                        } minimumValueLabel: {
+                            Text("\(carbFeedIntervalRange.lowerBound)").font(.footnote)
+                        } maximumValueLabel: {
+                            Text("\(carbFeedIntervalRange.upperBound)").font(.footnote)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle(lang.t("edit.intervalTitle"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(lang.t("common.save")) { store.profile.carbIntervalMin = Int(minutes); dismiss() }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Carb ratio
 
 struct EditCarbRatioSheet: View {

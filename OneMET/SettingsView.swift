@@ -8,7 +8,7 @@ import MessageUI
 // rather than sheets, so the per-setting editors underneath can still be sheets.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, language, glucose, units, met, carb, insulin, nightscout, dexcom, libre
+    case identity, language, glucose, units, met, carb, insulin, interval, nightscout, dexcom, libre
     var id: Int { rawValue }
 }
 
@@ -129,6 +129,7 @@ struct SettingsView: View {
             case .met:        EditMetGoalSheet(store: profileStore, lang: lang)
             case .carb:       EditCarbRatioSheet(store: profileStore, lang: lang)
             case .insulin:    EditInsulinDeliverySheet(store: profileStore, lang: lang)
+            case .interval:   EditCarbIntervalSheet(store: profileStore, lang: lang)
             case .nightscout: NightscoutSheet(store: glucoseSource, lang: lang)
             case .dexcom:     DexcomSheet(store: glucoseSource, lang: lang)
             case .libre:      LibreLinkUpSheet(store: glucoseSource, lang: lang)
@@ -257,7 +258,9 @@ struct ProfileMenuView: View {
                 IOSListRow(title: lang.t("settings.metGoal"), detail: p.metGoalText,
                            dot: Theme.ringMet) { editor = .met }
                 IOSListRow(title: lang.t("settings.insulinDelivery"), detail: p.insulinDelivery.label(lang),
-                           dot: accent, isLast: true) { editor = .insulin }
+                           dot: accent) { editor = .insulin }
+                IOSListRow(title: lang.t("settings.carbInterval"), detail: p.carbIntervalText,
+                           dot: Theme.amber, isLast: true) { editor = .interval }
             }
         }
     }
