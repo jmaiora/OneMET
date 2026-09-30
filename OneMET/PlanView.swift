@@ -55,7 +55,7 @@ struct PlanView: View {
         let fixed = 8 + headerHeight + 12 + deckDots + 12 + belowHeight + tabBarClearance
         // Floor keeps the cards usable on an SE (which then scrolls); the ceiling stops
         // them turning into posters on a Pro Max.
-        let fitted = min(320, max(194, (availableHeight - fixed).rounded(.down)))
+        let fitted = min(320, max(206, (availableHeight - fixed).rounded(.down)))
         if abs(fitted - deckHeight) >= 1 { deckHeight = fitted }
     }
 
@@ -112,7 +112,8 @@ struct PlanView: View {
                         .frame(height: dialRow)
                     }
 
-                    Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 14) {
+                    // Trimmed 12pt (pad 14 -> 10, glucose row 8 -> 6) and handed to the deck.
+                    Card(title: lang.t("plan.currentState"), icon: "bolt", iconColor: Theme.amber, pad: 10) {
                         HStack {
                             Text(lang.t("plan.currentGlucose"))
                                 .font(.app(size: 15, weight: .medium))
@@ -131,7 +132,7 @@ struct PlanView: View {
                                 Text("—").font(.app(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 6)
                         .overlay(Rectangle().fill(Theme.sep).frame(height: 0.5), alignment: .bottom)
 
                         SelectRow(label: lang.t("plan.iob"), selection: $iob,
