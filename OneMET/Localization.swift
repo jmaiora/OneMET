@@ -331,8 +331,9 @@ enum Strings {
         "plan.currentGlucose": L("Current Glucose", "Glucosa actual"),
         "plan.iob":          L("Insulin on Board", "Insulina activa"),
         "plan.during":       L("During · {0}", "Durante · {0}"),
-        "plan.atStart":      L("AT START", "AL EMPEZAR"),
-        "plan.everyMin":     L("EVERY {0} MIN", "CADA {0} MIN"),
+        "plan.tlStart":      L("Start", "Inicio"),
+        "plan.tlRefuel":     L("Refuel", "Toma"),
+        "plan.tlFinish":     L("Finish", "Fin"),
         "plan.perHourTotal": L("~{0} g/h · ~{1} g total", "~{0} g/h · ~{1} g en total"),
         "plan.goodToKnow":   L("Good to know", "Conviene saber"),
         // "Fuel" rather than "calculate carbs": the screen behind this leads with whether
@@ -406,8 +407,8 @@ enum Strings {
         // ── Plan: during ──
         "during.none": L("Short and easy enough to finish without eating. Carry ~15 g of fast carbs and use them only if you fall toward your target or your CGM arrow shows a rapid drop.",
                          "Corta y suave: puedes acabarla sin comer. Lleva ~15 g de carbohidratos rápidos y úsalos solo si te acercas a tu objetivo o la flecha del MCG marca una bajada rápida."),
-        "during.some": L("Planned carb intake to fuel the effort — take it with insulin adjusted rather than skipped. Longer sessions simply add more feeds. Rates per the Riddell/EXTOD consensus.",
-                         "Ingesta planificada de carbohidratos para sostener el esfuerzo: tómala con la insulina ajustada, no suprimida. Las sesiones largas solo añaden más tomas. Cantidades según el consenso Riddell/EXTOD."),
+        "during.some": L("Rates per the Riddell/EXTOD consensus.",
+                         "Cantidades según el consenso Riddell/EXTOD."),
 
         // ── Plan: philosophy ──
         "philosophy": L("Most PwD feel best around {0} during exercise. Avoiding lows matters more than perfect numbers — chasing {1} usually means repeated gels and rebound highs.",

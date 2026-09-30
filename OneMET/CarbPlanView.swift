@@ -100,7 +100,7 @@ struct CarbPlanView: View {
 
     private var duringBanner: some View {
         let c = Theme.ringMet
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 AppIconView(name: "fork", color: .white, size: 16)
                 Text(lang.t("plan.during", difficulty.label(lang)))
@@ -114,25 +114,28 @@ struct CarbPlanView: View {
                     .multilineTextAlignment(.trailing)
             }
             if guide.duringTotalG > 0 {
-                HStack(alignment: .top, spacing: 22) {
-                    if guide.duringStartG > 0 {
-                        duringStat(big: "~\(guide.duringStartG) g", small: lang.t("plan.atStart"))
-                    }
-                    if guide.duringFeeds > 0 {
-                        duringStat(big: "~\(guide.duringPerFeedG) g",
-                                   small: lang.t("plan.everyMin", String(guide.duringIntervalMin)))
+                // One row per intake at its elapsed time, closed by the finish line with the
+                // session total — the schedule reads top to bottom as the run unfolds.
+                let stops = timelineStops
+                VStack(spacing: 0) {
+                    ForEach(Array(stops.enumerated()), id: \.offset) { i, stop in
+                        timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
-                Text(lang.t("plan.perHourTotal", String(guide.duringPerHourG), String(guide.duringTotalG)))
-                    .font(Theme.fineFont.weight(.semibold))
+                // Only the source is kept here; the reasoning lives in Help & FAQ.
+                (Text(guide.duringText)
+                    + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(6))
+                    .font(Theme.fineFont.weight(.medium))
                     .foregroundStyle(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                // Nothing to schedule: the advice is to carry carbs, not to eat them.
+                Text(guide.duringText)
+                    .font(Theme.noteFont.weight(.medium))
+                    .lineSpacing(Theme.noteLineSpacing)
+                    .foregroundStyle(.white.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            (Text(guide.duringText)
-                + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(7))
-                .font(Theme.noteFont.weight(.medium))
-                .lineSpacing(Theme.noteLineSpacing)
-                .foregroundStyle(.white.opacity(0.95))
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -141,16 +144,79 @@ struct CarbPlanView: View {
         .shadow(color: c.opacity(0.28), radius: 9, x: 0, y: 6)
     }
 
-    private func duringStat(big: String, small: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(big)
-                .font(.app(size: 27, weight: .heavy))
-                .foregroundStyle(.white)
-            Text(small)
-                .font(.app(size: 13.5, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.8))
-                .tracking(0.3)
+    // MARK: - During timeline
+
+    private struct TimelineStop {
+        let minute: Int
+        let label: String
+        let grams: Int?          // nil: a marker with nothing to take (start without carbs)
+        let isFinish: Bool
+    }
+
+    /// Start (with its carbs, if any), a refuel every `duringIntervalMin`, then the finish.
+    /// Refuels land strictly before the end — buildRunGuide counts them that way.
+    private var timelineStops: [TimelineStop] {
+        var stops = [TimelineStop(minute: 0, label: lang.t("plan.tlStart"),
+                                  grams: guide.duringStartG > 0 ? guide.duringStartG : nil,
+                                  isFinish: false)]
+        if guide.duringFeeds > 0 {
+            for k in 1...guide.duringFeeds {
+                stops.append(TimelineStop(minute: k * guide.duringIntervalMin,
+                                          label: lang.t("plan.tlRefuel"),
+                                          grams: guide.duringPerFeedG, isFinish: false))
+            }
         }
+        stops.append(TimelineStop(minute: durationMin, label: lang.t("plan.tlFinish"),
+                                  grams: nil, isFinish: true))
+        return stops
+    }
+
+    private func timelineRow(_ stop: TimelineStop, first: Bool, last: Bool) -> some View {
+        HStack(spacing: 12) {
+            Text(clock(stop.minute))
+                .font(.app(size: 15, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 46 * Theme.textScale, alignment: .trailing)
+
+            // Rail: line segments above and below the dot join up across rows, since the
+            // rows stack with no spacing.
+            VStack(spacing: 0) {
+                Rectangle().fill(.white.opacity(first ? 0 : 0.45)).frame(width: 2)
+                Circle()
+                    .fill(stop.isFinish ? Color.clear : Color.white)
+                    .overlay(Circle().stroke(.white, lineWidth: 2.5))
+                    .frame(width: 13, height: 13)
+                Rectangle().fill(.white.opacity(last ? 0 : 0.45)).frame(width: 2)
+            }
+            .frame(width: 14)
+
+            Text(stop.label.uppercased())
+                .font(.app(size: 13.5, weight: .semibold))
+                .tracking(0.3)
+                .foregroundStyle(.white.opacity(0.85))
+
+            Spacer(minLength: 8)
+
+            if stop.isFinish {
+                Text(lang.t("plan.perHourTotal", String(guide.duringPerHourG), String(guide.duringTotalG)))
+                    .font(.app(size: 14.5, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            } else if let g = stop.grams {
+                Text("~\(g) g")
+                    .font(.app(size: 24, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+            }
+        }
+        .frame(height: 46 * Theme.textScale)
+    }
+
+    /// Elapsed time as h:mm — "0:45", "1:30".
+    private func clock(_ minutes: Int) -> String {
+        "\(minutes / 60):" + String(format: "%02d", minutes % 60)
     }
 
     /// A Good-to-know row: heading beside the icon, with an optional line underneath for
