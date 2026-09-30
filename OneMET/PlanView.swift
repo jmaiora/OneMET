@@ -43,14 +43,19 @@ struct PlanView: View {
     /// all of them, and degrades to a sensible range at the extremes.
     @State private var deckHeight: CGFloat = 200
 
-    /// Everything that isn't the deck: the scaffold's top padding and tab-bar clearance,
+    /// Everything that isn't the deck: the scaffold's top padding, the tab-bar clearance,
     /// the two row gaps either side of the deck, and the measured rows.
     private func fitDeck() {
         guard deckDots >= 0 else { return }
-        let fixed = 8 + headerHeight + 12 + deckDots + 12 + belowHeight + 110
+        // Below the button: the floating tab bar (6 + 7 + 22 icon + 2 + ~16 label + 7 + 6,
+        // plus its 8pt bottom inset ≈ 74, scaled with the label) and a 12pt gap above it.
+        // The scaffold pads 110 under its content so the page can scroll clear of the bar,
+        // but fitting against that left ~35pt of dead space above the tab bar.
+        let tabBarClearance = 58 + 16 * Theme.textScale + 12
+        let fixed = 8 + headerHeight + 12 + deckDots + 12 + belowHeight + tabBarClearance
         // Floor keeps the cards usable on an SE (which then scrolls); the ceiling stops
         // them turning into posters on a Pro Max.
-        let fitted = min(320, max(170, (availableHeight - fixed).rounded(.down)))
+        let fitted = min(320, max(194, (availableHeight - fixed).rounded(.down)))
         if abs(fitted - deckHeight) >= 1 { deckHeight = fitted }
     }
 
