@@ -41,6 +41,8 @@
   h2 { font-size: 18px; margin: 0 0 12px; letter-spacing: -.3px; }
   p { margin: 0 0 12px; color: var(--ink2); }
   p:last-child { margin-bottom: 0; }
+  ul { margin: 0 0 12px; padding-left: 20px; color: var(--ink2); }
+  li { margin-bottom: 6px; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   .contact-btn {
@@ -62,7 +64,7 @@
     <header>
       <div class="logo">M</div>
       <h1>OneMET</h1>
-      <p class="tagline">Glucose &amp; exercise, side by side — for people with type&nbsp;1 diabetes.</p>
+      <p class="tagline">Glucose &amp; exercise, side by side — for people with type&nbsp;1 diabetes and type&nbsp;2 on insulin.</p>
     </header>
 
     <div class="card">
@@ -74,27 +76,44 @@
 
     <div class="card">
       <h2>About the app</h2>
-      <p>OneMET helps you see how physical activity affects your glucose and plan carbohydrates around your workouts. It reads glucose from Nightscout or Dexcom&nbsp;Share and activity from Apple&nbsp;Health, then shows a prevention-first guide for before and during exercise.</p>
+      <p>OneMET helps you see how physical activity affects your glucose and plan carbohydrates around your workouts. It reads glucose from Nightscout, Dexcom&nbsp;Share or LibreLinkUp (or Apple&nbsp;Health), and workouts, activity and METs from Apple&nbsp;Health and your Apple&nbsp;Watch.</p>
+      <ul>
+        <li><strong>Summary</strong> — your glucose today, with the before/during/after curve of any workout, activity rings and your MET·min over the last week.</li>
+        <li><strong>Workouts</strong> — your session history, each with its own glucose curve and an insight on how it affected you.</li>
+        <li><strong>Plan</strong> — pick a sport, duration and intensity, and get a prevention-first fuel plan: whether to start now, and a timeline of carbohydrate intakes during the session.</li>
+        <li><strong>Settings</strong> — your profile, targets, glucose source, and Help&nbsp;&amp;&nbsp;FAQ.</li>
+      </ul>
+      <p>Available in English and Spanish, in mg/dL or mmol/L.</p>
     </div>
 
     <div class="card">
       <h2>Frequently asked</h2>
 
       <p class="faq-q">Which iPhone do I need?</p>
-      <p>An iPhone running a recent version of iOS. An Apple&nbsp;Watch and a CGM (via Nightscout or Dexcom&nbsp;Share) make the most of the app, but aren't strictly required to try it.</p>
+      <p>An iPhone running iOS&nbsp;16 or later. An Apple&nbsp;Watch and a CGM (via Nightscout, Dexcom&nbsp;Share or LibreLinkUp) make the most of the app, but aren't strictly required to try it.</p>
 
       <p class="faq-q">How do I connect my glucose data?</p>
-      <p>Open the Profile tab → Glucose Source, and enter your Nightscout site or your Dexcom&nbsp;Share account. The connection is read-only.</p>
+      <p>Choose a source during the first-run setup, or later in Settings → Glucose Source: enter your Nightscout site, your Dexcom&nbsp;Share account or your LibreLinkUp follower account. Connections are read-only, and passwords are kept in the iPhone Keychain. Dexcom&nbsp;Share keeps about 24&nbsp;h of data and LibreLinkUp about 12&nbsp;h, so 14-day figures come from Nightscout or Apple&nbsp;Health. Medtronic CareLink isn't supported.</p>
+
+      <p class="faq-q">Who is the fuel plan for?</p>
+      <p>The carbohydrate guidance is designed for people using insulin — type&nbsp;1 diabetes, and type&nbsp;2 on insulin, by pump or injections. For anyone else the Plan tab explains why instead of giving a number; the rest of the app works the same.</p>
+
+      <p class="faq-q">Can I change how often I take carbs during a session?</p>
+      <p>Yes. The plan spaces intakes every 45&nbsp;minutes by default, but you can choose anything from 20 to 45&nbsp;minutes — whichever you feel most comfortable with. The amount per hour stays the same; a shorter interval just means smaller, more frequent intakes. Set your default in Settings → Profile → Carb Intake Interval, or change it for a single session with the slider on your fuel plan.</p>
+
+      <p class="faq-q">My Apple&nbsp;Watch workouts don't appear.</p>
+      <p>Check that OneMET still has access in Settings → Privacy &amp; Security → Health → OneMET, with Workouts, Heart Rate and Active Energy turned on. iOS updates occasionally reset these permissions; if the switches are missing entirely, deleting and reinstalling OneMET and granting access again fixes it.</p>
 
       <p class="faq-q">Is my data private?</p>
-      <p>Your health data stays on your device and is used only to show your own trends and guidance. It isn't sold or shared with third parties.</p>
+      <p>Your health data stays on your device and is used only to show your own trends and guidance. Glucose is fetched directly from the service you connect; there is no OneMET server, and nothing is sold or shared with third parties.</p>
 
       <p class="faq-q">I'm a beta tester and can't install the app.</p>
       <p>Make sure the free <strong>TestFlight</strong> app is installed, and that you opened the invitation on the same iPhone using the email linked to your Apple&nbsp;ID. If it still fails, email me the address you used.</p>
     </div>
 
     <div class="disclaimer">
-      OneMET provides illustrative, educational guidance only. It is <strong>not a medical device</strong> and does not replace advice from your healthcare team. Always agree insulin and carbohydrate decisions with your clinician.
+      OneMET provides illustrative, educational guidance only. It is <strong>not a medical device</strong> and does not replace advice from your healthcare team. Always agree insulin and carbohydrate decisions with your clinician.<br><br>
+      The fuel plan draws on the 2017 Lancet consensus on exercise in type&nbsp;1 diabetes (Riddell et&nbsp;al.) and EXTOD. The individual thresholds are published; the way this app combines them has not been validated as an algorithm.
     </div>
 
     <footer>
