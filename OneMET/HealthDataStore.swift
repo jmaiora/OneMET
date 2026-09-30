@@ -751,6 +751,7 @@ final class HealthDataStore: ObservableObject {
             activityEnd: activityEnd,
             insight: workoutInsight(name: name, durMin: durMin, delta: delta,
                                     startMgdl: startGlucose, nadirMgdl: nadir,
+                                    feedIntervalMin: profile.carbIntervalMin,
                                     unit: profile.glucoseUnit, lang: language)
         )
     }

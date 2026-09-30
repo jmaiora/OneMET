@@ -92,8 +92,8 @@ let preCarbCeilingMgdl: Double = 180
 
 /// Default interval between mid-session feeds. A session no longer than this never earns
 /// one, so there is no "during" to advise either. The fuel plan can use a shorter interval
-/// (Settings ▸ Profile, or the slider on the plan itself); the retrospective workout
-/// insight keeps this value as its threshold.
+/// (Settings ▸ Profile, or the slider on the plan itself), and the retrospective workout
+/// insight follows the profile value too.
 let carbFeedIntervalMin = 45
 
 /// Range the user may choose the feed interval from, in 5-minute steps.
