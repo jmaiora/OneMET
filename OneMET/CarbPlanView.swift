@@ -52,6 +52,10 @@ struct CarbPlanView: View {
 
             duringBanner
 
+            if let after = guide.afterText {
+                afterCard(after)
+            }
+
             // Only meaningful when there's an hourly rate to split into feeds.
             if guide.duringPerHourG > 0 {
                 intervalCard
@@ -71,6 +75,31 @@ struct CarbPlanView: View {
             disclaimer
         }
         .onAppear { intervalDraft = Double(guide.duringIntervalMin) }
+    }
+
+    // MARK: - After (interval / resistance)
+
+    private func afterCard(_ text: String) -> some View {
+        Card(title: lang.t("plan.after"), icon: "chart", iconColor: Theme.amber, pad: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(text)
+                    .font(Theme.noteFont)
+                    .lineSpacing(Theme.noteLineSpacing)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.app(size: 15, weight: .semibold))
+                        .foregroundStyle(accent)
+                        .frame(width: 20)
+                    Text(lang.t("after.mixedTip"))
+                        .font(Theme.noteFont.weight(.semibold))
+                        .lineSpacing(Theme.noteLineSpacing)
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     // MARK: - Feed interval
@@ -167,7 +196,7 @@ struct CarbPlanView: View {
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
             }
-            if guide.duringTotalG > 0 {
+            if guide.duringPerHourG > 0 && guide.duringTotalG > 0 {
                 // One row per intake at its elapsed time, closed by the finish line with the
                 // session total — the schedule reads top to bottom as the run unfolds.
                 let stops = timelineStops

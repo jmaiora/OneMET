@@ -16,6 +16,9 @@ struct Sport: Identifiable, Hashable {
     /// intensity contradicts — the old table had a 9.1 MET run labelled "moderate".
     var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
 
+    /// What kind of effort it is, which decides how glucose behaves — independent of MET.
+    var kind: ExerciseKind { ExerciseKind(sportId: id) }
+
     func name(_ lang: AppLanguage) -> String { lang.t("sport.\(id)") }
     func desc(_ lang: AppLanguage) -> String { lang.t("sport.\(id).desc") }
 }
@@ -44,6 +47,27 @@ func beforeWorkoutSummary(deliveryIsPump: Bool, unit: GlucoseUnit = .mgdl,
 }
 
 enum StartStatus { case go, topUp, wait, stop, unknown }
+
+/// Aerobic work lowers glucose steadily; interval and resistance work lower it far less
+/// and can raise it, through catecholamines and other counter-regulatory hormones
+/// (Riddell 2017). In the real-world T1DEXI study the mean change during a session was
+/// −18 mg/dL aerobic, −14 interval and −9 resistance. So the MET-band fuelling rates —
+/// written for continuous aerobic exercise — don't apply to the last two.
+enum ExerciseKind {
+    case aerobic, interval, resistance
+
+    /// Keyed on the stable sport / workout id, so the Plan tab and HealthKit workouts
+    /// classify the same activity the same way.
+    init(sportId: String) {
+        switch sportId {
+        case "strength": self = .resistance
+        case "hiit":     self = .interval
+        default:         self = .aerobic
+        }
+    }
+
+    var isAnaerobic: Bool { self != .aerobic }
+}
 
 enum WorkoutDifficulty: String, CaseIterable, Identifiable, Hashable {
     // Raw values are stable ids, never shown; use label(_:) for display.
@@ -102,7 +126,8 @@ let carbFeedIntervalRange = 20...45
 // Carbs to take at the start of a session — a glucose-based base (Riddell-style
 // pre-exercise bands) plus a small bump for harder efforts. Returns 0 when glucose is
 // already high, regardless of intensity. No live reading → assume in-range.
-func startCarbGrams(glucoseMgdl: Double?, difficulty: WorkoutDifficulty) -> Int {
+func startCarbGrams(glucoseMgdl: Double?, difficulty: WorkoutDifficulty,
+                    kind: ExerciseKind = .aerobic) -> Int {
     let base: Int
     if let g = glucoseMgdl, g > 0 {
         if g < 90 { base = 20 }
@@ -113,7 +138,9 @@ func startCarbGrams(glucoseMgdl: Double?, difficulty: WorkoutDifficulty) -> Int 
         base = 10
     }
     guard base > 0 else { return 0 }
-    return base + difficulty.startBumpG
+    // The intensity bump exists because harder aerobic work drops glucose faster; harder
+    // interval or resistance work doesn't, so those keep only the glucose-based base.
+    return base + (kind.isAnaerobic ? 0 : difficulty.startBumpG)
 }
 
 struct RunGuide {
@@ -136,17 +163,24 @@ struct RunGuide {
     // the Plan tab shows only the one-line version — so the guide no longer carries it.
     let deliveryIsPump: Bool
     let usedGlucose: Double?
+    /// Interval / resistance only: what to expect afterwards (possible rise, conservative
+    /// corrections, delayed low). nil for aerobic.
+    let afterText: String?
 }
 
 func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, trendFalling: Bool, trendRising: Bool,
                    deliveryIsPump: Bool, difficulty: WorkoutDifficulty,
                    feedIntervalMin: Int = carbFeedIntervalMin,
+                   kind: ExerciseKind = .aerobic,
                    unit: GlucoseUnit = .mgdl, lang: AppLanguage = .en) -> RunGuide {
     // ── 2. Match advice to run duration ──
     let bandKey = durationMin < 45 ? "easy" : (durationMin <= 90 ? "moderate" : "long")
     let band = lang.t("band.\(bandKey)")
-    let bandDetail = lang.t("band.\(bandKey).detail")
+    // Duration bands speak in fuelling terms ("fuel for performance") that only hold for
+    // aerobic work; interval and resistance sessions get their own line instead.
+    let bandDetail = kind.isAnaerobic ? lang.t("band.anaerobic.detail")
+                                      : lang.t("band.\(bandKey).detail")
 
     // Insulin-on-board uplift: carbs stay as-is at ≤ 1 U, then rise a little above 1 U —
     // a small, bounded nudge (capped ~+25%) toward the Riddell/EXTOD high-IOB end, not a
@@ -155,7 +189,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
 
     // Carbs to take before starting — the same value the During card shows "at start",
     // so the banner's top-up amount always matches the During section.
-    let duringStartG = Int((Double(startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty)) * iobFactor).rounded())
+    let duringStartG = Int((Double(startCarbGrams(glucoseMgdl: glucoseMgdl, difficulty: difficulty,
+                                                  kind: kind)) * iobFactor).rounded())
 
     // ── 3. Start decision from glucose + trend; top-up grams = the During "at start" ──
     var status: StartStatus = .unknown
@@ -218,14 +253,20 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // feeds.
     let feedIntervalMin = min(max(feedIntervalMin, carbFeedIntervalRange.lowerBound),
                               carbFeedIntervalRange.upperBound)
-    let duringPerHourG = Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
+    // Interval and resistance work: nothing scheduled. The consensus notes carbohydrate
+    // may not be needed, and glucose falls least in these sessions (T1DEXI); a rescue
+    // snack is carried instead, used only on a real fall.
+    let duringPerHourG = kind.isAnaerobic ? 0
+        : Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
     let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
     let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
     let duringTotalG = duringStartG + perFeedG * duringFeeds
 
     let during: String
     var duringHeadline: String? = nil
-    if duringTotalG == 0 {
+    if kind.isAnaerobic {
+        during = lang.t(kind == .resistance ? "during.resistance" : "during.interval")
+    } else if duringTotalG == 0 {
         during = lang.t("during.none")
     } else {
         duringHeadline = "~\(duringPerHourG) g/h"
@@ -237,5 +278,6 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                     duringHeadline: duringHeadline, duringPerHourG: duringPerHourG, duringStartG: duringStartG,
                     duringPerFeedG: perFeedG, duringFeeds: duringFeeds,
                     duringTotalG: duringTotalG, duringIntervalMin: feedIntervalMin,
-                    deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl)
+                    deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl,
+                    afterText: kind.isAnaerobic ? lang.t("after.anaerobic") : nil)
 }

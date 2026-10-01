@@ -310,6 +310,8 @@ struct HelpView: View {
                   lang.t("help.insightBody"))
             entry("clock.fill", Theme.ringMet, lang.t("help.intervalTitle"),
                   lang.t("help.intervalBody"))
+            entry("dumbbell.fill", Theme.violet, lang.t("help.anaerobicTitle"),
+                  lang.t("help.anaerobicBody"))
             entry("person.fill.checkmark", Theme.amber, lang.t("help.scopeTitle"),
                   lang.t("help.scopeBody"))
             entry("drop.fill", Theme.teal, lang.t("help.sourcesTitle"),

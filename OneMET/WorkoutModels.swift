@@ -70,6 +70,7 @@ func carbTimingKey(startMgdl: Double?, durMin: Int,
 func workoutInsight(name: String, durMin: Int, delta: Int,
                     startMgdl: Double?, nadirMgdl: Double?,
                     feedIntervalMin: Int = carbFeedIntervalMin,
+                    kind: ExerciseKind = .aerobic,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
@@ -84,12 +85,18 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
             let carbs = String(Int((Double(abs(delta)) * 0.4).rounded()))
             let floor = nadirMgdl.map { unit.amount($0) } ?? lang.t("insight.dropUnknownNadir")
             return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs,
-                          lang.t(carbTimingKey(startMgdl: startMgdl, durMin: durMin,
+                          // Interval / resistance plans schedule nothing during the
+                          // session, so the advice can't point there either.
+                          lang.t(carbTimingKey(startMgdl: startMgdl,
+                                               durMin: kind.isAnaerobic ? 0 : durMin,
                                                feedIntervalMin: feedIntervalMin)))
         }
         return lang.t("insight.dropModerate", size)
     }
     if delta >= 25 {
+        if kind.isAnaerobic {
+            return lang.t("insight.riseAnaerobic", sport, size, mins)
+        }
         return lang.t("insight.riseBig", sport, size, mins)
     }
     if delta >= 12 {

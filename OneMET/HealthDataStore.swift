@@ -735,7 +735,7 @@ final class HealthDataStore: ObservableObject {
         return WorkoutSession(
             id: w.uuid.uuidString,
             name: name,
-            sportId: name.lowercased(),
+            sportId: workoutKey(w.workoutActivityType),
             icon: sportIcon(w.workoutActivityType),
             day: dayFmt.string(from: w.startDate),
             time: timeFmt.string(from: w.startDate),
@@ -752,6 +752,7 @@ final class HealthDataStore: ObservableObject {
             insight: workoutInsight(name: name, durMin: durMin, delta: delta,
                                     startMgdl: startGlucose, nadirMgdl: nadir,
                                     feedIntervalMin: profile.carbIntervalMin,
+                                    kind: ExerciseKind(sportId: workoutKey(w.workoutActivityType)),
                                     unit: profile.glucoseUnit, lang: language)
         )
     }

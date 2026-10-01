@@ -75,6 +75,7 @@ struct PlanView: View {
                                   deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
                                   difficulty: difficulty,
                                   feedIntervalMin: feedOverride ?? profileStore.profile.carbIntervalMin,
+                                  kind: sport.kind,
                                   unit: unit, lang: lang)
 
         // Sizes on this screen are chosen so the Calculate button lands above the fold on
