@@ -116,8 +116,7 @@ let preCarbCeilingMgdl: Double = 180
 
 /// Default interval between mid-session feeds. A session no longer than this never earns
 /// one, so there is no "during" to advise either. The fuel plan can use a shorter interval
-/// (Settings ▸ Profile, or the slider on the plan itself); it changes how the session's
-/// total is split, never the total.
+/// (Settings ▸ Profile); it changes how the session's total is split, never the total.
 let carbFeedIntervalMin = 45
 
 /// Range the user may choose the feed interval from, in 5-minute steps.
