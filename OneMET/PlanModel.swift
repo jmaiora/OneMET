@@ -129,9 +129,9 @@ let minDuringFuelG = 5
 /// Largest single intake during the session. Not a published limit — roughly one gel or a
 /// few mouthfuls of sports drink; the literature's only hard limit is gut absorption
 /// (~1 g/min for glucose alone). When glucose at the start is at or below
-/// `preCarbCeilingMgdl`, intakes are capped here and the excess moves to the start; above
-/// it (or unknown) nothing may be added at the start, so intakes stay uncapped and the
-/// plan suggests a shorter interval instead.
+/// `preCarbCeilingMgdl`, intake excess moves to the start until the start reaches this
+/// too; anything still over it (or all of it, when starting high or unknown) stays in
+/// the intake and the plan suggests a shorter interval.
 let largeIntakeG = 30
 
 /// One scheduled intake during the session.
@@ -280,12 +280,20 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
         : Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
     var schedule = duringFeedSchedule(perHourG: duringPerHourG, durationMin: durationMin,
                                       intervalMin: feedIntervalMin)
-    // Cap each intake and take the excess at the start — only when starting glucose
-    // allows carbs at the start at all, the same ceiling startCarbGrams uses.
+    // Move intake excess over largeIntakeG to the start, but only into the room the start
+    // has left under the same cap, and only when starting glucose allows carbs at the
+    // start at all (the ceiling startCarbGrams uses). Whatever doesn't fit stays in its
+    // intake, which the plan then flags with the shorter-interval hint. The glucose-based
+    // start amount itself is never cut — below 90 mg/dL it's there to prevent a low.
     var startMovedG = 0
     if let g = glucoseMgdl, g > 0, g <= preCarbCeilingMgdl {
-        startMovedG = schedule.reduce(0) { $0 + max(0, $1.grams - largeIntakeG) }
-        schedule = schedule.map { FeedStop(minute: $0.minute, grams: min($0.grams, largeIntakeG)) }
+        var room = max(0, largeIntakeG - duringStartG)
+        schedule = schedule.map { feed in
+            let take = min(room, max(0, feed.grams - largeIntakeG))
+            room -= take
+            startMovedG += take
+            return FeedStop(minute: feed.minute, grams: feed.grams - take)
+        }
     }
     let duringTotalG = duringStartG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
 
