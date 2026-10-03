@@ -116,12 +116,22 @@ let preCarbCeilingMgdl: Double = 180
 
 /// Default interval between mid-session feeds. A session no longer than this never earns
 /// one, so there is no "during" to advise either. The fuel plan can use a shorter interval
-/// (Settings ▸ Profile, or the slider on the plan itself), and the retrospective workout
-/// insight follows the profile value too.
+/// (Settings ▸ Profile, or the slider on the plan itself); it changes how the session's
+/// total is split, never the total.
 let carbFeedIntervalMin = 45
 
 /// Range the user may choose the feed interval from, in 5-minute steps.
 let carbFeedIntervalRange = 20...45
+
+/// Below this, the session's during-exercise total isn't worth scheduling (a 15-min walk
+/// at 15 g/h would be ~4 g) — the rescue snack you carry covers it.
+let minDuringFuelG = 5
+
+/// One scheduled intake during the session.
+struct FeedStop: Hashable {
+    let minute: Int
+    let grams: Int
+}
 
 // Carbs to take at the start of a session — a glucose-based base (Riddell-style
 // pre-exercise bands) plus a small bump for harder efforts. Returns 0 when glucose is
@@ -154,9 +164,8 @@ struct RunGuide {
     let duringHeadline: String?      // e.g. "~45 g/h" (nil when no fuelling)
     let duringPerHourG: Int          // Riddell fuelling rate (g/h)
     let duringStartG: Int            // recommended carbs at the start
-    let duringPerFeedG: Int          // carbs per 45-min feed
-    let duringFeeds: Int             // number of feeds across the session
-    let duringTotalG: Int            // total carbs across the session (start + feeds)
+    let duringSchedule: [FeedStop]   // intakes during the session, in order
+    let duringTotalG: Int            // total carbs across the session (start + intakes)
     let duringIntervalMin: Int       // feed interval (minutes)
     // The long-form "accept 140–200" and "learn your own response" copy used to live here.
     // It now belongs to Settings ▸ Help & FAQ, which looks the strings up directly, and
@@ -247,10 +256,13 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     let before = beforeWorkoutSummary(deliveryIsPump: deliveryIsPump, unit: unit, lang: lang)
 
     // During — Riddell/EXTOD carbohydrate fuelling, driven by the selected difficulty.
-    // No cap: the feeding rate scales with effort and longer sessions get more feeds.
-    // A recommended intake at the start, then a refuel every `feedIntervalMin`. The hourly
-    // rate is fixed by the difficulty; the interval only splits it into smaller or larger
-    // feeds.
+    // The consensus gives a rate per hour of exercise and says nothing about spacing, so
+    // the session total is rate × full duration and the interval only decides how it's
+    // split: intakes at every interval mark before the end, sharing the total evenly.
+    // (Earlier versions fed one interval at a time from the first mark, which left the
+    // first interval unfuelled and overshot the end — so a 20-min interval gave a 90-min
+    // run 60 g where a 45-min interval gave 34 g.) The start carbs are separate: they're
+    // set by glucose at the start, not by the hourly rate.
     let feedIntervalMin = min(max(feedIntervalMin, carbFeedIntervalRange.lowerBound),
                               carbFeedIntervalRange.upperBound)
     // Interval and resistance work: nothing scheduled. The consensus notes carbohydrate
@@ -258,9 +270,9 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // snack is carried instead, used only on a real fall.
     let duringPerHourG = kind.isAnaerobic ? 0
         : Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
-    let perFeedG = Int((Double(duringPerHourG) * Double(feedIntervalMin) / 60.0).rounded())
-    let duringFeeds = duringPerHourG > 0 ? max(0, (durationMin - 1) / feedIntervalMin) : 0
-    let duringTotalG = duringStartG + perFeedG * duringFeeds
+    let schedule = duringFeedSchedule(perHourG: duringPerHourG, durationMin: durationMin,
+                                      intervalMin: feedIntervalMin)
+    let duringTotalG = duringStartG + schedule.reduce(0) { $0 + $1.grams }
 
     let during: String
     var duringHeadline: String? = nil
@@ -276,8 +288,26 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
                     startReason: reason, beforeText: before, duringText: during,
                     duringHeadline: duringHeadline, duringPerHourG: duringPerHourG, duringStartG: duringStartG,
-                    duringPerFeedG: perFeedG, duringFeeds: duringFeeds,
+                    duringSchedule: schedule,
                     duringTotalG: duringTotalG, duringIntervalMin: feedIntervalMin,
                     deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl,
                     afterText: kind.isAnaerobic ? lang.t("after.anaerobic") : nil)
+}
+
+/// Splits rate × duration into intakes at each interval mark strictly before the end,
+/// as evenly as whole grams allow (any remainder goes to the earliest intakes). A session
+/// shorter than one interval gets a single intake halfway through.
+func duringFeedSchedule(perHourG: Int, durationMin: Int, intervalMin: Int) -> [FeedStop] {
+    guard perHourG > 0, durationMin > 0, intervalMin > 0 else { return [] }
+    let total = Int((Double(perHourG) * Double(durationMin) / 60).rounded())
+    guard total >= minDuringFuelG else { return [] }
+
+    var marks = Array(stride(from: intervalMin, to: durationMin, by: intervalMin))
+    if marks.isEmpty {
+        marks = [max(5, Int((Double(durationMin) / 2 / 5).rounded()) * 5)]
+    }
+    let base = total / marks.count, extra = total % marks.count
+    return marks.enumerated().map { i, m in
+        FeedStop(minute: m, grams: base + (i < extra ? 1 : 0))
+    }
 }

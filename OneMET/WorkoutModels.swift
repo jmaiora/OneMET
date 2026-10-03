@@ -46,16 +46,15 @@ let carbAdviceCeilingMgdl: Double = 120
 ///
 ///   * nothing *before* a session that started above `preCarbCeilingMgdl` — the Plan tab
 ///     gives zero starting carbs there and would not have sent you out fuelled;
-///   * nothing *during* a session no longer than one feed interval, since it never earns
-///     a mid-session feed. The interval is the user's own (Settings ▸ Profile), the same
-///     one the fuel plan schedules with.
+///   * nothing *during* a session too short to earn a scheduled intake. The fuel plan
+///     fuels the whole session whatever the interval, so this is about duration only:
+///     below the shortest interval even the light rate is under `minDuringFuelG`.
 ///
 /// When neither window exists — a short session that began high and still fell — the only
 /// honest advice left is to carry fast carbs and use them on the way down.
-func carbTimingKey(startMgdl: Double?, durMin: Int,
-                   feedIntervalMin: Int = carbFeedIntervalMin) -> String {
+func carbTimingKey(startMgdl: Double?, durMin: Int) -> String {
     let canPreFuel = (startMgdl ?? 0) <= preCarbCeilingMgdl
-    let canFeed = durMin > feedIntervalMin
+    let canFeed = durMin >= carbFeedIntervalRange.lowerBound
     switch (canPreFuel, canFeed) {
     case (true, false):  return "timing.before"
     case (false, true):  return "timing.during"
@@ -69,7 +68,6 @@ func carbTimingKey(startMgdl: Double?, durMin: Int,
 /// belongs, the second whether any is warranted at all. Pass nil when there's no CGM data.
 func workoutInsight(name: String, durMin: Int, delta: Int,
                     startMgdl: Double?, nadirMgdl: Double?,
-                    feedIntervalMin: Int = carbFeedIntervalMin,
                     kind: ExerciseKind = .aerobic,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
@@ -88,8 +86,7 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
                           // Interval / resistance plans schedule nothing during the
                           // session, so the advice can't point there either.
                           lang.t(carbTimingKey(startMgdl: startMgdl,
-                                               durMin: kind.isAnaerobic ? 0 : durMin,
-                                               feedIntervalMin: feedIntervalMin)))
+                                               durMin: kind.isAnaerobic ? 0 : durMin)))
         }
         return lang.t("insight.dropModerate", size)
     }

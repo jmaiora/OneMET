@@ -236,18 +236,14 @@ struct CarbPlanView: View {
         let isFinish: Bool
     }
 
-    /// Start (with its carbs, if any), a refuel every `duringIntervalMin`, then the finish.
-    /// Refuels land strictly before the end — buildRunGuide counts them that way.
+    /// Start (with its carbs, if any), the scheduled intakes, then the finish.
     private var timelineStops: [TimelineStop] {
         var stops = [TimelineStop(minute: 0, label: lang.t("plan.tlStart"),
                                   grams: guide.duringStartG > 0 ? guide.duringStartG : nil,
                                   isFinish: false)]
-        if guide.duringFeeds > 0 {
-            for k in 1...guide.duringFeeds {
-                stops.append(TimelineStop(minute: k * guide.duringIntervalMin,
-                                          label: lang.t("plan.tlRefuel"),
-                                          grams: guide.duringPerFeedG, isFinish: false))
-            }
+        for feed in guide.duringSchedule {
+            stops.append(TimelineStop(minute: feed.minute, label: lang.t("plan.tlRefuel"),
+                                      grams: feed.grams, isFinish: false))
         }
         stops.append(TimelineStop(minute: durationMin, label: lang.t("plan.tlFinish"),
                                   grams: nil, isFinish: true))
