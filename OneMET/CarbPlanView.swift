@@ -151,6 +151,14 @@ struct CarbPlanView: View {
                         timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
+                // The start-banner amount stays the glucose-based top-up; say where the
+                // rest of the start figure came from so the two don't look inconsistent.
+                if guide.startMovedG > 0 {
+                    Text(lang.t("plan.movedToStart", String(guide.startMovedG), String(largeIntakeG)))
+                        .font(Theme.fineFont.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if guide.duringSchedule.contains(where: { $0.grams > largeIntakeG }) {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
@@ -199,7 +207,8 @@ struct CarbPlanView: View {
     /// Start (with its carbs, if any), the scheduled intakes, then the finish.
     private var timelineStops: [TimelineStop] {
         var stops = [TimelineStop(minute: 0, label: lang.t("plan.tlStart"),
-                                  grams: guide.duringStartG > 0 ? guide.duringStartG : nil,
+                                  grams: guide.duringStartG + guide.startMovedG > 0
+                                      ? guide.duringStartG + guide.startMovedG : nil,
                                   isFinish: false)]
         for feed in guide.duringSchedule {
             stops.append(TimelineStop(minute: feed.minute, label: lang.t("plan.tlRefuel"),

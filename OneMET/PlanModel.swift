@@ -126,9 +126,12 @@ let carbFeedIntervalRange = 20...45
 /// at 15 g/h would be ~4 g) — the rescue snack you carry covers it.
 let minDuringFuelG = 5
 
-/// Above this a single intake gets a hint to shorten the interval. Not a published limit —
-/// roughly one gel or a few mouthfuls of sports drink; the literature's only hard limit is
-/// gut absorption (~1 g/min for glucose alone). The interval stays the user's choice.
+/// Largest single intake during the session. Not a published limit — roughly one gel or a
+/// few mouthfuls of sports drink; the literature's only hard limit is gut absorption
+/// (~1 g/min for glucose alone). When glucose at the start is at or below
+/// `preCarbCeilingMgdl`, intakes are capped here and the excess moves to the start; above
+/// it (or unknown) nothing may be added at the start, so intakes stay uncapped and the
+/// plan suggests a shorter interval instead.
 let largeIntakeG = 30
 
 /// One scheduled intake during the session.
@@ -169,6 +172,7 @@ struct RunGuide {
     let duringPerHourG: Int          // Riddell fuelling rate (g/h)
     let duringStartG: Int            // recommended carbs at the start
     let duringSchedule: [FeedStop]   // intakes during the session, in order
+    let startMovedG: Int             // excess over largeIntakeG moved to the start (0 if none)
     let duringTotalG: Int            // total carbs across the session (start + intakes)
     let duringIntervalMin: Int       // feed interval (minutes)
     // The long-form "accept 140–200" and "learn your own response" copy used to live here.
@@ -274,9 +278,16 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // snack is carried instead, used only on a real fall.
     let duringPerHourG = kind.isAnaerobic ? 0
         : Int((Double(difficulty.carbsPerHour) * iobFactor).rounded())
-    let schedule = duringFeedSchedule(perHourG: duringPerHourG, durationMin: durationMin,
+    var schedule = duringFeedSchedule(perHourG: duringPerHourG, durationMin: durationMin,
                                       intervalMin: feedIntervalMin)
-    let duringTotalG = duringStartG + schedule.reduce(0) { $0 + $1.grams }
+    // Cap each intake and take the excess at the start — only when starting glucose
+    // allows carbs at the start at all, the same ceiling startCarbGrams uses.
+    var startMovedG = 0
+    if let g = glucoseMgdl, g > 0, g <= preCarbCeilingMgdl {
+        startMovedG = schedule.reduce(0) { $0 + max(0, $1.grams - largeIntakeG) }
+        schedule = schedule.map { FeedStop(minute: $0.minute, grams: min($0.grams, largeIntakeG)) }
+    }
+    let duringTotalG = duringStartG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
 
     let during: String
     var duringHeadline: String? = nil
@@ -292,7 +303,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     return RunGuide(band: band, bandDetail: bandDetail, status: status, startTitle: title,
                     startReason: reason, beforeText: before, duringText: during,
                     duringHeadline: duringHeadline, duringPerHourG: duringPerHourG, duringStartG: duringStartG,
-                    duringSchedule: schedule,
+                    duringSchedule: schedule, startMovedG: startMovedG,
                     duringTotalG: duringTotalG, duringIntervalMin: feedIntervalMin,
                     deliveryIsPump: deliveryIsPump, usedGlucose: glucoseMgdl,
                     afterText: kind.isAnaerobic ? lang.t("after.anaerobic") : nil)
