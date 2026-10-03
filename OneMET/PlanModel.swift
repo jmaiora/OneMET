@@ -126,6 +126,11 @@ let carbFeedIntervalRange = 20...45
 /// at 15 g/h would be ~4 g) — the rescue snack you carry covers it.
 let minDuringFuelG = 5
 
+/// Above this a single intake gets a hint to shorten the interval. Not a published limit —
+/// roughly one gel or a few mouthfuls of sports drink; the literature's only hard limit is
+/// gut absorption (~1 g/min for glucose alone). The interval stays the user's choice.
+let largeIntakeG = 30
+
 /// One scheduled intake during the session.
 struct FeedStop: Hashable {
     let minute: Int

@@ -335,6 +335,8 @@ enum Strings {
         "plan.tlStart":      L("Start", "Inicio"),
         "plan.tlRefuel":     L("Refuel", "Toma"),
         "plan.tlFinish":     L("Finish", "Fin"),
+        "plan.largeIntake":  L("Some intakes are over {0} g. A shorter interval in Settings ▸ Profile ▸ Carb Intake Interval would split them into smaller, easier ones — same total.",
+                               "Algunas tomas superan los {0} g. Un intervalo más corto en Ajustes ▸ Perfil ▸ Intervalo entre tomas las repartiría en tomas más pequeñas y fáciles, con el mismo total."),
         "plan.interval":     L("Intake interval", "Intervalo entre tomas"),
         "plan.intervalEvery": L("Every {0} min", "Cada {0} min"),
         "plan.perHourTotal": L("~{0} g/h · ~{1} g total", "~{0} g/h · ~{1} g en total"),

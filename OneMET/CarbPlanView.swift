@@ -151,6 +151,20 @@ struct CarbPlanView: View {
                         timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
+                if guide.duringSchedule.contains(where: { $0.grams > largeIntakeG }) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.app(size: 14.5, weight: .semibold))
+                        Text(lang.t("plan.largeIntake", String(largeIntakeG)))
+                            .font(Theme.fineFont.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.white.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
                 // Only the source is kept here; the reasoning lives in Help & FAQ.
                 (Text(guide.duringText)
                     + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(6))
