@@ -423,7 +423,7 @@ struct RunGuide {
     let status: StartStatus
     let startTitle: String
     let startReason: String
-    let duringText: String           // source line under the timeline / no-plan text
+    let duringText: String           // shown when nothing is planned during (empty otherwise)
     let ratePerKg: Double            // ISPAD g/kg/h used (0 when nothing is planned)
     let duringPerHourG: Int          // planned fuelling rate (g/h)
     let duringStartG: Int            // carbs before starting, from Table 1
@@ -513,7 +513,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     } else if schedule.isEmpty {
         during = lang.t("during.none", unit.amount(group.duringThreshold))
     } else {
-        during = lang.t("during.some", String(format: "%.2g", ratePerKg))
+        during = ""          // the timeline speaks for itself; rates are in Help & FAQ
     }
 
     let after = AfterPlan(threshold: group.afterThreshold,

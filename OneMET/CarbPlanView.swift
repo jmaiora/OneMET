@@ -149,11 +149,6 @@ struct CarbPlanView: View {
                         timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
-                // The start-banner amount stays the glucose-based one; say where the rest
-                // of the start figure came from so the two don't look inconsistent.
-                if guide.startMovedG > 0 {
-                    note(lang.t("plan.movedToStart", String(guide.startMovedG), String(guide.intakeCapG)))
-                }
                 if guide.duringSchedule.contains(where: { $0.grams > guide.intakeCapG }) {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
@@ -180,23 +175,18 @@ struct CarbPlanView: View {
             // What to pack: the plan, plus enough to correct a fast drop.
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "bag.fill").font(.app(size: 14.5, weight: .semibold))
-                Text(guide.duringTotalG > 0
-                     ? lang.t("plan.carry", String(guide.carryG), String(guide.duringTotalG),
-                              String(guide.carryRescueG))
-                     : lang.t("plan.carryRescueOnly", String(guide.carryRescueG)))
+                // The footnote points at the sources under the disclaimer; the reasoning
+                // (rates, moving excess to the start) lives in Help & FAQ.
+                (Text(guide.duringTotalG > 0
+                      ? lang.t("plan.carry", String(guide.carryG), String(guide.duringTotalG),
+                               String(guide.carryRescueG))
+                      : lang.t("plan.carryRescueOnly", String(guide.carryRescueG)))
+                    + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(6))
                     .font(Theme.noteFont.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(.white)
 
-            if !guide.duringSchedule.isEmpty {
-                // Only the source is kept here; the reasoning lives in Help & FAQ.
-                (Text(guide.duringText)
-                    + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(6))
-                    .font(Theme.fineFont.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
             if guide.weightIsDefault && !guide.duringSchedule.isEmpty {
                 note(lang.t("plan.weightDefault"))
             }
