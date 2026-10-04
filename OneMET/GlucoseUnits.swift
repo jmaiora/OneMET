@@ -4,7 +4,7 @@ import Foundation
 //
 // Everything the app stores, computes and compares is in mg/dL; the unit is purely a
 // presentation concern. Keeping one canonical internal unit means thresholds (70/180,
-// the carb-advice ceiling, Riddell bands) never have to be duplicated per unit.
+// the EASD/ISPAD exercise thresholds) never have to be duplicated per unit.
 
 enum GlucoseUnit: String, CaseIterable, Codable, Identifiable, Hashable {
     case mgdl = "mg/dL"

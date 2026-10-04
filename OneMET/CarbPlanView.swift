@@ -3,11 +3,12 @@ import SwiftUI
 // CarbPlanView.swift — the answer screen for the Plan tab.
 //
 // Everything here is a conclusion drawn from what you set on the Plan tab: whether to
-// start, what to eat during, and the caveats. Splitting it off keeps the planning tab to
-// inputs only, and means the numbers arrive as a deliberate act rather than shifting
-// under you while you drag a dial.
+// start, the intakes to plan and carry, how to adjust them with the CGM, and what to do
+// afterwards. Splitting it off keeps the planning tab to inputs only, and means the
+// numbers arrive as a deliberate act rather than shifting under you while you drag a dial.
 //
-// Illustrative guidance, NOT medical advice.
+// Sources: EASD/ISPAD 2020 (Moser, Riddell et al.) and ISPAD 2022 (Adolfsson et al.) —
+// see PlanModel.swift. Illustrative guidance, NOT medical advice.
 
 struct CarbPlanView: View {
     var guide: RunGuide
@@ -20,6 +21,7 @@ struct CarbPlanView: View {
     var onBack: () -> Void
 
     private var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
+    private var group: RiskGroup { guide.group }
 
     var body: some View {
         ScreenScaffold {
@@ -39,6 +41,14 @@ struct CarbPlanView: View {
                     .foregroundStyle(Theme.ink)
                     // The Spanish title runs to two lines; let it, rather than truncate.
                     .fixedSize(horizontal: false, vertical: true)
+                // The thresholds every number below is keyed to, and why.
+                Text(lang.t("plan.thresholds", group.label(lang),
+                            unit.range(group.duringThreshold, group.targetTop),
+                            unit.amount(group.duringThreshold)))
+                    .font(Theme.fineFont)
+                    .foregroundStyle(Theme.ink2)
+                    .padding(.top, 4)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -46,9 +56,9 @@ struct CarbPlanView: View {
 
             duringBanner
 
-            if let after = guide.afterText {
-                afterCard(after)
-            }
+            adjustCard
+
+            afterCard
 
             // Two headlines, both bold beside their icon — the reasoning behind each is in
             // Settings ▸ Help & FAQ.
@@ -62,31 +72,6 @@ struct CarbPlanView: View {
             }
 
             disclaimer
-        }
-    }
-
-    // MARK: - After (interval / resistance)
-
-    private func afterCard(_ text: String) -> some View {
-        Card(title: lang.t("plan.after"), icon: "chart", iconColor: Theme.amber, pad: 14) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(text)
-                    .font(Theme.noteFont)
-                    .lineSpacing(Theme.noteLineSpacing)
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(alignment: .top, spacing: 9) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.app(size: 15, weight: .semibold))
-                        .foregroundStyle(accent)
-                        .frame(width: 20)
-                    Text(lang.t("after.mixedTip"))
-                        .font(Theme.noteFont.weight(.semibold))
-                        .lineSpacing(Theme.noteLineSpacing)
-                        .foregroundStyle(Theme.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
         }
     }
 
@@ -125,7 +110,7 @@ struct CarbPlanView: View {
         }
     }
 
-    // MARK: - During
+    // MARK: - During: the plan
 
     private var duringBanner: some View {
         let c = Theme.ringMet
@@ -142,7 +127,14 @@ struct CarbPlanView: View {
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
             }
-            if guide.duringPerHourG > 0 && guide.duringTotalG > 0 {
+            if !guide.duringSchedule.isEmpty {
+                // A high start pays for the first stretch of the session; say how much.
+                if guide.excessG > 0 {
+                    note(lang.t("plan.excess",
+                                unit.amount((guide.usedGlucose ?? group.targetTop) - group.targetTop),
+                                unit.amount(group.targetTop), String(guide.excessG),
+                                String(max(1, guide.coveredMin))))
+                }
                 // One row per intake at its elapsed time, closed by the finish line with the
                 // session total — the schedule reads top to bottom as the run unfolds.
                 let stops = timelineStops
@@ -151,13 +143,10 @@ struct CarbPlanView: View {
                         timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
-                // The start-banner amount stays the glucose-based top-up; say where the
-                // rest of the start figure came from so the two don't look inconsistent.
+                // The start-banner amount stays the glucose-based one; say where the rest
+                // of the start figure came from so the two don't look inconsistent.
                 if guide.startMovedG > 0 {
-                    Text(lang.t("plan.movedToStart", String(guide.startMovedG), String(largeIntakeG)))
-                        .font(Theme.fineFont.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .fixedSize(horizontal: false, vertical: true)
+                    note(lang.t("plan.movedToStart", String(guide.startMovedG), String(largeIntakeG)))
                 }
                 if guide.duringSchedule.contains(where: { $0.grams > largeIntakeG }) {
                     HStack(alignment: .top, spacing: 8) {
@@ -173,19 +162,37 @@ struct CarbPlanView: View {
                     .background(.white.opacity(0.16))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
+            } else {
+                // Nothing planned during: the advice is to carry carbs, not to eat them.
+                Text(guide.duringText)
+                    .font(Theme.noteFont.weight(.medium))
+                    .lineSpacing(Theme.noteLineSpacing)
+                    .foregroundStyle(.white.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // What to pack: the plan, plus enough to correct a fast drop.
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "bag.fill").font(.app(size: 14.5, weight: .semibold))
+                Text(guide.duringTotalG > 0
+                     ? lang.t("plan.carry", String(guide.carryG), String(guide.duringTotalG),
+                              String(guide.carryRescueG))
+                     : lang.t("plan.carryRescueOnly", String(guide.carryRescueG)))
+                    .font(Theme.noteFont.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(.white)
+
+            if !guide.duringSchedule.isEmpty {
                 // Only the source is kept here; the reasoning lives in Help & FAQ.
                 (Text(guide.duringText)
                     + Text("1").font(.app(size: 11.5, weight: .bold)).baselineOffset(6))
                     .font(Theme.fineFont.weight(.medium))
                     .foregroundStyle(.white.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
-            } else {
-                // Nothing to schedule: the advice is to carry carbs, not to eat them.
-                Text(guide.duringText)
-                    .font(Theme.noteFont.weight(.medium))
-                    .lineSpacing(Theme.noteLineSpacing)
-                    .foregroundStyle(.white.opacity(0.95))
-                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if guide.weightIsDefault && !guide.duringSchedule.isEmpty {
+                note(lang.t("plan.weightDefault"))
             }
         }
         .padding(16)
@@ -195,27 +202,36 @@ struct CarbPlanView: View {
         .shadow(color: c.opacity(0.28), radius: 9, x: 0, y: 6)
     }
 
+    private func note(_ text: String) -> some View {
+        Text(text)
+            .font(Theme.fineFont.weight(.medium))
+            .foregroundStyle(.white.opacity(0.9))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
     // MARK: - During timeline
 
     private struct TimelineStop {
         let minute: Int
         let label: String
         let grams: Int?          // nil: a marker with nothing to take (start without carbs)
+        let caption: String?     // e.g. "if < 180" when the start was above the target
         let isFinish: Bool
     }
 
-    /// Start (with its carbs, if any), the scheduled intakes, then the finish.
+    /// Start (with its carbs, if any), the planned intakes, then the finish.
     private var timelineStops: [TimelineStop] {
+        let startG = guide.duringStartG + guide.startMovedG
         var stops = [TimelineStop(minute: 0, label: lang.t("plan.tlStart"),
-                                  grams: guide.duringStartG + guide.startMovedG > 0
-                                      ? guide.duringStartG + guide.startMovedG : nil,
-                                  isFinish: false)]
+                                  grams: startG > 0 ? startG : nil, caption: nil, isFinish: false)]
+        // Starting above the target, each intake only applies once you're back under it.
+        let caption = guide.startAboveTarget ? lang.t("plan.ifBelow", unit.amount(group.targetTop)) : nil
         for feed in guide.duringSchedule {
             stops.append(TimelineStop(minute: feed.minute, label: lang.t("plan.tlRefuel"),
-                                      grams: feed.grams, isFinish: false))
+                                      grams: feed.grams, caption: caption, isFinish: false))
         }
         stops.append(TimelineStop(minute: durationMin, label: lang.t("plan.tlFinish"),
-                                  grams: nil, isFinish: true))
+                                  grams: nil, caption: nil, isFinish: true))
         return stops
     }
 
@@ -253,18 +269,185 @@ struct CarbPlanView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             } else if let g = stop.grams {
-                Text("~\(g) g")
-                    .font(.app(size: 24, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .monospacedDigit()
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("~\(g) g")
+                        .font(.app(size: 24, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                    if let caption = stop.caption {
+                        Text(caption)
+                            .font(.app(size: 12.5, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                }
             }
         }
-        .frame(height: 46 * Theme.textScale)
+        .frame(height: (stop.caption == nil ? 46 : 54) * Theme.textScale)
     }
 
     /// Elapsed time as h:mm — "0:45", "1:30".
     private func clock(_ minutes: Int) -> String {
         "\(minutes / 60):" + String(format: "%02d", minutes % 60)
+    }
+
+    // MARK: - Adjust with the CGM
+
+    /// The planned intakes assume glucose in the exercise target with a steady arrow. This
+    /// grid is what to take instead at each intake, by the reading and arrow at the time.
+    private var adjustCard: some View {
+        Card(title: lang.t("plan.adjustTitle"), icon: "activity", iconColor: Theme.ringMet, pad: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(lang.t(guide.duringSchedule.isEmpty ? "plan.adjustLeadNone" : "plan.adjustLead"))
+                    .font(Theme.noteFont)
+                    .lineSpacing(Theme.noteLineSpacing)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(spacing: 0) {
+                    gridHeader
+                    ForEach(Array(guide.adjust.rows.enumerated()), id: \.offset) { i, row in
+                        gridRow(row)
+                            .background(i % 2 == 0 ? Theme.sep.opacity(0.35) : Color.clear)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                rule("exclamationmark.triangle.fill", Theme.red,
+                     lang.t("plan.ruleLow", unit.amount(70), unit.amount(80), unit.amount(54)))
+                rule("clock.fill", Theme.ringMet, lang.t("plan.ruleRecheck", unit.amount(100)))
+                rule("drop.fill", Theme.amber, lang.t("plan.ruleKetones", unit.amount(270)))
+
+                Text(lang.t("plan.adjustSource"))
+                    .font(Theme.fineFont)
+                    .foregroundStyle(Theme.ink3)
+            }
+        }
+    }
+
+    private let zoneWidth: CGFloat = 96
+
+    private var gridHeader: some View {
+        HStack(spacing: 0) {
+            Text(lang.t("plan.gridGlucose"))
+                .font(.app(size: 12.5, weight: .semibold))
+                .foregroundStyle(Theme.ink2)
+                .frame(width: zoneWidth * Theme.textScale, alignment: .leading)
+            ForEach(GlucoseArrow.allCases, id: \.self) { a in
+                Image(systemName: a.symbol)
+                    .font(.app(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+    }
+
+    private func gridRow(_ row: AdjustRow) -> some View {
+        HStack(spacing: 0) {
+            Text(zoneLabel(row.zone))
+                .font(.app(size: 13.5, weight: .semibold))
+                .foregroundStyle(zoneColor(row.zone))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .frame(width: zoneWidth * Theme.textScale, alignment: .leading)
+            ForEach(Array(row.grams.enumerated()), id: \.offset) { _, g in
+                Text(g > 0 ? "\(g)" : "–")
+                    .font(.app(size: 16, weight: g > 0 ? .bold : .regular))
+                    .foregroundStyle(g > 0 ? Theme.ink : Theme.ink3)
+                    .monospacedDigit()
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+    }
+
+    private func zoneLabel(_ zone: AdjustZone) -> String {
+        switch zone {
+        case .above:  return lang.t("plan.zoneAbove", unit.amount(group.targetTop))
+        case .target: return unit.range(group.duringThreshold, group.targetTop)
+        case .below:  return lang.t("plan.zoneBelow", unit.amount(group.duringThreshold))
+        }
+    }
+
+    private func zoneColor(_ zone: AdjustZone) -> Color {
+        switch zone {
+        case .above:  return Theme.amber
+        case .target: return Theme.green
+        case .below:  return Theme.red
+        }
+    }
+
+    private func rule(_ icon: String, _ color: Color, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: icon).font(.app(size: 14)).foregroundStyle(color).frame(width: 20)
+            Text(text)
+                .font(Theme.noteFont)
+                .lineSpacing(Theme.noteLineSpacing)
+                .foregroundStyle(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - After
+
+    private var afterCard: some View {
+        let a = guide.after
+        return Card(title: lang.t("plan.after"), icon: "chart", iconColor: Theme.amber, pad: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                if let text = guide.afterText {
+                    Text(text)
+                        .font(Theme.noteFont)
+                        .lineSpacing(Theme.noteLineSpacing)
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(lang.t("plan.afterLead", unit.range(a.threshold, 180), unit.amount(a.threshold)))
+                    .font(Theme.noteFont)
+                    .lineSpacing(Theme.noteLineSpacing)
+                    .foregroundStyle(Theme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    afterChip([.flat], "~10 g")
+                    afterChip([.falling], "~15 g")
+                    afterChip([.risingFast, .rising], lang.t("plan.afterNothing"))
+                }
+                afterChip([.fallingFast], lang.t("plan.afterTreat"))
+
+                rule("moon.stars.fill", Theme.ringMet, lang.t("plan.afterNight", unit.amount(a.nightAlert)))
+                rule("bed.double.fill", Theme.violet,
+                     lang.t("plan.afterBedtime", unit.amount(180), String(a.bedtimeSnackG), unit.amount(126)))
+                rule("syringe.fill", Theme.ink2, lang.t("plan.afterNoCorrection"))
+
+                if guide.expectation == .staysOrRises {
+                    rule("arrow.triangle.2.circlepath", accent, lang.t("after.mixedTip"))
+                }
+
+                Text(lang.t("plan.afterSource"))
+                    .font(Theme.fineFont)
+                    .foregroundStyle(Theme.ink3)
+            }
+        }
+    }
+
+    private func afterChip(_ arrows: [GlucoseArrow], _ text: String) -> some View {
+        HStack(spacing: 5) {
+            ForEach(arrows, id: \.self) { arrow in
+                Image(systemName: arrow.symbol).font(.app(size: 13, weight: .bold))
+            }
+            Text(text)
+                .font(.app(size: 14.5, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(Theme.ink)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Theme.sep.opacity(0.5))
+        .clipShape(Capsule())
     }
 
     /// A Good-to-know row: heading beside the icon, with an optional line underneath for

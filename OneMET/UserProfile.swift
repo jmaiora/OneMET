@@ -71,12 +71,16 @@ struct UserProfile: Encodable, Equatable {
     var glucoseHigh: Double = 180
     var dailyMetGoal: Int = 500          // MET·min ring goal
     var carbRatio: Int = 10              // 1 unit : carbRatio g
-    var insulinDelivery: InsulinDelivery = .pump   // drives EXTOD carb rates in the Plan tab
+    var insulinDelivery: InsulinDelivery = .pump   // drives the Plan tab's before-exercise strategy
     var glucoseUnit: GlucoseUnit = .mgdl // display only — everything is stored in mg/dL
     var carbIntervalMin: Int = carbFeedIntervalMin   // default gap between fuel-plan feeds
+    /// EASD Fig. 2 hypoglycaemia-risk inputs, and an optional pinned group.
+    var hypoUnaware: Bool = false
+    var severeHypoRecent: Bool = false
+    var riskGroupSetting: RiskGroupSetting = .automatic
 
     enum CodingKeys: String, CodingKey {
-        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit, carbIntervalMin
+        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit, carbIntervalMin, hypoUnaware, severeHypoRecent, riskGroupSetting
     }
 
     var isConfigured: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -89,7 +93,7 @@ struct UserProfile: Encodable, Equatable {
 
     /// Whether the Plan tab's carbohydrate model applies to this person.
     ///
-    /// It was derived for type 1 diabetes on exogenous insulin (Riddell 2017 / EXTOD), and
+    /// It was derived for type 1 diabetes on exogenous insulin (EASD/ISPAD 2020, ISPAD 2022), and
     /// the hypoglycaemia it exists to prevent comes from the *insulin*, not the diagnosis.
     /// Type 2 on metformin, a GLP-1 agonist or an SGLT2 inhibitor carries little exercise
     /// hypoglycaemia risk, so prophylactic carbohydrate would work directly against the
@@ -130,6 +134,10 @@ extension UserProfile: Decodable {
         if let raw = try? c.decodeIfPresent(String.self, forKey: .insulinDelivery),
            let v = InsulinDelivery(stored: raw) { insulinDelivery = v }
         glucoseUnit = try c.decodeIfPresent(GlucoseUnit.self, forKey: .glucoseUnit) ?? glucoseUnit
+        hypoUnaware = try c.decodeIfPresent(Bool.self, forKey: .hypoUnaware) ?? hypoUnaware
+        severeHypoRecent = try c.decodeIfPresent(Bool.self, forKey: .severeHypoRecent) ?? severeHypoRecent
+        if let raw = try? c.decodeIfPresent(String.self, forKey: .riskGroupSetting),
+           let v = RiskGroupSetting(rawValue: raw) { riskGroupSetting = v }
         if let m = try c.decodeIfPresent(Int.self, forKey: .carbIntervalMin) {
             carbIntervalMin = min(max(m, carbFeedIntervalRange.lowerBound), carbFeedIntervalRange.upperBound)
         }

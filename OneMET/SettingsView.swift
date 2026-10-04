@@ -8,7 +8,7 @@ import MessageUI
 // rather than sheets, so the per-setting editors underneath can still be sheets.
 
 enum ProfileEditor: Int, Identifiable {
-    case identity, language, glucose, units, met, carb, insulin, interval, nightscout, dexcom, libre
+    case identity, language, glucose, units, met, carb, insulin, interval, risk, nightscout, dexcom, libre
     var id: Int { rawValue }
 }
 
@@ -130,6 +130,9 @@ struct SettingsView: View {
             case .carb:       EditCarbRatioSheet(store: profileStore, lang: lang)
             case .insulin:    EditInsulinDeliverySheet(store: profileStore, lang: lang)
             case .interval:   EditCarbIntervalSheet(store: profileStore, lang: lang)
+            case .risk:       EditRiskGroupSheet(store: profileStore, lang: lang,
+                                                 sessionsPerWeek: store.data.longSessionsPerWeek,
+                                                 tbrPct: store.data.tbr14)
             case .nightscout: NightscoutSheet(store: glucoseSource, lang: lang)
             case .dexcom:     DexcomSheet(store: glucoseSource, lang: lang)
             case .libre:      LibreLinkUpSheet(store: glucoseSource, lang: lang)
@@ -260,9 +263,17 @@ struct ProfileMenuView: View {
                 IOSListRow(title: lang.t("settings.insulinDelivery"), detail: p.insulinDelivery.label(lang),
                            dot: accent) { editor = .insulin }
                 IOSListRow(title: lang.t("settings.carbInterval"), detail: p.carbIntervalText,
-                           dot: Theme.amber, isLast: true) { editor = .interval }
+                           dot: Theme.amber) { editor = .interval }
+                IOSListRow(title: lang.t("settings.riskGroup"), detail: riskDetail(p, lang: lang),
+                           dot: Theme.red, isLast: true) { editor = .risk }
             }
         }
+    }
+
+    /// "Automatic · Moderate risk", or just the pinned group.
+    private func riskDetail(_ p: UserProfile, lang: AppLanguage) -> String {
+        let group = store.data.risk.group.label(lang)
+        return p.riskGroupSetting == .automatic ? "\(lang.t("risk.auto")) · \(group)" : group
     }
 
     /// Manual override first, then Health's reading, then an honest "not set".
@@ -312,6 +323,10 @@ struct HelpView: View {
                   lang.t("help.intervalBody"))
             entry("dumbbell.fill", Theme.violet, lang.t("help.anaerobicTitle"),
                   lang.t("help.anaerobicBody"))
+            entry("list.bullet.clipboard", accent, lang.t("help.planTitle"),
+                  lang.t("help.planBody"))
+            entry("shield.lefthalf.filled", Theme.red, lang.t("help.riskTitle"),
+                  lang.t("help.riskBody"))
             entry("person.fill.checkmark", Theme.amber, lang.t("help.scopeTitle"),
                   lang.t("help.scopeBody"))
             entry("drop.fill", Theme.teal, lang.t("help.sourcesTitle"),

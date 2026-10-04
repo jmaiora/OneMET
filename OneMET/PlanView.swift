@@ -18,7 +18,7 @@ struct PlanView: View {
     @State private var sportIndex = 0
     @State private var duration = 45
     @State private var iob = 1.0
-    /// Intensity is a continuous MET value now; the Riddell band is derived from it.
+    /// Intensity is a continuous MET value now; the intensity band is derived from it.
     @State private var met: Double = SPORTS[0].met
     @State private var showCarbs = false
     /// Height of the tab's content area, measured rather than assumed.
@@ -63,16 +63,18 @@ struct PlanView: View {
         let d = store.data
         let sport = SPORTS[sportIndex]
         let glucose: Double? = d.hasGlucose ? d.current : nil
-        let trend = d.currentTrend
+        // Five-level arrow (EASD/ISPAD definition) — the tables key on it.
+        let arrow: GlucoseArrow? = d.hasGlucose ? d.currentArrow : nil
         let gStatus = glucose.map { glucoseStatus($0, low: d.targetLow, high: d.targetHigh) }
-        let unit = profileStore.profile.glucoseUnit
+        let profile = profileStore.profile
+        let unit = profile.glucoseUnit
         let guide = buildRunGuide(sportId: sport.id, durationMin: duration, iob: iob,
-                                  glucoseMgdl: glucose,
-                                  trendFalling: trend == .down, trendRising: trend == .up,
-                                  deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
+                                  glucoseMgdl: glucose, arrow: arrow,
                                   difficulty: difficulty,
-                                  feedIntervalMin: profileStore.profile.carbIntervalMin,   // Settings ▸ Profile
+                                  feedIntervalMin: profile.carbIntervalMin,   // Settings ▸ Profile
                                   kind: sport.kind,
+                                  group: d.risk.group,                        // EASD Fig. 2
+                                  weightKg: profile.weightKg ?? store.healthMassKg,
                                   unit: unit, lang: lang)
 
         // Sizes on this screen are chosen so the Calculate button lands above the fold on
@@ -129,7 +131,9 @@ struct PlanView: View {
                                         .foregroundStyle(st.color)
                                         .monospacedDigit()
                                     Text(unit.rawValue).font(.app(size: 14.5)).foregroundStyle(Theme.ink2)
-                                    TrendArrow(dir: trend, color: st.color)
+                                    Image(systemName: (arrow ?? .flat).symbol)
+                                        .font(.app(size: 14, weight: .bold))
+                                        .foregroundStyle(st.color)
                                 }
                             } else {
                                 Text("—").font(.app(size: 15, weight: .semibold)).foregroundStyle(Theme.ink3)

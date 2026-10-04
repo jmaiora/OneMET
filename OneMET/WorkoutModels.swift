@@ -36,24 +36,18 @@ func weekLabel(_ weeksAgo: Int, lang: AppLanguage = .en) -> String {
     }
 }
 
-/// Above this glucose (mg/dL) a fall isn't a hypo risk, so no pre-session carbs are
-/// suggested however large the drop was — dropping 60 points and landing at 190 needs
-/// no fuelling, only a smaller drop that actually approaches the low threshold does.
-let carbAdviceCeilingMgdl: Double = 120
-
 /// Where the carbohydrate could actually have gone, mirroring the prospective model so
 /// the two halves of the app can't contradict each other:
 ///
-///   * nothing *before* a session that started above `preCarbCeilingMgdl` — the Plan tab
-///     gives zero starting carbs there and would not have sent you out fuelled;
-///   * nothing *during* a session too short to earn a scheduled intake. The fuel plan
-///     fuels the whole session whatever the interval, so this is about duration only:
-///     below the shortest interval even the light rate is under `minDuringFuelG`.
+///   * nothing *before* a session that started above the exercise target — the Plan tab
+///     gives no starting carbs there (EASD 2020 Table 1);
+///   * nothing *during* a session too short to earn a planned intake — below the shortest
+///     interval even the lowest planned rate is under `minDuringFuelG`.
 ///
 /// When neither window exists — a short session that began high and still fell — the only
 /// honest advice left is to carry fast carbs and use them on the way down.
-func carbTimingKey(startMgdl: Double?, durMin: Int) -> String {
-    let canPreFuel = (startMgdl ?? 0) <= preCarbCeilingMgdl
+func carbTimingKey(startMgdl: Double?, durMin: Int, targetTop: Double = 180) -> String {
+    let canPreFuel = (startMgdl ?? 0) <= targetTop
     let canFeed = durMin >= carbFeedIntervalRange.lowerBound
     switch (canPreFuel, canFeed) {
     case (true, false):  return "timing.before"
@@ -63,12 +57,31 @@ func carbTimingKey(startMgdl: Double?, durMin: Int) -> String {
     }
 }
 
+/// EASD 2020 Table 2 amount at the during-exercise threshold, for the arrow the session's
+/// average fall rate corresponds to: glucose expected to fall → ~15 / 25 / 35 g, expected
+/// to stay or rise → ~10 / 15 / 20 g (steady / falling / falling fast).
+func easdDuringCarbs(fallPer15Min: Double, expectation: GlucoseExpectation) -> Int {
+    let arrow = GlucoseArrow(per15Min: fallPer15Min)
+    switch (expectation, arrow) {
+    case (.falls, .fallingFast):         return 35
+    case (.falls, .falling):             return 25
+    case (.falls, _):                    return 15
+    case (.staysOrRises, .fallingFast):  return 20
+    case (.staysOrRises, .falling):      return 15
+    case (.staysOrRises, _):             return 10
+    }
+}
+
 /// Insight copy for a session. `startMgdl` is the reading at the start and `nadirMgdl` the
 /// lowest from there through the hour after — the first decides *where* carbohydrate
-/// belongs, the second whether any is warranted at all. Pass nil when there's no CGM data.
+/// belongs, the second whether any is warranted at all. A fall only earns a carbohydrate
+/// suggestion if it took you below the risk group's during-exercise threshold (EASD 2020
+/// Table 2: 126 / 145 / 162 mg/dL); dropping 60 points and landing at 190 needs none.
+/// Pass nil when there's no CGM data.
 func workoutInsight(name: String, durMin: Int, delta: Int,
                     startMgdl: Double?, nadirMgdl: Double?,
                     kind: ExerciseKind = .aerobic,
+                    group: RiskGroup = .low,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
@@ -76,17 +89,19 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
 
     if delta <= -12 {
         // The size of the fall says nothing on its own — where it landed does.
-        if let nadir = nadirMgdl, nadir > carbAdviceCeilingMgdl {
+        if let nadir = nadirMgdl, nadir >= group.duringThreshold {
             return lang.t("insight.dropNoCarbs", sport, size, mins, unit.amount(nadir))
         }
         if delta <= -25 {
-            let carbs = String(Int((Double(abs(delta)) * 0.4).rounded()))
+            let per15 = Double(delta) / Double(max(5, durMin)) * 15
+            let carbs = String(easdDuringCarbs(fallPer15Min: per15, expectation: kind.expectation))
             let floor = nadirMgdl.map { unit.amount($0) } ?? lang.t("insight.dropUnknownNadir")
             return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs,
                           // Interval / resistance plans schedule nothing during the
                           // session, so the advice can't point there either.
                           lang.t(carbTimingKey(startMgdl: startMgdl,
-                                               durMin: kind.isAnaerobic ? 0 : durMin)))
+                                               durMin: kind.isAnaerobic ? 0 : durMin,
+                                               targetTop: group.targetTop)))
         }
         return lang.t("insight.dropModerate", size)
     }

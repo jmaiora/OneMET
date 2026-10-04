@@ -378,6 +378,78 @@ struct EditInsulinDeliverySheet: View {
     }
 }
 
+// MARK: - Exercise risk group (EASD 2020 Fig. 2)
+
+struct EditRiskGroupSheet: View {
+    @ObservedObject var store: ProfileStore
+    var lang: AppLanguage = .en
+    var sessionsPerWeek: Double?
+    var tbrPct: Double?
+    @Environment(\.dismiss) private var dismiss
+    @State private var setting: RiskGroupSetting
+    @State private var unaware: Bool
+    @State private var severe: Bool
+
+    init(store: ProfileStore, lang: AppLanguage = .en, sessionsPerWeek: Double?, tbrPct: Double?) {
+        self.store = store
+        self.lang = lang
+        self.sessionsPerWeek = sessionsPerWeek
+        self.tbrPct = tbrPct
+        _setting = State(initialValue: store.profile.riskGroupSetting)
+        _unaware = State(initialValue: store.profile.hypoUnaware)
+        _severe = State(initialValue: store.profile.severeHypoRecent)
+    }
+
+    /// Live preview of what Automatic gives with the answers as currently toggled.
+    private var auto: RiskAssessment {
+        assessRiskGroup(sessionsPerWeek: sessionsPerWeek, tbrPct: tbrPct,
+                        unaware: unaware, severeHypo: severe, setting: .automatic)
+    }
+    private var effective: RiskGroup { setting.pinned ?? auto.group }
+
+    var body: some View {
+        let unit = store.profile.glucoseUnit
+        NavigationStack {
+            Form {
+                Section(footer: Text(lang.t("edit.riskFooter"))) {
+                    Picker(lang.t("edit.riskTitle"), selection: $setting) {
+                        ForEach(RiskGroupSetting.allCases, id: \.self) { Text($0.label(lang)).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                }
+                Section(footer: Text(lang.t("edit.riskSevereNote"))) {
+                    Toggle(lang.t("edit.riskUnaware"), isOn: $unaware)
+                    Toggle(lang.t("edit.riskSevere"), isOn: $severe)
+                }
+                Section {
+                    Text(lang.t("edit.riskAuto", auto.group.label(lang),
+                                sessionsPerWeek.map { fmtNum(($0 * 10).rounded() / 10) } ?? lang.t("edit.riskNoData"),
+                                tbrPct.map { "\(fmtNum(($0 * 10).rounded() / 10)) %" } ?? lang.t("edit.riskNoData"),
+                                unit.amount(70)))
+                        .foregroundStyle(.secondary)
+                    Text(lang.t("edit.riskThresholds",
+                                unit.range(effective.duringThreshold, effective.targetTop),
+                                unit.amount(effective.duringThreshold),
+                                unit.amount(effective.afterThreshold)))
+                }
+            }
+            .navigationTitle(lang.t("edit.riskTitle"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(lang.t("common.save")) {
+                        store.profile.riskGroupSetting = setting
+                        store.profile.hypoUnaware = unaware
+                        store.profile.severeHypoRecent = severe
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Nightscout glucose source
 
 struct NightscoutSheet: View {

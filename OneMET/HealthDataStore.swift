@@ -81,6 +81,8 @@ struct HealthSnapshot {
     var runTo: Int? = nil
     var current: Double = 0
     var currentTrend: TrendArrow.Dir = .flat
+    /// Five-level arrow from the change over the last ~15 min (EASD/ISPAD definition).
+    var currentArrow: GlucoseArrow = .flat
     var avg: Double = 0
     var tir: TimeInRange = TimeInRange(low: 0, inRange: 0, high: 0)
     var lowestToday: Double = 0
@@ -128,6 +130,12 @@ struct HealthSnapshot {
     var lowEvents14: Int = 0
     var avgSteps14: Int = 0
     var workoutCount14: Int = 0
+    /// Percent of readings below 70 mg/dL over the last 14 days; nil without CGM history.
+    var tbr14: Double? = nil
+    /// Workouts of 45 min or more per week, averaged over the last 4 weeks; nil if unknown.
+    var longSessionsPerWeek: Double? = nil
+    /// EASD hypoglycaemia-risk group the fuel plan uses (Fig. 2).
+    var risk: RiskAssessment = .unknown
 
     // Insight banner. Empty means "no workout today" — the view supplies the localized
     // placeholder, so this doesn't have to know the language.
@@ -145,6 +153,7 @@ struct HealthSnapshot {
         s.runFrom = 192; s.runTo = 216
         s.current = SampleData.current
         s.currentTrend = .down
+        s.currentArrow = .falling
         s.avg = SampleData.avg
         s.tir = SampleData.tir
         s.lowestToday = 68; s.highestToday = 191; s.sdToday = 32
@@ -165,6 +174,9 @@ struct HealthSnapshot {
         s.corr = SampleData.corr
         s.avgTir14 = 82; s.tirDeltaVsPrior = 8; s.gmi = 6.4; s.avgGlucose14 = SampleData.avg
         s.avgMet14 = 210; s.lowEvents14 = 3; s.avgSteps14 = 9140; s.workoutCount14 = 9
+        s.tbr14 = 3; s.longSessionsPerWeek = 2.5
+        s.risk = assessRiskGroup(sessionsPerWeek: 2.5, tbrPct: 3, unaware: false, severeHypo: false,
+                                 setting: .automatic)
         // Mirrors what workoutInsight() produces for the seeded 4:08 PM run, so previews
         // show the same sentence the Workout detail screen would.
         s.insight = s.todayWorkout?.insight ?? ""
@@ -213,6 +225,10 @@ final class HealthDataStore: ObservableObject {
     /// 70 kg, so today's MET·minutes jumped every time it ran and settled again on the
     /// next full refresh.
     private var cachedMassKg: Double = 70
+    /// Risk group the workout insights use for their carbohydrate threshold. Set from the
+    /// freshest inputs available before sessions are built; the full assessment lands in
+    /// `data.risk` at the end of each refresh.
+    private var insightRiskGroup: RiskGroup = .low
     private var pollTask: Task<Void, Never>?
     /// One glucose fetch per refresh, shared by the day chart and every workout curve.
     private var glucoseCache: (from: Date, to: Date, readings: [(date: Date, v: Double)])?
@@ -311,6 +327,23 @@ final class HealthDataStore: ObservableObject {
         await refresh()
     }
 
+    /// Five-level trend from the change over ~15 min, the window EASD/ISPAD arrows are
+    /// defined on. Uses the reading 10–25 min before the latest, scaled to 15 min; falls
+    /// back to the last two readings when the gap is too short or too long.
+    nonisolated static func arrow(_ readings: [(date: Date, v: Double)]) -> GlucoseArrow {
+        guard let last = readings.last, readings.count >= 2 else { return .flat }
+        if let ref = readings.last(where: {
+            let gap = last.date.timeIntervalSince($0.date)
+            return gap >= 10 * 60 && gap <= 25 * 60
+        }) {
+            let mins = last.date.timeIntervalSince(ref.date) / 60
+            return GlucoseArrow(per15Min: (last.v - ref.v) / mins * 15)
+        }
+        let prev = readings[readings.count - 2]
+        let mins = max(1, last.date.timeIntervalSince(prev.date) / 60)
+        return GlucoseArrow(per15Min: (last.v - prev.v) / mins * 15)
+    }
+
     /// Manual override if there is one, else Health's latest body mass, else a default.
     /// Remembers the answer in `cachedMassKg` for the fast poll to reuse.
     private func resolveMassKg() async -> Double {
@@ -345,6 +378,10 @@ final class HealthDataStore: ObservableObject {
         await loadNutritionToday(&snap, startOfDay: startOfDay, now: now)
         buildEvents(&snap)
         await loadHistory(&snap, now: now, massKg: massKg)
+        snap.risk = assessRiskGroup(sessionsPerWeek: snap.longSessionsPerWeek, tbrPct: snap.tbr14,
+                                    unaware: profile.hypoUnaware, severeHypo: profile.severeHypoRecent,
+                                    setting: profile.riskGroupSetting)
+        insightRiskGroup = snap.risk.group
 
         // Read grants are opaque in HealthKit — infer access from actually having data.
         if snap.hasGlucose || snap.steps > 0 || !snap.workoutHistory.isEmpty { authorized = true }
@@ -440,6 +477,7 @@ final class HealthDataStore: ObservableObject {
         if readings.count >= 2 {
             let d = readings.last!.v - readings[readings.count - 2].v
             snap.currentTrend = d > 3 ? .up : (d < -3 ? .down : .flat)
+            snap.currentArrow = Self.arrow(readings)
         }
         snap.avg = (vals.reduce(0, +) / Double(vals.count)).rounded()
         snap.tir = HealthMath.tir(vals, lowT: profile.glucoseLow, highT: profile.glucoseHigh)
@@ -662,6 +700,14 @@ final class HealthDataStore: ObservableObject {
         authorized = true      // we genuinely read data, so access is real
         snap.watchModel = appleWatchModel(from: wks)
 
+        // EASD Fig. 2 exercise routine: sessions of 45 min or more per week, over 4 weeks.
+        let fourWeeksAgo = cal.date(byAdding: .day, value: -28, to: now)!
+        let longCount = wks.filter { $0.startDate >= fourWeeksAgo && $0.duration >= 45 * 60 }.count
+        snap.longSessionsPerWeek = Double(longCount) / 4
+        insightRiskGroup = assessRiskGroup(sessionsPerWeek: snap.longSessionsPerWeek, tbrPct: data.tbr14,
+                                           unaware: profile.hypoUnaware, severeHypo: profile.severeHypoRecent,
+                                           setting: profile.riskGroupSetting).group
+
         // Single glucose read covering every session window (30 min before the earliest
         // workout → 60 min past now), so no session falls back to stale HealthKit data.
         if let earliest = wks.map({ $0.startDate }).min() {
@@ -752,6 +798,7 @@ final class HealthDataStore: ObservableObject {
             insight: workoutInsight(name: name, durMin: durMin, delta: delta,
                                     startMgdl: startGlucose, nadirMgdl: nadir,
                                     kind: ExerciseKind(sportId: workoutKey(w.workoutActivityType)),
+                                    group: insightRiskGroup,
                                     unit: profile.glucoseUnit, lang: language)
         )
     }
@@ -874,6 +921,8 @@ final class HealthDataStore: ObservableObject {
         snap.avgMet14 = daysWithWk.isEmpty ? 0 : Int((daysWithWk.reduce(0, +) / Double(daysWithWk.count)).rounded())
         snap.avgSteps14 = stepsPerDay.isEmpty ? 0 : Int((stepsPerDay.reduce(0, +) / Double(stepsPerDay.count)).rounded())
         snap.lowEvents14 = HealthMath.lowEvents(g14.map { $0.v }, lowT: profile.glucoseLow)
+        // EASD Fig. 2 uses time below 3.9 mmol/L (70 mg/dL) — fixed, not the personal range.
+        snap.tbr14 = Double(g14.filter { $0.v < 70 }.count) / Double(g14.count) * 100
         snap.workoutCount14 = wk14.count
     }
 }
