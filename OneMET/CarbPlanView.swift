@@ -153,7 +153,11 @@ struct CarbPlanView: View {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
                             .font(.app(size: 14.5, weight: .semibold))
-                        Text(lang.t("plan.largeIntake"))
+                        // Reason first — what was already done about it — then the advice.
+                        Text((guide.startMovedG > 0
+                              ? lang.t("plan.largeMoved", String(guide.startMovedG))
+                              : lang.t("plan.largeOver", String(guide.intakeCapG)))
+                             + " " + lang.t("plan.largeIntake"))
                             .font(Theme.fineFont.weight(.semibold))
                             .fixedSize(horizontal: false, vertical: true)
                     }
