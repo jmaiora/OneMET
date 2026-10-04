@@ -139,7 +139,7 @@ extension UserProfile: Decodable {
         if let raw = try? c.decodeIfPresent(String.self, forKey: .riskGroupSetting),
            let v = RiskGroupSetting(rawValue: raw) { riskGroupSetting = v }
         if let m = try c.decodeIfPresent(Int.self, forKey: .carbIntervalMin) {
-            carbIntervalMin = min(max(m, carbFeedIntervalRange.lowerBound), carbFeedIntervalRange.upperBound)
+            carbIntervalMin = nearestOption(m, in: carbFeedIntervalOptions)   // older saves: 20–45
         }
     }
 }

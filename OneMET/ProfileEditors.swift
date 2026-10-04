@@ -262,12 +262,12 @@ struct EditCarbIntervalSheet: View {
     @ObservedObject var store: ProfileStore
     var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
-    @State private var minutes: Double
+    @State private var minutes: Int
 
     init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
         self.lang = lang
-        _minutes = State(initialValue: Double(store.profile.carbIntervalMin))
+        _minutes = State(initialValue: nearestOption(store.profile.carbIntervalMin, in: carbFeedIntervalOptions))
     }
 
     var body: some View {
@@ -278,19 +278,11 @@ struct EditCarbIntervalSheet: View {
                         HStack {
                             Text(lang.t("plan.interval"))
                             Spacer()
-                            Text(lang.t("plan.intervalEvery", String(Int(minutes))))
+                            Text(lang.t("plan.intervalEvery", String(minutes)))
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
-                        Slider(value: $minutes,
-                               in: Double(carbFeedIntervalRange.lowerBound)...Double(carbFeedIntervalRange.upperBound),
-                               step: 5) {
-                            Text(lang.t("plan.interval"))
-                        } minimumValueLabel: {
-                            Text("\(carbFeedIntervalRange.lowerBound)").font(.footnote)
-                        } maximumValueLabel: {
-                            Text("\(carbFeedIntervalRange.upperBound)").font(.footnote)
-                        }
+                        OptionSlider(options: carbFeedIntervalOptions, value: $minutes) { "\($0) min" }
                     }
                     .padding(.vertical, 4)
                 }
@@ -300,7 +292,7 @@ struct EditCarbIntervalSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(lang.t("common.save")) { store.profile.carbIntervalMin = Int(minutes); dismiss() }
+                    Button(lang.t("common.save")) { store.profile.carbIntervalMin = minutes; dismiss() }
                 }
             }
         }

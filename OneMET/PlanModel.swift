@@ -226,28 +226,36 @@ func assessRiskGroup(sessionsPerWeek: Double?, tbrPct: Double?,
 
 // MARK: - Constants
 
-/// Default interval between planned intakes, and the range the user may pick from
-/// (Settings ▸ Profile). The interval decides how the session total is split, never the
-/// total. Checking the sensor more often is always fine.
+/// Interval between planned intakes: the values the user can pick (fuel-plan slider, and
+/// the default in Settings ▸ Profile). It decides how the session total is split, never
+/// the total. Checking the sensor more often is always fine.
+let carbFeedIntervalOptions = [30, 45, 60]
 let carbFeedIntervalMin = 45
-let carbFeedIntervalRange = 20...45
+
+/// Largest single planned intake ("snack size"): the values the fuel-plan slider offers.
+/// Not a published limit — 20–45 g spans a small gel to a large one or two.
+let intakeCapOptions = [20, 30, 45]
+let defaultIntakeCapG = 30
+
+/// Snap a stored or passed value to the nearest allowed option.
+func nearestOption(_ value: Int, in options: [Int]) -> Int {
+    options.min(by: { abs($0 - value) < abs($1 - value) }) ?? value
+}
+
+/// Sessions shorter than this never get a planned intake in the retrospective insight's
+/// eyes: even the lightest planned rate gives under `minDuringFuelG` there.
+let minFedSessionMin = 20
 
 /// Below this, the session's during-exercise total isn't worth scheduling — the rescue
 /// carbohydrate you carry covers it.
 let minDuringFuelG = 5
 
-/// Largest single planned intake. Not a published limit — roughly one gel. When glucose
-/// at the start is inside the exercise target or lower, intake excess moves to the start
-/// until the start reaches this too; anything still over it stays in the intake and the
-/// plan suggests a shorter interval.
-let largeIntakeG = 30
-
 /// ISPAD 2022: the upper limit of gut glucose absorption is about 1.0 g/min, so planned
 /// fuelling never exceeds 60 g/h.
 let maxFuelGPerH = 60.0
 
-/// EASD Table 2's largest single amount (~35 g, falling fast, glucose expected to fall).
-/// Also the cap on any one corrected intake.
+/// Extra to carry for a fast drop: EASD Table 2's largest single amount — ~35 g when
+/// glucose is expected to fall, ~20 g when it is expected to stay or rise.
 let maxSingleCorrectionG = 35
 
 /// Glucose distribution volume, ~0.2 L/kg (extracellular fluid). Physiology estimate used
@@ -392,53 +400,6 @@ func planFeedSchedule(totalG: Int, durationMin: Int, intervalMin: Int,
     return marks.enumerated().map { i, m in FeedStop(minute: m, grams: base + (i < extra ? 1 : 0)) }
 }
 
-// MARK: - Adjusting with the CGM
-
-enum AdjustZone { case above, target, below }
-
-struct AdjustRow {
-    let zone: AdjustZone
-    /// Grams per arrow in display order ↑ ↗ → ↘ ↓. 0 = take nothing.
-    let grams: [Int]
-}
-
-struct AdjustTable {
-    let rows: [AdjustRow]
-    let typicalG: Int           // the planned intake the ratios scale (0 when none planned)
-}
-
-/// What to take at a planned intake, by the reading and arrow at that moment.
-///
-/// Glucose expected to fall (aerobic) — the planned intake scaled by ISPAD 2022 Table 5's
-/// ratios to its in-target, steady value: above the target ↑↗→ skip, ↘ ½, ↓ 1×; in the
-/// target ↑ skip, ↗ ½, → as planned, ↘ 1½, ↓ 2×. Below the threshold, EASD 2020 Table 2's
-/// adult amounts (↑↗ nothing — re-check; → ~15, ↘ ~25, ↓ ~35 g), or ISPAD's 1½/2/2½× if
-/// larger. Never more than 35 g at once.
-///
-/// Glucose expected to stay or rise (intervals, resistance) — nothing is planned, so only
-/// EASD Table 2's rise-expected column applies: nothing at or above the threshold; below
-/// it ↑↗ nothing, → ~10, ↘ ~15, ↓ ~20 g.
-func adjustTable(typicalG: Int, expectation: GlucoseExpectation) -> AdjustTable {
-    func s(_ f: Double) -> Int { min(maxSingleCorrectionG, Int((Double(typicalG) * f).rounded())) }
-    switch expectation {
-    case .falls:
-        return AdjustTable(rows: [
-            AdjustRow(zone: .above,  grams: [0, 0, 0, s(0.5), s(1)]),
-            AdjustRow(zone: .target, grams: [0, s(0.5), s(1), s(1.5), s(2)]),
-            AdjustRow(zone: .below,  grams: [0, 0,
-                                             min(maxSingleCorrectionG, max(15, s(1.5))),
-                                             min(maxSingleCorrectionG, max(25, s(2))),
-                                             maxSingleCorrectionG]),
-        ], typicalG: typicalG)
-    case .staysOrRises:
-        return AdjustTable(rows: [
-            AdjustRow(zone: .above,  grams: [0, 0, 0, 0, 0]),
-            AdjustRow(zone: .target, grams: [0, 0, 0, 0, 0]),
-            AdjustRow(zone: .below,  grams: [0, 0, 10, 15, 20]),
-        ], typicalG: 0)
-    }
-}
-
 // MARK: - After (EASD 2020 Table 3, ISPAD 2022 §7.5)
 
 struct AfterPlan {
@@ -466,16 +427,16 @@ struct RunGuide {
     let ratePerKg: Double            // ISPAD g/kg/h used (0 when nothing is planned)
     let duringPerHourG: Int          // planned fuelling rate (g/h)
     let duringStartG: Int            // carbs before starting, from Table 1
+    let intakeCapG: Int              // largest planned intake (slider)
     let startIndividual: Bool        // start is "treat as a low" — no number to show
     let duringSchedule: [FeedStop]   // planned intakes during the session, in order
-    let startMovedG: Int             // intake excess over largeIntakeG moved to the start
+    let startMovedG: Int             // intake excess over the cap moved to the start
     let duringTotalG: Int            // start + intakes
     let duringIntervalMin: Int
     let startAboveTarget: Bool       // intakes are conditional: "if under the target top"
     let excessG: Int                 // starting glucose above the target top, as grams
     let coveredMin: Int              // minutes of planned fuel that excess pays for
     let carryRescueG: Int            // extra to carry for a fast drop (Table 2, ↓)
-    let adjust: AdjustTable
     let after: AfterPlan
     let afterText: String?           // interval / resistance only: possible rise, etc.
     let weightKg: Double
@@ -490,6 +451,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    glucoseMgdl: Double?, arrow: GlucoseArrow?,
                    difficulty: WorkoutDifficulty,
                    feedIntervalMin: Int = carbFeedIntervalMin,
+                   intakeCapG: Int = defaultIntakeCapG,
                    kind: ExerciseKind = .aerobic,
                    group: RiskGroup = .low,
                    weightKg: Double? = nil,
@@ -509,8 +471,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                                        unit: unit, lang: lang)
 
     // ── During: planned intakes ──
-    let interval = min(max(feedIntervalMin, carbFeedIntervalRange.lowerBound),
-                       carbFeedIntervalRange.upperBound)
+    let interval = nearestOption(feedIntervalMin, in: carbFeedIntervalOptions)
+    let cap = nearestOption(intakeCapG, in: intakeCapOptions)
     // Interval and resistance work: nothing planned (ISPAD Table 1 / EASD rise column);
     // the CGM table covers a real fall.
     let ratePerKg = kind.isAnaerobic ? 0 : ispadCarbRate(iob: iob, difficulty: difficulty)
@@ -528,27 +490,21 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     var schedule = planFeedSchedule(totalG: planned, durationMin: durationMin,
                                     intervalMin: interval, coveredMin: coveredMin)
 
-    // Move intake excess over largeIntakeG to the start, only into the room the start has
-    // left under the same cap, and only when starting glucose is not above the target.
+    // Move intake excess over the cap to the start, only into the room the start has left
+    // under the same cap, and only when starting glucose is not above the target.
     // The Table 1 start amount itself is never cut — at the low end it prevents a low.
     let startG = decision.grams
     var startMovedG = 0
     if let g = glucoseMgdl, g > 0, g <= group.targetTop, !decision.individual {
-        var room = max(0, largeIntakeG - startG)
+        var room = max(0, cap - startG)
         schedule = schedule.map { feed in
-            let take = min(room, max(0, feed.grams - largeIntakeG))
+            let take = min(room, max(0, feed.grams - cap))
             room -= take
             startMovedG += take
             return FeedStop(minute: feed.minute, grams: feed.grams - take)
         }
     }
     let totalG = startG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
-
-    let typical: Int = {
-        let g = schedule.map(\.grams).sorted()
-        if !g.isEmpty { return g[g.count / 2] }
-        return Int((perHour * Double(interval) / 60).rounded())
-    }()
 
     let during: String
     if kind.isAnaerobic {
@@ -567,13 +523,12 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     return RunGuide(bandDetail: bandDetail, group: group, expectation: expectation,
                     status: decision.status, startTitle: decision.title, startReason: decision.reason,
                     duringText: during, ratePerKg: ratePerKg, duringPerHourG: Int(perHour.rounded()),
-                    duringStartG: startG, startIndividual: decision.individual,
+                    duringStartG: startG, intakeCapG: cap, startIndividual: decision.individual,
                     duringSchedule: schedule, startMovedG: startMovedG, duringTotalG: totalG,
                     duringIntervalMin: interval,
                     startAboveTarget: (glucoseMgdl ?? 0) > group.targetTop,
                     excessG: Int(excessG.rounded()), coveredMin: Int(coveredMin.rounded()),
                     carryRescueG: expectation == .falls ? maxSingleCorrectionG : 20,
-                    adjust: adjustTable(typicalG: typical, expectation: expectation),
                     after: after,
                     afterText: kind.isAnaerobic ? lang.t("after.anaerobic") : nil,
                     weightKg: weight, weightIsDefault: weightKg == nil,

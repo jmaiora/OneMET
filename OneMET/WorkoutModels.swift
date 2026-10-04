@@ -48,7 +48,7 @@ func weekLabel(_ weeksAgo: Int, lang: AppLanguage = .en) -> String {
 /// honest advice left is to carry fast carbs and use them on the way down.
 func carbTimingKey(startMgdl: Double?, durMin: Int, targetTop: Double = 180) -> String {
     let canPreFuel = (startMgdl ?? 0) <= targetTop
-    let canFeed = durMin >= carbFeedIntervalRange.lowerBound
+    let canFeed = durMin >= minFedSessionMin
     switch (canPreFuel, canFeed) {
     case (true, false):  return "timing.before"
     case (false, true):  return "timing.during"

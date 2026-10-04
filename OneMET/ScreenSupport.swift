@@ -286,3 +286,34 @@ extension View {
         )
     }
 }
+
+// MARK: - Option slider
+
+/// A slider that snaps to a short list of values (e.g. 30 / 45 / 60 min), with the values
+/// written under their stops and the chosen one in bold.
+struct OptionSlider: View {
+    let options: [Int]
+    @Binding var value: Int
+    var tint: Color = Theme.accent
+    var format: (Int) -> String = { "\($0)" }
+
+    var body: some View {
+        let index = Binding<Double>(
+            get: { Double(options.firstIndex(of: nearestOption(value, in: options)) ?? 0) },
+            set: { value = options[max(0, min(options.count - 1, Int($0.rounded())))] }
+        )
+        VStack(spacing: 2) {
+            Slider(value: index, in: 0...Double(max(1, options.count - 1)), step: 1)
+                .tint(tint)
+            HStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.offset) { i, o in
+                    Text(format(o))
+                        .font(.app(size: 13, weight: o == value ? .bold : .medium))
+                        .foregroundStyle(o == value ? Theme.ink : Theme.ink3)
+                        .monospacedDigit()
+                    if i < options.count - 1 { Spacer(minLength: 0) }
+                }
+            }
+        }
+    }
+}

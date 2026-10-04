@@ -18,6 +18,9 @@ struct CarbPlanView: View {
     var accent: Color
     var unit: GlucoseUnit = .mgdl
     var lang: AppLanguage = .en
+    /// Per-plan intake settings; PlanView rebuilds `guide` as they move.
+    @Binding var intervalMin: Int
+    @Binding var capG: Int
     var onBack: () -> Void
 
     private var difficulty: WorkoutDifficulty { WorkoutDifficulty(met: met) }
@@ -56,7 +59,10 @@ struct CarbPlanView: View {
 
             duringBanner
 
-            adjustCard
+            // Only an aerobic plan has intakes to space out and size.
+            if guide.ratePerKg > 0 {
+                intakeSettings
+            }
 
             afterCard
 
@@ -146,13 +152,13 @@ struct CarbPlanView: View {
                 // The start-banner amount stays the glucose-based one; say where the rest
                 // of the start figure came from so the two don't look inconsistent.
                 if guide.startMovedG > 0 {
-                    note(lang.t("plan.movedToStart", String(guide.startMovedG), String(largeIntakeG)))
+                    note(lang.t("plan.movedToStart", String(guide.startMovedG), String(guide.intakeCapG)))
                 }
-                if guide.duringSchedule.contains(where: { $0.grams > largeIntakeG }) {
+                if guide.duringSchedule.contains(where: { $0.grams > guide.intakeCapG }) {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
                             .font(.app(size: 14.5, weight: .semibold))
-                        Text(lang.t("plan.largeIntake", String(largeIntakeG)))
+                        Text(lang.t("plan.largeIntake"))
                             .font(Theme.fineFont.weight(.semibold))
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -194,6 +200,14 @@ struct CarbPlanView: View {
             if guide.weightIsDefault && !guide.duringSchedule.isEmpty {
                 note(lang.t("plan.weightDefault"))
             }
+
+            HStack(spacing: 8) {
+                Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                    .font(.app(size: 14.5, weight: .semibold))
+                Text(lang.t("plan.adjustCgm"))
+                    .font(Theme.noteFont.weight(.semibold))
+            }
+            .foregroundStyle(.white)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -290,95 +304,6 @@ struct CarbPlanView: View {
         "\(minutes / 60):" + String(format: "%02d", minutes % 60)
     }
 
-    // MARK: - Adjust with the CGM
-
-    /// The planned intakes assume glucose in the exercise target with a steady arrow. This
-    /// grid is what to take instead at each intake, by the reading and arrow at the time.
-    private var adjustCard: some View {
-        Card(title: lang.t("plan.adjustTitle"), icon: "activity", iconColor: Theme.ringMet, pad: 14) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(lang.t(guide.duringSchedule.isEmpty ? "plan.adjustLeadNone" : "plan.adjustLead"))
-                    .font(Theme.noteFont)
-                    .lineSpacing(Theme.noteLineSpacing)
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                VStack(spacing: 0) {
-                    gridHeader
-                    ForEach(Array(guide.adjust.rows.enumerated()), id: \.offset) { i, row in
-                        gridRow(row)
-                            .background(i % 2 == 0 ? Theme.sep.opacity(0.35) : Color.clear)
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                rule("exclamationmark.triangle.fill", Theme.red,
-                     lang.t("plan.ruleLow", unit.amount(70), unit.amount(80), unit.amount(54)))
-                rule("clock.fill", Theme.ringMet, lang.t("plan.ruleRecheck", unit.amount(100)))
-                rule("drop.fill", Theme.amber, lang.t("plan.ruleKetones", unit.amount(270)))
-
-                Text(lang.t("plan.adjustSource"))
-                    .font(Theme.fineFont)
-                    .foregroundStyle(Theme.ink3)
-            }
-        }
-    }
-
-    private let zoneWidth: CGFloat = 96
-
-    private var gridHeader: some View {
-        HStack(spacing: 0) {
-            Text(lang.t("plan.gridGlucose"))
-                .font(.app(size: 12.5, weight: .semibold))
-                .foregroundStyle(Theme.ink2)
-                .frame(width: zoneWidth * Theme.textScale, alignment: .leading)
-            ForEach(GlucoseArrow.allCases, id: \.self) { a in
-                Image(systemName: a.symbol)
-                    .font(.app(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-    }
-
-    private func gridRow(_ row: AdjustRow) -> some View {
-        HStack(spacing: 0) {
-            Text(zoneLabel(row.zone))
-                .font(.app(size: 13.5, weight: .semibold))
-                .foregroundStyle(zoneColor(row.zone))
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-                .frame(width: zoneWidth * Theme.textScale, alignment: .leading)
-            ForEach(Array(row.grams.enumerated()), id: \.offset) { _, g in
-                Text(g > 0 ? "\(g)" : "–")
-                    .font(.app(size: 16, weight: g > 0 ? .bold : .regular))
-                    .foregroundStyle(g > 0 ? Theme.ink : Theme.ink3)
-                    .monospacedDigit()
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 10)
-    }
-
-    private func zoneLabel(_ zone: AdjustZone) -> String {
-        switch zone {
-        case .above:  return lang.t("plan.zoneAbove", unit.amount(group.targetTop))
-        case .target: return unit.range(group.duringThreshold, group.targetTop)
-        case .below:  return lang.t("plan.zoneBelow", unit.amount(group.duringThreshold))
-        }
-    }
-
-    private func zoneColor(_ zone: AdjustZone) -> Color {
-        switch zone {
-        case .above:  return Theme.amber
-        case .target: return Theme.green
-        case .below:  return Theme.red
-        }
-    }
-
     private func rule(_ icon: String, _ color: Color, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 9) {
             Image(systemName: icon).font(.app(size: 14)).foregroundStyle(color).frame(width: 20)
@@ -388,6 +313,42 @@ struct CarbPlanView: View {
                 .foregroundStyle(Theme.ink2)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: - Intake settings
+
+    /// Two snapping sliders: how often to take carbs and the most to take at once. Moving
+    /// either rebuilds the plan above; the session total never changes.
+    private var intakeSettings: some View {
+        Card(pad: 14) {
+            VStack(alignment: .leading, spacing: 16) {
+                settingRow(lang.t("plan.interval"), lang.t("plan.intervalEvery", String(intervalMin))) {
+                    OptionSlider(options: carbFeedIntervalOptions, value: $intervalMin,
+                                 tint: Theme.ringMet) { "\($0) min" }
+                }
+                settingRow(lang.t("plan.capSlider"), lang.t("plan.capValue", String(capG))) {
+                    OptionSlider(options: intakeCapOptions, value: $capG,
+                                 tint: Theme.ringMet) { "\($0) g" }
+                }
+            }
+        }
+    }
+
+    private func settingRow<S: View>(_ title: String, _ value: String,
+                                     @ViewBuilder slider: () -> S) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(title)
+                    .font(.app(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Text(value)
+                    .font(.app(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.ringMet)
+                    .monospacedDigit()
+            }
+            slider()
         }
     }
 

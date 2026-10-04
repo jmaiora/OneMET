@@ -318,15 +318,17 @@ struct HelpView: View {
             entry("bolt.fill", Theme.ringMet, lang.t("help.metTitle"),
                   lang.t("help.metBody"))
             entry("waveform.path.ecg", Theme.violet, lang.t("help.insightTitle"),
-                  lang.t("help.insightBody"))
+                  lang.t("help.insightBody", unit.amount(126), unit.amount(60), unit.amount(190)))
             entry("clock.fill", Theme.ringMet, lang.t("help.intervalTitle"),
                   lang.t("help.intervalBody"))
             entry("dumbbell.fill", Theme.violet, lang.t("help.anaerobicTitle"),
-                  lang.t("help.anaerobicBody"))
+                  lang.t("help.anaerobicBody", unit.amount(18), unit.amount(14), unit.amount(9)))
             entry("list.bullet.clipboard", accent, lang.t("help.planTitle"),
                   lang.t("help.planBody"))
             entry("shield.lefthalf.filled", Theme.red, lang.t("help.riskTitle"),
-                  lang.t("help.riskBody"))
+                  lang.t("help.riskBody", unit.amount(126), unit.range(126, 180),
+                         unit.amount(145), unit.range(145, 198),
+                         unit.amount(162), unit.range(162, 216), unit.amount(70)))
             entry("person.fill.checkmark", Theme.amber, lang.t("help.scopeTitle"),
                   lang.t("help.scopeBody"))
             entry("drop.fill", Theme.teal, lang.t("help.sourcesTitle"),
