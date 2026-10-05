@@ -799,7 +799,6 @@ final class HealthDataStore: ObservableObject {
                                     startMgdl: startGlucose, nadirMgdl: nadir,
                                     kind: ExerciseKind(sportId: workoutKey(w.workoutActivityType)),
                                     group: insightRiskGroup,
-                                    closedLoop: profile.insulinDelivery.isClosedLoop,
                                     unit: profile.glucoseUnit, lang: language)
         )
     }

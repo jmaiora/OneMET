@@ -341,13 +341,11 @@ struct EditInsulinDeliverySheet: View {
     var lang: AppLanguage = .en
     @Environment(\.dismiss) private var dismiss
     @State private var delivery: InsulinDelivery
-    @State private var system: AIDSystem
 
     init(store: ProfileStore, lang: AppLanguage = .en) {
         self.store = store
         self.lang = lang
         _delivery = State(initialValue: store.profile.insulinDelivery)
-        _system = State(initialValue: store.profile.aidSystem)
     }
 
     var body: some View {
@@ -359,27 +357,13 @@ struct EditInsulinDeliverySheet: View {
                     }
                     .pickerStyle(.inline)
                 }
-                // Which closed loop, so the plan can name its exercise feature and settings.
-                if delivery.isClosedLoop {
-                    Section(header: Text(lang.t("edit.aidSystem")), footer: Text(lang.t("edit.aidFooter"))) {
-                        Picker(lang.t("edit.aidSystem"), selection: $system) {
-                            ForEach(AIDSystem.allCases) { Text($0.label(lang)).tag($0) }
-                        }
-                        .pickerStyle(.inline)
-                        .labelsHidden()
-                    }
-                }
             }
             .navigationTitle(lang.t("edit.insulinTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(lang.t("common.cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(lang.t("common.save")) {
-                        store.profile.insulinDelivery = delivery
-                        store.profile.aidSystem = system
-                        dismiss()
-                    }
+                    Button(lang.t("common.save")) { store.profile.insulinDelivery = delivery; dismiss() }
                 }
             }
         }

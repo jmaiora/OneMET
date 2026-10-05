@@ -23,38 +23,13 @@ enum DiabetesType: String, CaseIterable, Codable, Identifiable {
 
 enum InsulinDelivery: String, CaseIterable, Codable, Identifiable, Hashable {
     // `noInsulin` rather than `none`, which shadows Optional.none at call sites.
-    case pump, mdi, closedLoop, noInsulin
+    case pump, mdi, noInsulin
     var id: String { rawValue }
-    /// Open-loop pump: the before-exercise strategy talks about basal reductions.
     var isPump: Bool { self == .pump }
-    /// Automated insulin delivery — the fuel plan switches to the EASD/ISPAD 2025 AID
-    /// statement, because the open-loop tables don't apply.
-    var isClosedLoop: Bool { self == .closedLoop }
     /// The variable that actually drives exercise hypoglycaemia risk — see
     /// `UserProfile.fuellingModelApplies`.
     var usesInsulin: Bool { self != .noInsulin }
     func label(_ lang: AppLanguage) -> String { lang.t("insulin.\(rawValue)") }
-    /// Short form for segmented controls.
-    func shortLabel(_ lang: AppLanguage) -> String { lang.t("insulin.short.\(rawValue)") }
-}
-
-/// The commercial AID systems the EASD/ISPAD 2025 statement discusses one by one, so the
-/// plan can name each system's exercise feature and settings.
-enum AIDSystem: String, CaseIterable, Codable, Identifiable, Hashable {
-    case camaps, controlIQ, minimed780g, omnipod5, dblg1, iLet, other
-    var id: String { rawValue }
-
-    func label(_ lang: AppLanguage) -> String {
-        switch self {
-        case .camaps:      return "mylife CamAPS FX"
-        case .controlIQ:   return "Tandem Control-IQ"
-        case .minimed780g: return "MiniMed 780G"
-        case .omnipod5:    return "Omnipod 5"
-        case .dblg1:       return "Diabeloop DBLG1"
-        case .iLet:        return "iLet Bionic Pancreas"
-        case .other:       return lang.t("aid.other")
-        }
-    }
 }
 
 // Profiles saved before localization stored the English display string as the raw value
@@ -103,10 +78,9 @@ struct UserProfile: Encodable, Equatable {
     var hypoUnaware: Bool = false
     var severeHypoRecent: Bool = false
     var riskGroupSetting: RiskGroupSetting = .automatic
-    var aidSystem: AIDSystem = .other              // only used with closed-loop delivery
 
     enum CodingKeys: String, CodingKey {
-        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit, carbIntervalMin, hypoUnaware, severeHypoRecent, riskGroupSetting, aidSystem
+        case name, diabetesType, diagnosisYear, weightKg, glucoseLow, glucoseHigh, dailyMetGoal, carbRatio, insulinDelivery, glucoseUnit, carbIntervalMin, hypoUnaware, severeHypoRecent, riskGroupSetting
     }
 
     var isConfigured: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -164,8 +138,6 @@ extension UserProfile: Decodable {
         severeHypoRecent = try c.decodeIfPresent(Bool.self, forKey: .severeHypoRecent) ?? severeHypoRecent
         if let raw = try? c.decodeIfPresent(String.self, forKey: .riskGroupSetting),
            let v = RiskGroupSetting(rawValue: raw) { riskGroupSetting = v }
-        if let raw = try? c.decodeIfPresent(String.self, forKey: .aidSystem),
-           let v = AIDSystem(rawValue: raw) { aidSystem = v }
         if let m = try c.decodeIfPresent(Int.self, forKey: .carbIntervalMin) {
             carbIntervalMin = nearestOption(m, in: carbFeedIntervalOptions)   // older saves: 20–45
         }

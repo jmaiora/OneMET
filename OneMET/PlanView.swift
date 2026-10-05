@@ -80,8 +80,6 @@ struct PlanView: View {
                                   kind: sport.kind,
                                   group: d.risk.group,                        // EASD Fig. 2
                                   weightKg: profile.weightKg ?? store.healthMassKg,
-                                  closedLoop: profile.insulinDelivery.isClosedLoop,   // EASD/ISPAD 2025
-                                  aidSystem: profile.aidSystem,
                                   unit: unit, lang: lang)
 
         // Sizes on this screen are chosen so the Calculate button lands above the fold on
