@@ -45,9 +45,11 @@ struct CarbPlanView: View {
                     // The Spanish title runs to two lines; let it, rather than truncate.
                     .fixedSize(horizontal: false, vertical: true)
                 // The thresholds every number below is keyed to, and why.
-                Text(lang.t("plan.thresholds", group.label(lang),
-                            unit.range(group.duringThreshold, group.targetTop),
-                            unit.amount(group.duringThreshold)))
+                Text(guide.closedLoop
+                     ? lang.t("plan.thresholdsAid", guide.aidSystemLabel, unit.amount(aidDuringThreshold))
+                     : lang.t("plan.thresholds", group.label(lang),
+                              unit.range(group.duringThreshold, group.targetTop),
+                              unit.amount(group.duringThreshold)))
                     .font(Theme.fineFont)
                     .foregroundStyle(Theme.ink2)
                     .padding(.top, 4)
@@ -360,28 +362,37 @@ struct CarbPlanView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text(lang.t("plan.afterLead", unit.range(a.threshold, 180), unit.amount(a.threshold)))
-                    .font(Theme.noteFont)
-                    .lineSpacing(Theme.noteLineSpacing)
-                    .foregroundStyle(Theme.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    afterChip([.flat], "~10 g")
-                    afterChip([.falling], "~15 g")
-                    afterChip([.risingFast, .rising], lang.t("plan.afterNothing"))
-                }
-                afterChip([.fallingFast], lang.t("plan.afterTreat"))
+                if a.closedLoop {
+                    // EASD/ISPAD 2025 Table 2, after activity. No uncovered bedtime snack:
+                    // the closed loop would deliver insulin against it.
+                    rule("power", Theme.ringMet, lang.t("aid.after.modeOff", a.aidModeName))
+                    rule("arrow.down.right", Theme.red, lang.t("aid.after.low", unit.amount(90)))
+                    rule("arrow.up.right", Theme.amber, lang.t("aid.after.high", unit.amount(270)))
+                    rule("fork.knife", Theme.ink2, lang.t("aid.after.meal"))
+                } else {
+                    Text(lang.t("plan.afterLead", unit.range(a.threshold, 180), unit.amount(a.threshold)))
+                        .font(Theme.noteFont)
+                        .lineSpacing(Theme.noteLineSpacing)
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        afterChip([.flat], "~10 g")
+                        afterChip([.falling], "~15 g")
+                        afterChip([.risingFast, .rising], lang.t("plan.afterNothing"))
+                    }
+                    afterChip([.fallingFast], lang.t("plan.afterTreat"))
 
-                rule("moon.stars.fill", Theme.ringMet, lang.t("plan.afterNight", unit.amount(a.nightAlert)))
-                rule("bed.double.fill", Theme.violet,
-                     lang.t("plan.afterBedtime", unit.amount(180), String(a.bedtimeSnackG), unit.amount(126)))
-                rule("syringe.fill", Theme.ink2, lang.t("plan.afterNoCorrection"))
+                    rule("moon.stars.fill", Theme.ringMet, lang.t("plan.afterNight", unit.amount(a.nightAlert)))
+                    rule("bed.double.fill", Theme.violet,
+                         lang.t("plan.afterBedtime", unit.amount(180), String(a.bedtimeSnackG), unit.amount(126)))
+                    rule("syringe.fill", Theme.ink2, lang.t("plan.afterNoCorrection"))
+                }
 
                 if guide.expectation == .staysOrRises {
                     rule("arrow.triangle.2.circlepath", accent, lang.t("after.mixedTip"))
                 }
 
-                Text(lang.t("plan.afterSource"))
+                Text(lang.t(a.closedLoop ? "aid.after.source" : "plan.afterSource"))
                     .font(Theme.fineFont)
                     .foregroundStyle(Theme.ink3)
             }

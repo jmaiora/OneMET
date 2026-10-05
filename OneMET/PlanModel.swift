@@ -17,8 +17,15 @@ import Foundation
 //     adjustments by glucose and arrow (Table 5), the ~1 g/min absorption limit and the
 //     bedtime snack (§7.5). A paediatric guideline, but these parts rest on adult data.
 //
-// Neither table set was written for hybrid closed-loop systems. No insulin doses are
-// computed anywhere — insulin advice stays strategy-only, to agree with the clinician.
+//   • EASD/ISPAD 2025 — Moser O, Zaharieva DP, et al. The use of automated insulin
+//     delivery around physical activity and exercise in type 1 diabetes. Diabetologia
+//     2025;68:255–280. Used instead of the two above for closed-loop (AID) users, whose
+//     tables EASD 2020 states do not apply to: higher target 1–2 h before (grade A), a
+//     start snack only under 5.0 mmol/L, small arrow-based amounts below 7.0 mmol/L
+//     during, and no planned feeding — eating ahead drives extra automated insulin.
+//
+// No insulin doses are computed anywhere — insulin advice stays strategy-only, to agree
+// with the clinician.
 // Illustrative guidance, NOT medical advice.
 
 /// A sport catalogue entry. Name and description are looked up from `id` at display
@@ -53,9 +60,12 @@ let SPORTS: [Sport] = [
 // Generic "before workout" strategy — the insulin-first principle. Depends only on
 // the user's insulin-delivery method (a Profile setting), not on any live session
 // input, so it can be shown as a standalone summary on the Summary tab.
-func beforeWorkoutSummary(deliveryIsPump: Bool, unit: GlucoseUnit = .mgdl,
-                          lang: AppLanguage = .en) -> String {
-    lang.t(deliveryIsPump ? "before.pump" : "before.mdi", unit.range(140, 180))
+func beforeWorkoutSummary(delivery: InsulinDelivery, aidSystem: AIDSystem = .other,
+                          unit: GlucoseUnit = .mgdl, lang: AppLanguage = .en) -> String {
+    if delivery.isClosedLoop {
+        return lang.t("before.aid", aidModeBefore(aidSystem, falls: true, unit: unit, lang: lang))
+    }
+    return lang.t(delivery.isPump ? "before.pump" : "before.mdi", unit.range(140, 180))
 }
 
 enum StartStatus { case go, topUp, wait, stop, unknown }
@@ -368,6 +378,84 @@ func preExerciseDecision(glucoseMgdl: Double?, arrow: GlucoseArrow?,
                          reason: lang.t("start.stop.reason", amount, falls ? untilSteady : untilRising))
 }
 
+// MARK: - Closed loop (EASD/ISPAD 2025)
+
+/// During exercise, closed-loop users take carbohydrate below 7.0 mmol/L (126 mg/dL).
+let aidDuringThreshold: Double = 126
+/// EASD/ISPAD 2025 Table 1: ~12–20 g for a low during activity — the extra to carry.
+let aidRescueG = 20
+
+/// How each system's exercise feature is named and set (EASD/ISPAD 2025, Figs 2–12).
+/// `falls`: glucose expected to fall (raise the target 1–2 h before); otherwise expected
+/// to stay or rise (no higher target; some systems suggest a lower one).
+func aidModeBefore(_ system: AIDSystem, falls: Bool, unit: GlucoseUnit, lang: AppLanguage) -> String {
+    let key = "aid.before.\(system.rawValue).\(falls ? "fall" : "rise")"
+    switch (system, falls) {
+    case (.camaps, true), (.minimed780g, true):
+        return lang.t(key, unit.amount(150))                    // 8.3 mmol/L
+    case (.minimed780g, false):
+        return lang.t(key, unit.amount(100))                    // 5.5 mmol/L
+    case (.omnipod5, false):
+        return lang.t(key, unit.amount(110))                    // 6.1 mmol/L
+    case (.iLet, true):
+        return lang.t(key, unit.amount(130))                    // 7.2 mmol/L
+    case (.controlIQ, true):
+        return lang.t(key, unit.range(140, 160))                // 7.8–8.9 mmol/L
+    default:
+        return lang.t(key)
+    }
+}
+
+/// The name of the feature to switch off afterwards ("Ease-off", "the Temp Target"…).
+func aidModeName(_ system: AIDSystem, lang: AppLanguage) -> String {
+    lang.t("aid.mode.\(system.rawValue)")
+}
+
+/// EASD/ISPAD 2025 Table 2 (planned activity). Under 5.0 mmol/L (90 mg/dL): higher target
+/// and a 10–20 g snack at the start with no bolus. 5.0–15.0: higher target only, no snack
+/// — if it couldn't be set in time, set it now and take 10–20 g at the start if under
+/// 7.0 mmol/L (consensus recommendation 4). Over 15.0: ketones first; no higher target
+/// needed. Glucose expected to rise: no higher target. Under 70 the low is treated first,
+/// as in every guideline.
+func aidStartDecision(glucoseMgdl: Double?, arrow: GlucoseArrow?, expectation: GlucoseExpectation,
+                      system: AIDSystem, unit: GlucoseUnit, lang: AppLanguage) -> StartDecision {
+    guard let g = glucoseMgdl, g > 0 else {
+        return StartDecision(status: .unknown, grams: 0, individual: false,
+                             title: lang.t("start.unknown.title"), reason: lang.t("start.unknown.reason"))
+    }
+    let amount = unit.amount(g)
+    let falls = expectation == .falls
+    let mode = aidModeBefore(system, falls: falls, unit: unit, lang: lang)
+    let untilSteady = lang.t("start.until90", unit.amount(90))
+
+    if g < 70 {
+        return StartDecision(status: .stop, grams: 0, individual: true, title: lang.t("start.stop.title"),
+                             reason: lang.t("start.stop.reason", amount, untilSteady))
+    }
+    if g > 270 {
+        return StartDecision(status: .wait, grams: 0, individual: false, title: lang.t("start.ketones.title"),
+                             reason: lang.t("aid.start.ketones", amount))
+    }
+    if g < 90 {
+        if arrow == .fallingFast {
+            return StartDecision(status: .stop, grams: 0, individual: true, title: lang.t("start.treat.title"),
+                                 reason: lang.t("start.treat.reason", amount, untilSteady))
+        }
+        let snack = lang.t(system == .camaps ? "aid.snack.camaps"
+                           : system == .minimed780g ? "aid.snack.minimed780g" : "aid.snack.generic")
+        return StartDecision(status: .topUp, grams: 15, individual: false,
+                             title: lang.t("aid.start.snack.title", "15"),
+                             reason: lang.t("aid.start.snack.reason", amount, "15") + " " + snack + " " + mode)
+    }
+    if !falls {
+        return StartDecision(status: .go, grams: 0, individual: false, title: lang.t("start.go.title"),
+                             reason: lang.t("aid.start.go", amount) + " " + mode)
+    }
+    return StartDecision(status: .go, grams: 0, individual: false, title: lang.t("start.go.title"),
+                         reason: lang.t("aid.start.go", amount) + " " + mode + " "
+                             + lang.t("aid.start.late", unit.amount(aidDuringThreshold)))
+}
+
 // MARK: - During: planned rate (ISPAD 2022 §7.3)
 
 /// ISPAD 2022 §7.3: ~0.3–0.5 g/kg/h when only basal insulin is active (> 2 h since the last
@@ -412,6 +500,10 @@ struct AfterPlan {
     /// 0.4 g/kg low–medium GI carbohydrate without bolus if glucose is under 180;
     /// add ~15 g protein under 126.
     let bedtimeSnackG: Int
+    /// Closed loop: the After card follows EASD/ISPAD 2025 instead (switch the mode off,
+    /// small amounts under 5.0 mmol/L, no uncovered bedtime snack).
+    let closedLoop: Bool
+    let aidModeName: String
 }
 
 // MARK: - The plan
@@ -442,6 +534,8 @@ struct RunGuide {
     let weightKg: Double
     let weightIsDefault: Bool
     let usedGlucose: Double?
+    let closedLoop: Bool
+    let aidSystemLabel: String
 
     /// Everything to pack: the plan plus the rescue amount.
     var carryG: Int { duringTotalG + carryRescueG }
@@ -455,6 +549,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                    kind: ExerciseKind = .aerobic,
                    group: RiskGroup = .low,
                    weightKg: Double? = nil,
+                   closedLoop: Bool = false,
+                   aidSystem: AIDSystem = .other,
                    unit: GlucoseUnit = .mgdl, lang: AppLanguage = .en) -> RunGuide {
     let expectation = kind.expectation
     let weight = weightKg ?? defaultPlanWeightKg
@@ -462,20 +558,26 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     // Duration bands speak in fuelling terms that only hold for aerobic work; interval and
     // resistance sessions get their own line instead.
     let bandKey = durationMin < 45 ? "easy" : (durationMin <= 90 ? "moderate" : "long")
-    let bandDetail = kind.isAnaerobic ? lang.t("band.anaerobic.detail")
+    let bandDetail = closedLoop ? lang.t("band.aid.detail")
+                   : kind.isAnaerobic ? lang.t("band.anaerobic.detail")
                                       : lang.t("band.\(bandKey).detail")
 
     // ── Before ──
-    let decision = preExerciseDecision(glucoseMgdl: glucoseMgdl, arrow: arrow,
-                                       expectation: expectation, group: group,
-                                       unit: unit, lang: lang)
+    let decision = closedLoop
+        ? aidStartDecision(glucoseMgdl: glucoseMgdl, arrow: arrow, expectation: expectation,
+                           system: aidSystem, unit: unit, lang: lang)
+        : preExerciseDecision(glucoseMgdl: glucoseMgdl, arrow: arrow,
+                              expectation: expectation, group: group,
+                              unit: unit, lang: lang)
 
     // ── During: planned intakes ──
     let interval = nearestOption(feedIntervalMin, in: carbFeedIntervalOptions)
     let cap = nearestOption(intakeCapG, in: intakeCapOptions)
     // Interval and resistance work: nothing planned (ISPAD Table 1 / EASD rise column);
     // the CGM table covers a real fall.
-    let ratePerKg = kind.isAnaerobic ? 0 : ispadCarbRate(iob: iob, difficulty: difficulty)
+    // Closed loop: nothing planned either — EASD/ISPAD 2025 gives no planned rate and
+    // warns that eating ahead makes the system deliver more insulin.
+    let ratePerKg = (kind.isAnaerobic || closedLoop) ? 0 : ispadCarbRate(iob: iob, difficulty: difficulty)
     let perHour = min(maxFuelGPerH, ratePerKg * weight)
 
     // A start above the target top pays for the first part of the session: glucose the
@@ -507,7 +609,9 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     let totalG = startG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
 
     let during: String
-    if kind.isAnaerobic {
+    if closedLoop {
+        during = lang.t("aid.during", unit.amount(aidDuringThreshold))
+    } else if kind.isAnaerobic {
         during = lang.t(kind == .resistance ? "during.resistance" : "during.interval",
                         unit.amount(group.duringThreshold))
     } else if schedule.isEmpty {
@@ -518,7 +622,9 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
 
     let after = AfterPlan(threshold: group.afterThreshold,
                           nightAlert: group.afterThreshold,
-                          bedtimeSnackG: max(5, Int((0.4 * weight / 5).rounded()) * 5))
+                          bedtimeSnackG: max(5, Int((0.4 * weight / 5).rounded()) * 5),
+                          closedLoop: closedLoop,
+                          aidModeName: aidModeName(aidSystem, lang: lang))
 
     return RunGuide(bandDetail: bandDetail, group: group, expectation: expectation,
                     status: decision.status, startTitle: decision.title, startReason: decision.reason,
@@ -528,9 +634,11 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                     duringIntervalMin: interval,
                     startAboveTarget: (glucoseMgdl ?? 0) > group.targetTop,
                     excessG: Int(excessG.rounded()), coveredMin: Int(coveredMin.rounded()),
-                    carryRescueG: expectation == .falls ? maxSingleCorrectionG : 20,
+                    carryRescueG: closedLoop ? aidRescueG
+                                             : (expectation == .falls ? maxSingleCorrectionG : 20),
                     after: after,
                     afterText: kind.isAnaerobic ? lang.t("after.anaerobic") : nil,
                     weightKg: weight, weightIsDefault: weightKg == nil,
-                    usedGlucose: glucoseMgdl)
+                    usedGlucose: glucoseMgdl,
+                    closedLoop: closedLoop, aidSystemLabel: aidSystem.label(lang))
 }

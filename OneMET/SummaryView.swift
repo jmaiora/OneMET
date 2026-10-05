@@ -114,7 +114,8 @@ struct SummaryView: View {
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: lang.t("summary.beforeWorkout"), icon: "bolt", iconColor: accent) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(beforeWorkoutSummary(deliveryIsPump: profileStore.profile.insulinDelivery.isPump,
+                    Text(beforeWorkoutSummary(delivery: profileStore.profile.insulinDelivery,
+                                              aidSystem: profileStore.profile.aidSystem,
                                               unit: unit, lang: lang))
                         .font(.app(size: 17, weight: .bold))
                         .foregroundStyle(Theme.ink)

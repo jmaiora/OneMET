@@ -257,8 +257,9 @@ struct WelcomeView: View {
                 .padding(.horizontal, 4)
 
             SegmentedPicker(options: [
-                (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
-                (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
+                (value: InsulinDelivery.pump, label: InsulinDelivery.pump.shortLabel(lang)),
+                (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.shortLabel(lang)),
+                (value: InsulinDelivery.closedLoop, label: InsulinDelivery.closedLoop.shortLabel(lang)),
             ], selection: $delivery)
         }
 

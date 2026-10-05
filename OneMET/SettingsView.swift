@@ -260,7 +260,10 @@ struct ProfileMenuView: View {
                            dot: Theme.green) { editor = .glucose }
                 IOSListRow(title: lang.t("settings.metGoal"), detail: p.metGoalText,
                            dot: Theme.ringMet) { editor = .met }
-                IOSListRow(title: lang.t("settings.insulinDelivery"), detail: p.insulinDelivery.label(lang),
+                IOSListRow(title: lang.t("settings.insulinDelivery"),
+                           detail: p.insulinDelivery.isClosedLoop
+                               ? "\(p.insulinDelivery.label(lang)) · \(p.aidSystem.label(lang))"
+                               : p.insulinDelivery.label(lang),
                            dot: accent) { editor = .insulin }
                 IOSListRow(title: lang.t("settings.carbInterval"), detail: p.carbIntervalText,
                            dot: Theme.amber) { editor = .interval }
@@ -325,6 +328,8 @@ struct HelpView: View {
                   lang.t("help.anaerobicBody", unit.amount(18), unit.amount(14), unit.amount(9)))
             entry("list.bullet.clipboard", accent, lang.t("help.planTitle"),
                   lang.t("help.planBody"))
+            entry("arrow.triangle.2.circlepath.circle.fill", Theme.teal, lang.t("help.aidTitle"),
+                  lang.t("help.aidBody", unit.amount(90), unit.amount(126)))
             entry("shield.lefthalf.filled", Theme.red, lang.t("help.riskTitle"),
                   lang.t("help.riskBody", unit.amount(126), unit.range(126, 180),
                          unit.amount(145), unit.range(145, 198),

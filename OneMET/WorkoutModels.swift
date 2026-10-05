@@ -72,6 +72,16 @@ func easdDuringCarbs(fallPer15Min: Double, expectation: GlucoseExpectation) -> I
     }
 }
 
+/// EASD/ISPAD 2025 amounts for closed-loop users below 7.0 mmol/L, upper end of each
+/// range: steady ~6 g, falling ~9 g, falling fast ~12 g.
+func aidDuringCarbs(fallPer15Min: Double) -> Int {
+    switch GlucoseArrow(per15Min: fallPer15Min) {
+    case .fallingFast: return 12
+    case .falling:     return 9
+    default:           return 6
+    }
+}
+
 /// Insight copy for a session. `startMgdl` is the reading at the start and `nadirMgdl` the
 /// lowest from there through the hour after — the first decides *where* carbohydrate
 /// belongs, the second whether any is warranted at all. A fall only earns a carbohydrate
@@ -82,19 +92,23 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
                     startMgdl: Double?, nadirMgdl: Double?,
                     kind: ExerciseKind = .aerobic,
                     group: RiskGroup = .low,
+                    closedLoop: Bool = false,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
+    // Closed loop: the AID statement's single 7.0 mmol/L threshold, not the risk groups.
+    let threshold = closedLoop ? aidDuringThreshold : group.duringThreshold
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
     let mins = String(durMin)
 
     if delta <= -12 {
         // The size of the fall says nothing on its own — where it landed does.
-        if let nadir = nadirMgdl, nadir >= group.duringThreshold {
+        if let nadir = nadirMgdl, nadir >= threshold {
             return lang.t("insight.dropNoCarbs", sport, size, mins, unit.amount(nadir))
         }
         if delta <= -25 {
             let per15 = Double(delta) / Double(max(5, durMin)) * 15
-            let carbs = String(easdDuringCarbs(fallPer15Min: per15, expectation: kind.expectation))
+            let carbs = String(closedLoop ? aidDuringCarbs(fallPer15Min: per15)
+                                          : easdDuringCarbs(fallPer15Min: per15, expectation: kind.expectation))
             let floor = nadirMgdl.map { unit.amount($0) } ?? lang.t("insight.dropUnknownNadir")
             return lang.t("insight.dropCarbs", sport, size, mins, floor, carbs,
                           // Interval / resistance plans schedule nothing during the
