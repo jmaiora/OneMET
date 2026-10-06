@@ -199,8 +199,8 @@ enum Strings {
         "summary.goal":           L("Goal", "Objetivo"),
         // States the day rather than issuing an instruction: the button underneath is what
         // tells you what to do now.
-        "summary.aidNote":        L("Using a closed-loop system? Set it in manual mode before and during activity.",
-                                    "¿Usas un sistema de asa cerrada? Ponlo en modo manual antes y durante la actividad."),
+        "summary.aidBefore":      L("If you use a closed-loop system, set it to manual mode before and during the activity to take advantage of the app's recommendations.",
+                                    "Si usas un sistema de asa cerrada, ponlo en modo manual antes y durante la actividad para aprovechar las recomendaciones de la app."),
         "summary.noWorkoutYet":   L("No activity recorded yet today.",
                                     "Aún no hay actividad registrada hoy."),
         // The banner's call to action into the Plan tab: a bold prompt over a quieter line
@@ -407,8 +407,8 @@ enum Strings {
         "band.long.detail":    L("Over 90 min · fuel for performance", "Más de 90 min · come para rendir"),
 
         // ── Plan: before-workout strategy ──
-        "before.pump": L("Prevent, don’t treat: ease insulin ahead — a basal cut 60–90 min before or a smaller bolus if you ate recently. Start near {0}, carry fast carbs.",
-                         "Prevenir, no corregir: ajusta la insulina antes — reduce la basal 60–90 min antes, o pon un bolo menor si has comido hace poco. Empieza cerca de {0} y lleva carbohidratos rápidos."),
+        "before.pump": L("Ease insulin ahead — a basal cut 60–90 min before, or a smaller bolus if you ate recently.",
+                         "Ajusta la insulina antes: reduce la basal 60–90 min antes, o pon un bolo menor si has comido hace poco."),
         "before.mdi":  L("Prevent, don’t treat: your lever is a smaller meal bolus if you ate within ~2–3 h. Start near {0}, carry fast carbs.",
                          "Prevenir, no corregir: tu herramienta es un bolo de comida más pequeño si has comido en las últimas 2–3 h. Empieza cerca de {0} y lleva carbohidratos rápidos."),
 

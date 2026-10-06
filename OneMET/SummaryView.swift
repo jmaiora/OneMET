@@ -12,24 +12,27 @@ struct SummaryView: View {
     var onGoActivity: () -> Void
     /// Jump to the Plan tab, from the insight banner's call to action.
     var onGoPlan: () -> Void
-    /// Settings ▸ Help & FAQ ▸ closed-loop page, from the note under the glucose card.
+    /// Settings ▸ Help & FAQ ▸ closed-loop page, from the info icon in Before workout.
     var onOpenAidHelp: () -> Void = {}
 
     /// Half of the vertical budget that decides whether an empty day's call to action
     /// clears the fold; the other half is `ActivityPrompt.diameter`. Tuned together for a
     /// standard-size iPhone — on a 4.7" screen both want a notch less. (Was 112; lowered
-    /// when the closed-loop note sat above the disc. The note now sits below it and the
-    /// header row is gone, so there is room to raise it again if wanted.)
+    /// when a closed-loop note sat above the disc. That note now lives in the Before
+    /// workout card, so there is room to raise it again if wanted.)
     private let chartHeight: CGFloat = 96
 
     var body: some View {
         let d = store.data
         let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
         let r = d.rings
+        let today = Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()
+                                        .locale(lang.locale))
 
-        // No header row (title, date, initials): the tab bar already names the screen,
-        // and the space goes to the glucose card and the call to action below it.
         ScreenScaffold(onRefresh: { await store.refresh() }) {
+            AppHeader(title: lang.t("summary.title"), date: today,
+                      initials: profileStore.profile.initials, accent: accent)
+
             // ── Glucose hero ──
             Card(title: lang.t("summary.glucose"), icon: "drop", iconColor: Theme.green,
                  right: store.isLoading ? lang.t("common.updating") : lang.t("common.now"),
@@ -112,36 +115,6 @@ struct SummaryView: View {
                               action: onGoPlan)
             }
 
-            // ── Closed-loop note ──
-            // Right under the call to action, because it decides whether the plan behind
-            // that button applies. Amber and bold so it isn't read as small print; the
-            // whole strip opens the full explanation in Help & FAQ.
-            Button(action: onOpenAidHelp) {
-                HStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.app(size: 17, weight: .semibold))
-                        .foregroundStyle(Theme.amber)
-                    Text(lang.t("summary.aidNote"))
-                        .font(Theme.noteFont.weight(.bold))
-                        .foregroundStyle(Theme.ink)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    Image(systemName: "info.circle")
-                        .font(.app(size: 18, weight: .semibold))
-                        .foregroundStyle(Theme.amber)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.amber.opacity(0.16))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Theme.amber.opacity(0.55), lineWidth: 1.5))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: lang.t("summary.beforeWorkout"), icon: "bolt", iconColor: accent) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -151,6 +124,26 @@ struct SummaryView: View {
                         .foregroundStyle(Theme.ink)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
+                    // Closed loops are pumps, so the advice sits with the pump strategy. The
+                    // info icon opens Help & FAQ at the page explaining why manual mode.
+                    if profileStore.profile.insulinDelivery.isPump {
+                        Button(action: onOpenAidHelp) {
+                            HStack(alignment: .top, spacing: 8) {
+                                Text(lang.t("summary.aidBefore"))
+                                    .font(Theme.noteFont.weight(.semibold))
+                                    .foregroundStyle(Theme.ink)
+                                    .lineSpacing(Theme.noteLineSpacing)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Image(systemName: "info.circle")
+                                    .font(.app(size: 20, weight: .semibold))
+                                    .foregroundStyle(accent)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Text(lang.t("summary.beforeNote"))
                         .font(Theme.noteFont.weight(.medium))
                         .foregroundStyle(Theme.ink3)
