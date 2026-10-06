@@ -98,6 +98,14 @@ struct CarbPlanView: View {
                 .foregroundStyle(.white.opacity(0.95))
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
+            // Start total = glucose top-up + fuel brought forward (same as the timeline).
+            if let breakdown = guide.startBreakdown {
+                Text(breakdown)
+                    .font(.app(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

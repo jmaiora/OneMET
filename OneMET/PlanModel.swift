@@ -423,6 +423,9 @@ struct RunGuide {
     let status: StartStatus
     let startTitle: String
     let startReason: String
+    /// When fuel was brought forward to the start: how the start amount adds up, so the
+    /// banner and the timeline's Start row show the same total. nil otherwise.
+    let startBreakdown: String?
     let duringText: String           // shown when nothing is planned during (empty otherwise)
     let ratePerKg: Double            // ISPAD g/kg/h used (0 when nothing is planned)
     let duringPerHourG: Int          // planned fuelling rate (g/h)
@@ -506,6 +509,22 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     }
     let totalG = startG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
 
+    // The banner states the whole start amount — glucose top-up plus fuel brought forward —
+    // so it matches the timeline's Start row; the breakdown says where each part comes from.
+    var startTitle = decision.title
+    var startBreakdown: String? = nil
+    if startMovedG > 0 {
+        let startTotal = String(startG + startMovedG)
+        switch decision.status {
+        case .topUp: startTitle = lang.t("start.topUp.title", startTotal)
+        case .wait:  startTitle = lang.t("start.wait.title", startTotal)
+        default:     startTitle = lang.t("start.goFuel.title", startTotal)
+        }
+        startBreakdown = startG > 0
+            ? lang.t("start.breakdown", String(startG), String(startMovedG), startTotal)
+            : lang.t("start.breakdownFuel", String(startMovedG))
+    }
+
     let during: String
     if kind.isAnaerobic {
         during = lang.t(kind == .resistance ? "during.resistance" : "during.interval",
@@ -521,7 +540,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                           bedtimeSnackG: max(5, Int((0.4 * weight / 5).rounded()) * 5))
 
     return RunGuide(bandDetail: bandDetail, group: group, expectation: expectation,
-                    status: decision.status, startTitle: decision.title, startReason: decision.reason,
+                    status: decision.status, startTitle: startTitle, startReason: decision.reason,
+                    startBreakdown: startBreakdown,
                     duringText: during, ratePerKg: ratePerKg, duringPerHourG: Int(perHour.rounded()),
                     duringStartG: startG, intakeCapG: cap, startIndividual: decision.individual,
                     duringSchedule: schedule, startMovedG: startMovedG, duringTotalG: totalG,
