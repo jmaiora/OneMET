@@ -199,8 +199,8 @@ enum Strings {
         "summary.goal":           L("Goal", "Objetivo"),
         // States the day rather than issuing an instruction: the button underneath is what
         // tells you what to do now.
-        "summary.aidBefore":      L("If you use a closed-loop system, set it to manual mode before and during the activity to take advantage of the app's recommendations.",
-                                    "Si usas un sistema de asa cerrada, ponlo en modo manual antes y durante la actividad para aprovechar las recomendaciones de la app."),
+        "summary.aidBefore":      L("The app assumes you're in control of your insulin. On a closed loop, switch to manual mode before and during the activity.",
+                                    "La app supone que controlas tu insulina. Con asa cerrada, pasa a modo manual antes y durante la actividad."),
         "summary.noWorkoutYet":   L("No activity recorded yet today.",
                                     "Aún no hay actividad registrada hoy."),
         // The banner's call to action into the Plan tab: a bold prompt over a quieter line
