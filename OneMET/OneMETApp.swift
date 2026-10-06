@@ -30,6 +30,9 @@ struct RootView: View {
     @State private var tab: AppTab = .summary
     @State private var showGlucose = false
     @State private var openWorkout: WorkoutSession?
+    /// Set by the Summary's closed-loop note; Settings consumes it on appear and opens
+    /// Help & FAQ straight at the closed-loop page.
+    @State private var openAidHelp = false
     private let accent = Theme.accent
 
     /// Display unit for every glucose value in the app (Settings ▸ Glucose Units).
@@ -160,7 +163,8 @@ struct RootView: View {
                 lang: lang,
                 onOpenGlucose: { withAnimation(anim) { showGlucose = true } },
                 onGoActivity: { tab = .workouts },
-                onGoPlan: { tab = .plan }
+                onGoPlan: { tab = .plan },
+                onOpenAidHelp: { openAidHelp = true; tab = .settings }
             )
         case .workouts:
             WorkoutsView(accent: accent, lang: lang, onOpenWorkout: { s in
@@ -169,7 +173,7 @@ struct RootView: View {
         case .plan:
             PlanView(accent: accent, lang: lang)
         case .settings:
-            SettingsView(accent: accent, lang: lang)
+            SettingsView(accent: accent, lang: lang, openAidHelp: $openAidHelp)
         }
     }
 }

@@ -19,8 +19,11 @@ struct SettingsView: View {
     @EnvironmentObject var loc: LocalizationStore
     var accent: Color
     var lang: AppLanguage = .en
+    /// Deep link from the Summary's closed-loop note: open Help at the closed-loop page.
+    @Binding var openAidHelp: Bool
 
     @State private var editor: ProfileEditor?
+    @State private var helpStartsOnAid = false
     @State private var exportFile: ExportFile?
     @State private var mailFile: ExportFile?
     @State private var showProfile = false
@@ -111,13 +114,23 @@ struct SettingsView: View {
             }
 
             if showHelp {
-                HelpView(accent: accent, lang: lang, unit: p.glucoseUnit) {
+                HelpView(accent: accent, lang: lang, unit: p.glucoseUnit,
+                         startOnAid: helpStartsOnAid) {
                     withAnimation(anim) { showHelp = false }
                 }
                 .background(Theme.bg.ignoresSafeArea())
                 .transition(.move(edge: .trailing))
                 .zIndex(3)
             }
+        }
+        .onAppear {
+            guard openAidHelp else { return }
+            openAidHelp = false
+            helpStartsOnAid = true
+            showHelp = true
+        }
+        .onChange(of: showHelp) { open in
+            if !open { helpStartsOnAid = false }
         }
         .sheet(item: $editor) { which in
             switch which {
@@ -293,6 +306,9 @@ struct HelpView: View {
     var accent: Color
     var lang: AppLanguage = .en
     var unit: GlucoseUnit = .mgdl
+    /// Arrived from the Summary's closed-loop note: open on the closed-loop page, with
+    /// Back leading to the rest of Help.
+    var startOnAid = false
     var onBack: () -> Void
 
     @State private var showAid = false
@@ -301,6 +317,7 @@ struct HelpView: View {
     var body: some View {
         ZStack {
             list
+                .onAppear { if startOnAid { showAid = true } }
 
             if showAid {
                 AidHelpView(accent: accent, lang: lang) {
@@ -505,7 +522,7 @@ struct BackBar: View {
 }
 
 #Preview {
-    ZStack { Theme.bg.ignoresSafeArea(); SettingsView(accent: Theme.accent)
+    ZStack { Theme.bg.ignoresSafeArea(); SettingsView(accent: Theme.accent, openAidHelp: .constant(false))
         .environmentObject(HealthDataStore())
         .environmentObject(ProfileStore())
         .environmentObject(GlucoseSourceStore())

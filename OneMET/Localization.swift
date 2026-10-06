@@ -199,6 +199,8 @@ enum Strings {
         "summary.goal":           L("Goal", "Objetivo"),
         // States the day rather than issuing an instruction: the button underneath is what
         // tells you what to do now.
+        "summary.aidNote":        L("Using a closed-loop system? Choose manual mode before and during activity.",
+                                    "¿Usas un sistema de asa cerrada? Elige el modo manual antes y durante la actividad."),
         "summary.noWorkoutYet":   L("No activity recorded yet today.",
                                     "Aún no hay actividad registrada hoy."),
         // The banner's call to action into the Plan tab: a bold prompt over a quieter line

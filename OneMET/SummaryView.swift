@@ -12,11 +12,14 @@ struct SummaryView: View {
     var onGoActivity: () -> Void
     /// Jump to the Plan tab, from the insight banner's call to action.
     var onGoPlan: () -> Void
+    /// Settings ▸ Help & FAQ ▸ closed-loop page, from the note under the glucose card.
+    var onOpenAidHelp: () -> Void = {}
 
     /// Half of the vertical budget that decides whether an empty day's call to action
     /// clears the fold; the other half is `ActivityPrompt.diameter`. Tuned together for a
-    /// standard-size iPhone — on a 4.7" screen both want a notch less.
-    private let chartHeight: CGFloat = 112
+    /// standard-size iPhone — on a 4.7" screen both want a notch less. Lowered from 112
+    /// to make room for the closed-loop note without pushing the disc down.
+    private let chartHeight: CGFloat = 96
 
     var body: some View {
         let d = store.data
@@ -36,7 +39,7 @@ struct SummaryView: View {
                 HStack(alignment: .bottom) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(d.hasGlucose ? unit.value(d.current) : "—")
-                            .font(.app(size: 52, weight: .bold))
+                            .font(.app(size: 44, weight: .bold))
                             .foregroundStyle(Theme.ink)
                             .monospacedDigit()
                         Text(unit.rawValue)
@@ -49,7 +52,7 @@ struct SummaryView: View {
                         Chip(color: st.color) { Dot(color: st.color); Text(st.label(lang)) }
                     }
                 }
-                .padding(.bottom, 6)
+                .padding(.bottom, 4)
 
                 if let tw = d.todayWorkout, !tw.curve.isEmpty {
                     // A workout was recorded today → show its pre/during/post glucose overlay.
@@ -65,7 +68,7 @@ struct SummaryView: View {
                                  low: d.targetLow, high: d.targetHigh)
                 }
 
-                Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 10)
+                Rectangle().fill(Theme.hair).frame(height: 1).padding(.vertical, 7)
 
                 HStack {
                     Text(lang.t("summary.timeInRange"))
@@ -77,7 +80,7 @@ struct SummaryView: View {
                         .font(.app(size: 14.5, weight: .bold))
                         .foregroundStyle(Theme.green)
                 }
-                .padding(.bottom, 6)
+                .padding(.bottom, 4)
 
                 TIRBar(tir: d.tir)
 
@@ -86,8 +89,36 @@ struct SummaryView: View {
                     TIRLegend(label: lang.t("summary.inRange"), value: d.tir.inRange, color: Theme.green)
                     TIRLegend(label: lang.t("summary.high"), value: d.tir.high, color: Theme.amber)
                 }
-                .padding(.top, 7)
+                .padding(.top, 5)
             }
+
+            // ── Closed-loop note ──
+            // Outside the glucose card, whose tap opens the glucose detail; the whole strip
+            // leads to the full explanation in Help & FAQ. It must sit above the fold on
+            // every supported phone, so it stays small: fine type, no leading icon (the
+            // width keeps it to three lines), tight padding. Worst case — iPhone SE at the
+            // largest text size, with a workout overlay in the card — it ends ~40 pt above
+            // the tab bar. Anything added above it eats into that margin.
+            Button(action: onOpenAidHelp) {
+                HStack(spacing: 8) {
+                    Text(lang.t("summary.aidNote"))
+                        .font(Theme.fineFont.weight(.medium))
+                        .foregroundStyle(Theme.ink)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Image(systemName: "info.circle")
+                        .font(.app(size: 18))
+                        .foregroundStyle(accent)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.ringMet.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             // ── Insight banner, or the prompt that replaces it on an empty day. ──
             // Empty snapshot insight = no workout today. With nothing to report there is
