@@ -1,10 +1,10 @@
 import SwiftUI
 import MessageUI
 
-// SettingsView.swift â€” OneMET Settings tab.
+// SettingsView.swift — OneMET Settings tab.
 //
 // The root stays short: who you are, what's connected, where glucose comes from, and two
-// doors â€” Profile (language, units, targets) and Help & FAQ. Both push in as overlays
+// doors — Profile (language, units, targets) and Help & FAQ. Both push in as overlays
 // rather than sheets, so the per-setting editors underneath can still be sheets.
 
 enum ProfileEditor: Int, Identifiable {
@@ -39,7 +39,7 @@ struct SettingsView: View {
                 AppHeader(title: lang.t("settings.title"), date: lang.t("settings.account"),
                           initials: p.initials, accent: accent)
 
-                // Identity card â€” the way in to everything personal.
+                // Identity card — the way in to everything personal.
                 Button { withAnimation(anim) { showProfile = true } } label: {
                     HStack(spacing: 14) {
                         Text(p.initials)
@@ -97,7 +97,7 @@ struct SettingsView: View {
                     IOSListRow(title: lang.t("settings.share"), dot: Theme.teal, isLast: true) { shareWithClinician() }
                 }
 
-                // No Profile row here â€” the identity card at the top is already the way in.
+                // No Profile row here — the identity card at the top is already the way in.
                 IOSList(header: lang.t("settings.more")) {
                     IOSListRow(title: lang.t("settings.help"), detail: lang.t("settings.helpSub"),
                                dot: Theme.violet, isLast: true) { withAnimation(anim) { showHelp = true } }
@@ -166,7 +166,7 @@ struct SettingsView: View {
     private func subtitle(_ p: UserProfile) -> String {
         guard p.isConfigured else { return lang.t("settings.addDetails") }
         var s = p.diabetesType.label(lang)
-        if let y = p.diagnosisYear { s += " Â· " + lang.t("settings.since", String(y)) }
+        if let y = p.diagnosisYear { s += " · " + lang.t("settings.since", String(y)) }
         return s
     }
 
@@ -176,7 +176,7 @@ struct SettingsView: View {
     }
 
     /// A CGM counts as connected when a remote source is live, or when Apple Health has
-    /// actually handed us glucose readings â€” not merely because the app launched.
+    /// actually handed us glucose readings — not merely because the app launched.
     private var cgmConnected: Bool {
         glucoseSource.dexcom.isActive || glucoseSource.libre.isActive
             || glucoseSource.config.isActive || store.data.hasGlucose
@@ -254,7 +254,7 @@ struct ProfileMenuView: View {
                            detail: p.isConfigured ? p.name : lang.t("common.notSet"),
                            dot: accent) { editor = .identity }
                 // The override if set, else whatever Health last reported. "Not set" is
-                // now only true when Health has nothing either â€” no permission, or no
+                // now only true when Health has nothing either — no permission, or no
                 // weight ever recorded.
                 IOSListRow(title: lang.t("settings.weight"),
                            detail: weightDetail(p, lang: lang),
@@ -283,10 +283,10 @@ struct ProfileMenuView: View {
         }
     }
 
-    /// "Automatic Â· Moderate risk", or just the pinned group.
+    /// "Automatic · Moderate risk", or just the pinned group.
     private func riskDetail(_ p: UserProfile, lang: AppLanguage) -> String {
         let group = store.data.risk.group.label(lang)
-        return p.riskGroupSetting == .automatic ? "\(lang.t("risk.auto")) Â· \(group)" : group
+        return p.riskGroupSetting == .automatic ? "\(lang.t("risk.auto")) · \(group)" : group
     }
 
     /// Manual override first, then Health's reading, then an honest "not set".
@@ -300,7 +300,7 @@ struct ProfileMenuView: View {
 // MARK: - Help & FAQ
 
 /// The long-form guidance that used to sit in the Plan tab's "Good to know" card, plus
-/// the questions that card kept raising: what a METÂ·minute is, how the insight decides
+/// the questions that card kept raising: what a MET·minute is, how the insight decides
 /// whether to suggest carbs, and which source each number came from.
 struct HelpView: View {
     var accent: Color
