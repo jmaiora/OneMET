@@ -78,8 +78,8 @@
       <h2>About the app</h2>
       <p>OneMET helps you see how physical activity affects your glucose and plan carbohydrates around your workouts. It reads glucose from Nightscout, Dexcom&nbsp;Share or LibreLinkUp (or Apple&nbsp;Health), and workouts, activity and METs from Apple&nbsp;Health and your Apple&nbsp;Watch.</p>
       <ul>
-        <li><strong>Summary</strong> — your glucose today, with the before/during/after curve of any workout, activity rings and your MET·min over the last week.</li>
-        <li><strong>Plan</strong> — pick a sport, duration and intensity, and get a prevention-first fuel plan: whether to start now, and a timeline of carbohydrate intakes during the session.</li>
+        <li><strong>Summary</strong> — your glucose today, with the before/during/after curve of any workout, what to do before exercising, activity rings and your MET·min over the last week.</li>
+        <li><strong>Plan</strong> — pick a sport, duration and intensity, and get a prevention-first fuel plan: whether to start now, a timeline of carbohydrate intakes during the session, what to carry, and what to do afterwards.</li>
         <li><strong>Workouts</strong> — your session history, each with its own glucose curve and an insight on how it affected you.</li>
         <li><strong>Settings</strong> — your profile, targets, glucose source, and Help&nbsp;&amp;&nbsp;FAQ.</li>
       </ul>
@@ -98,8 +98,14 @@
       <p class="faq-q">Who is the fuel plan for?</p>
       <p>The carbohydrate guidance is designed for people using insulin — type&nbsp;1 diabetes, and type&nbsp;2 on insulin, by pump or injections. For anyone else the Plan tab explains why instead of giving a number; the rest of the app works the same.</p>
 
+      <p class="faq-q">How does the plan work out the carbohydrates?</p>
+      <p><strong>Before:</strong> whether to start, eat first or wait comes from your current glucose and trend arrow, and from whether the exercise usually lowers glucose (cardio) or keeps it steady or raises it (strength, intervals). <strong>During:</strong> intakes are planned at about 0.3–0.5&nbsp;g per kg per hour when only basal insulin is active, and 0.5–1.0&nbsp;g with active bolus insulin, never more than 60&nbsp;g an hour; starting above your exercise target counts as fuel. The thresholds adapt to how regularly you exercise and how prone you are to lows. <strong>After:</strong> what to take in the following 90&nbsp;minutes and before bed. Settings → Help &amp; FAQ explains each step.</p>
+
+      <p class="faq-q">What about strength training and HIIT?</p>
+      <p>They lower glucose much less than steady cardio and can even raise it, so the plan doesn't schedule carbohydrates during them: you take some only if you drop. It also warns that glucose may rise afterwards and that a delayed low can come overnight.</p>
+
       <p class="faq-q">I use a closed-loop pump. Can I use the plan?</p>
-      <p>OneMET is for making your own insulin and carbohydrate decisions, with injections or a pump in manual mode. A closed loop adjusts insulin and adds correction boluses by itself, and the exercise guidelines the plan is built on state that their tables don't apply to closed-loop systems. To use the plan, switch your system to manual mode for the session — and agree that with your clinician first, as the guidelines generally recommend staying in automatic mode.</p>
+      <p>The app assumes you're in control of your insulin. A closed loop's sport mode raises its target but doesn't know how hard you're exercising, and the system keeps adjusting insulin by itself, so the carbohydrates you'll need can't be planned in advance — and the exercise guidelines the plan is built on state that their tables don't apply to closed loops. On a closed loop, switch to manual mode before and during the activity, and use the plan as you would on an open loop. Agree this with your clinician first.</p>
 
       <p class="faq-q">Can I change how often I take carbs during a session?</p>
       <p>Yes. The plan spaces intakes every 45&nbsp;minutes by default; on the fuel plan you can choose 30, 45 or 60&nbsp;minutes, and the most you'd take at once (20, 30 or 45&nbsp;g) — whichever you feel most comfortable with. The session total stays the same; a shorter interval just means smaller, more frequent intakes. The default interval is in Settings → Profile → Carb Intake Interval.</p>
@@ -116,7 +122,7 @@
 
     <div class="disclaimer">
       OneMET provides illustrative, educational guidance only. It is <strong>not a medical device</strong> and does not replace advice from your healthcare team. Always agree insulin and carbohydrate decisions with your clinician.<br><br>
-      The fuel plan draws on the EASD/ISPAD 2020 position statement on glucose management for exercise with CGM (Moser, Riddell et&nbsp;al., <em>Diabetologia</em> 2020) and the ISPAD 2022 exercise guidelines (Adolfsson et&nbsp;al., <em>Pediatric Diabetes</em> 2022). Both are expert consensus, the individual thresholds are published, and the way this app combines them has not been validated as an algorithm. Their tables were not written for hybrid closed-loop pumps.
+      The fuel plan draws on the EASD/ISPAD 2020 position statement on glucose management for exercise with CGM (Moser, Riddell et&nbsp;al., <em>Diabetologia</em> 2020) and the ISPAD 2022 exercise guidelines (Adolfsson et&nbsp;al., <em>Pediatric Diabetes</em> 2022). Both are expert consensus, the individual thresholds are published, and the way this app combines them has not been validated as an algorithm. Their tables were not written for hybrid closed-loop systems in automatic mode.
     </div>
 
     <footer>
