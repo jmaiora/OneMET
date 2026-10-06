@@ -144,9 +144,6 @@ enum Strings {
         "welcome.weightPrompt": L("Your weight", "Tu peso"),
         "welcome.typePrompt":  L("Which type of diabetes?", "¿Qué tipo de diabetes?"),
         "welcome.insulinPrompt": L("How do you take insulin?", "¿Cómo te administras la insulina?"),
-        "welcome.aidTitle":  L("Using a closed-loop pump?", "¿Usas una bomba de asa cerrada?"),
-        "welcome.aidBody":   L("OneMET is for making your own insulin and carbohydrate decisions: injections, or a pump in manual mode. A closed loop (CamAPS FX, Control-IQ, MiniMed 780G, Omnipod 5…) changes your insulin and adds correction boluses by itself, so a plan made in advance can't predict what it will do — and the exercise guidelines OneMET uses state that their tables don't apply to closed loops. To use the plan, switch your system to manual mode for the session. Agree that with your clinician first: the guidelines generally recommend staying in automatic mode.",
-                               "OneMET sirve para que tomes tus propias decisiones de insulina y carbohidratos: con inyecciones o con bomba en modo manual. Un sistema de asa cerrada (CamAPS FX, Control-IQ, MiniMed 780G, Omnipod 5…) ajusta la insulina y añade bolos de corrección por sí solo, así que un plan hecho de antemano no puede prever lo que hará; además, las guías de ejercicio que usa OneMET indican que sus tablas no se aplican a sistemas de asa cerrada. Para usar el plan, pon tu sistema en modo manual durante la sesión. Acuérdalo antes con tu equipo médico: las guías recomiendan, en general, mantener el modo automático."),
 
         // ── Welcome: Apple Health ──
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),
@@ -668,6 +665,21 @@ enum Strings {
         "help.sourcesBody":  L("Workouts, heart rate and activity come from Apple Health. Glucose comes from whichever source you switch on in Settings — Dexcom Share, LibreLinkUp or Nightscout — falling back to Apple Health. Follower services only keep a short window (Dexcom ~24 h, LibreLinkUp ~12 h), so the 14-day figures always come from Nightscout or Apple Health.",
                                "Los entrenamientos, la frecuencia cardiaca y la actividad vienen de Apple Salud. La glucosa viene de la fuente que actives en Ajustes — Dexcom Share, LibreLinkUp o Nightscout — y si no, de Apple Salud. Los servicios de seguidor solo guardan una ventana corta (Dexcom ~24 h, LibreLinkUp ~12 h), así que las cifras de 14 días salen siempre de Nightscout o de Apple Salud."),
         "help.disclaimerTitle": L("This is not medical advice", "Esto no es consejo médico"),
+        // Closed loop: one sentence on the Help list, the reasons one tap further in.
+        "help.aidTitle":     L("Using a closed-loop system?", "¿Usas un sistema de asa cerrada?"),
+        "help.aidBody":      L("If you use a closed-loop system, choose manual mode before and during the activity.",
+                               "Si usas un sistema de asa cerrada, elige el modo manual antes y durante la actividad."),
+        "help.aidMore":      L("Why manual mode?", "¿Por qué el modo manual?"),
+        "help.aidDetailTitle": L("Closed-loop systems and exercise", "Sistemas de asa cerrada y ejercicio"),
+        "help.aidSportTitle": L("The sport mode doesn't know how hard you go", "El modo deporte no sabe a qué intensidad vas"),
+        "help.aidSportBody":  L("Closed-loop (AID) systems — CamAPS FX, Control-IQ, MiniMed 780G, Omnipod 5 and others — have a sport or exercise mode, or a temporary target, that raises the glucose target and makes insulin delivery less aggressive. But it doesn't take into account the intensity of the exercise: an easy walk and a hard interval session get the same setting. And because the system keeps adjusting your insulin by itself during the session, it isn't possible to quantify how much carbohydrate you need — a plan made in advance can't predict what the pump will do.",
+                                "Los sistemas de asa cerrada (AID) —CamAPS FX, Control-IQ, MiniMed 780G, Omnipod 5 y otros— tienen un modo deporte o ejercicio, o un objetivo temporal, que sube el objetivo de glucosa y hace menos agresiva la administración de insulina. Pero no tiene en cuenta la intensidad del ejercicio: un paseo tranquilo y una sesión de intervalos dura reciben el mismo ajuste. Y como el sistema sigue ajustando la insulina por su cuenta durante la sesión, no es posible cuantificar cuántos carbohidratos necesitas: un plan hecho de antemano no puede prever lo que hará la bomba."),
+        "help.aidLearnTitle": L("The algorithm can't learn from your activity", "El algoritmo no puede aprender de tu actividad"),
+        "help.aidLearnBody":  L("The algorithm doesn't know what exercise you did or how intense it was, so it can't learn from the session and do better next time. Each workout looks to it like an unexplained change in your glucose.",
+                                "El algoritmo no sabe qué ejercicio hiciste ni a qué intensidad, así que no puede aprender de la sesión ni hacerlo mejor la próxima vez. Para él, cada entrenamiento es un cambio de glucosa sin explicación."),
+        "help.aidManualTitle": L("What to do", "Qué hacer"),
+        "help.aidManualBody":  L("OneMET's fuel plan is for decisions you make yourself, as with injections or a pump in manual mode. If you use a closed-loop system, switch it to manual mode before and during the activity, and use the plan as you would with an open loop. Agree this with your clinician first.",
+                                 "El plan de carbohidratos de OneMET es para decisiones que tomas tú, como con inyecciones o con bomba en modo manual. Si usas un sistema de asa cerrada, ponlo en modo manual antes y durante la actividad, y usa el plan como lo harías en asa abierta. Acuérdalo antes con tu equipo médico."),
 
         // ── Export ──
         "export.mailSubject": L("OneMET — Health report", "OneMET — Informe de salud"),

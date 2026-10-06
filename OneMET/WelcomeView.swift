@@ -260,32 +260,8 @@ struct WelcomeView: View {
                 (value: InsulinDelivery.pump, label: InsulinDelivery.pump.label(lang)),
                 (value: InsulinDelivery.mdi, label: InsulinDelivery.mdi.label(lang)),
             ], selection: $delivery)
-
-            // Why there is no closed-loop option. The plan's exercise tables are written for
-            // open-loop therapy and say they don't apply to hybrid closed loops (EASD/ISPAD
-            // 2020); the AID statement (EASD/ISPAD 2025) keeps automated mode as the default
-            // and only acknowledges manual mode around activity — hence "for the session"
-            // and "agree it with your clinician", not a blanket "switch Auto Mode off".
-            HStack(alignment: .top, spacing: 9) {
-                Image(systemName: "info.circle.fill")
-                    .font(.app(size: 15))
-                    .foregroundStyle(Theme.ringMet)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(lang.t("welcome.aidTitle"))
-                        .font(Theme.noteFont.weight(.semibold))
-                        .foregroundStyle(Theme.ink)
-                    Text(lang.t("welcome.aidBody"))
-                        .font(Theme.fineFont)
-                        .lineSpacing(2)
-                        .foregroundStyle(Theme.ink2)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.ringMet.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .padding(.top, 4)
+            // No closed-loop option and no note about it here: why the plan is for
+            // open-loop decisions lives in Help & FAQ (help.aid*).
         }
 
         // Language and units share a card, label left and control right. Language sits

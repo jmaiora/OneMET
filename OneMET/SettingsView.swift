@@ -1,10 +1,10 @@
 import SwiftUI
 import MessageUI
 
-// SettingsView.swift — OneMET Settings tab.
+// SettingsView.swift â€” OneMET Settings tab.
 //
 // The root stays short: who you are, what's connected, where glucose comes from, and two
-// doors — Profile (language, units, targets) and Help & FAQ. Both push in as overlays
+// doors â€” Profile (language, units, targets) and Help & FAQ. Both push in as overlays
 // rather than sheets, so the per-setting editors underneath can still be sheets.
 
 enum ProfileEditor: Int, Identifiable {
@@ -36,7 +36,7 @@ struct SettingsView: View {
                 AppHeader(title: lang.t("settings.title"), date: lang.t("settings.account"),
                           initials: p.initials, accent: accent)
 
-                // Identity card — the way in to everything personal.
+                // Identity card â€” the way in to everything personal.
                 Button { withAnimation(anim) { showProfile = true } } label: {
                     HStack(spacing: 14) {
                         Text(p.initials)
@@ -94,7 +94,7 @@ struct SettingsView: View {
                     IOSListRow(title: lang.t("settings.share"), dot: Theme.teal, isLast: true) { shareWithClinician() }
                 }
 
-                // No Profile row here — the identity card at the top is already the way in.
+                // No Profile row here â€” the identity card at the top is already the way in.
                 IOSList(header: lang.t("settings.more")) {
                     IOSListRow(title: lang.t("settings.help"), detail: lang.t("settings.helpSub"),
                                dot: Theme.violet, isLast: true) { withAnimation(anim) { showHelp = true } }
@@ -153,7 +153,7 @@ struct SettingsView: View {
     private func subtitle(_ p: UserProfile) -> String {
         guard p.isConfigured else { return lang.t("settings.addDetails") }
         var s = p.diabetesType.label(lang)
-        if let y = p.diagnosisYear { s += " · " + lang.t("settings.since", String(y)) }
+        if let y = p.diagnosisYear { s += " Â· " + lang.t("settings.since", String(y)) }
         return s
     }
 
@@ -163,7 +163,7 @@ struct SettingsView: View {
     }
 
     /// A CGM counts as connected when a remote source is live, or when Apple Health has
-    /// actually handed us glucose readings — not merely because the app launched.
+    /// actually handed us glucose readings â€” not merely because the app launched.
     private var cgmConnected: Bool {
         glucoseSource.dexcom.isActive || glucoseSource.libre.isActive
             || glucoseSource.config.isActive || store.data.hasGlucose
@@ -241,7 +241,7 @@ struct ProfileMenuView: View {
                            detail: p.isConfigured ? p.name : lang.t("common.notSet"),
                            dot: accent) { editor = .identity }
                 // The override if set, else whatever Health last reported. "Not set" is
-                // now only true when Health has nothing either — no permission, or no
+                // now only true when Health has nothing either â€” no permission, or no
                 // weight ever recorded.
                 IOSListRow(title: lang.t("settings.weight"),
                            detail: weightDetail(p, lang: lang),
@@ -270,10 +270,10 @@ struct ProfileMenuView: View {
         }
     }
 
-    /// "Automatic · Moderate risk", or just the pinned group.
+    /// "Automatic Â· Moderate risk", or just the pinned group.
     private func riskDetail(_ p: UserProfile, lang: AppLanguage) -> String {
         let group = store.data.risk.group.label(lang)
-        return p.riskGroupSetting == .automatic ? "\(lang.t("risk.auto")) · \(group)" : group
+        return p.riskGroupSetting == .automatic ? "\(lang.t("risk.auto")) Â· \(group)" : group
     }
 
     /// Manual override first, then Health's reading, then an honest "not set".
@@ -287,7 +287,7 @@ struct ProfileMenuView: View {
 // MARK: - Help & FAQ
 
 /// The long-form guidance that used to sit in the Plan tab's "Good to know" card, plus
-/// the questions that card kept raising: what a MET·minute is, how the insight decides
+/// the questions that card kept raising: what a METÂ·minute is, how the insight decides
 /// whether to suggest carbs, and which source each number came from.
 struct HelpView: View {
     var accent: Color
@@ -295,7 +295,25 @@ struct HelpView: View {
     var unit: GlucoseUnit = .mgdl
     var onBack: () -> Void
 
+    @State private var showAid = false
+    private let anim = Animation.easeInOut(duration: 0.25)
+
     var body: some View {
+        ZStack {
+            list
+
+            if showAid {
+                AidHelpView(accent: accent, lang: lang) {
+                    withAnimation(anim) { showAid = false }
+                }
+                .background(Theme.bg.ignoresSafeArea())
+                .transition(.move(edge: .trailing))
+                .zIndex(1)
+            }
+        }
+    }
+
+    private var list: some View {
         ScreenScaffold(spacing: 14) {
             BackBar(title: lang.t("settings.title"), accent: accent, action: onBack)
 
@@ -310,6 +328,40 @@ struct HelpView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Closed loop first: it decides whether the rest of the plan applies at all.
+            // One sentence here; the reasons are one tap further in.
+            Button { withAnimation(anim) { showAid = true } } label: {
+                Card {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.app(size: 15))
+                            .foregroundStyle(Theme.ringMet)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(lang.t("help.aidTitle"))
+                                .font(.app(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(lang.t("help.aidBody"))
+                                .font(Theme.articleFont)
+                                .lineSpacing(Theme.articleLineSpacing)
+                                .foregroundStyle(Theme.ink2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(lang.t("help.aidMore"))
+                                .font(.app(size: 15, weight: .semibold))
+                                .foregroundStyle(accent)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "info.circle")
+                            .font(.app(size: 20))
+                            .foregroundStyle(accent)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             entry("checkmark.seal.fill", Theme.green, lang.t("help.duringTitle"),
                   lang.t("philosophy", unit.range(140, 200), unit.range(100, 140)))
@@ -360,6 +412,55 @@ struct HelpView: View {
     }
 
     private func entry(_ icon: String, _ color: Color, _ title: String, _ body: String) -> some View {
+        Card {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon)
+                    .font(.app(size: 15))
+                    .foregroundStyle(color)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.app(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(body)
+                        .font(Theme.articleFont)
+                        .lineSpacing(Theme.articleLineSpacing)
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+// MARK: - Closed-loop detail
+
+/// Why the fuel plan asks closed-loop users for manual mode: the sport mode ignores
+/// intensity, so carbs can't be quantified, and the algorithm can't learn from the session.
+struct AidHelpView: View {
+    var accent: Color
+    var lang: AppLanguage = .en
+    var onBack: () -> Void
+
+    var body: some View {
+        ScreenScaffold(spacing: 14) {
+            BackBar(title: lang.t("help.title"), accent: accent, action: onBack)
+
+            Text(lang.t("help.aidDetailTitle"))
+                .font(.app(size: 32, weight: .bold))
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            section("speedometer", Theme.ringMet, lang.t("help.aidSportTitle"), lang.t("help.aidSportBody"))
+            section("brain.head.profile", Theme.violet, lang.t("help.aidLearnTitle"), lang.t("help.aidLearnBody"))
+            section("hand.raised.fill", accent, lang.t("help.aidManualTitle"), lang.t("help.aidManualBody"))
+        }
+    }
+
+    private func section(_ icon: String, _ color: Color, _ title: String, _ body: String) -> some View {
         Card {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: icon)
