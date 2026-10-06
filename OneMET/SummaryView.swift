@@ -17,21 +17,19 @@ struct SummaryView: View {
 
     /// Half of the vertical budget that decides whether an empty day's call to action
     /// clears the fold; the other half is `ActivityPrompt.diameter`. Tuned together for a
-    /// standard-size iPhone — on a 4.7" screen both want a notch less. Lowered from 112
-    /// to make room for the closed-loop note without pushing the disc down.
+    /// standard-size iPhone — on a 4.7" screen both want a notch less. (Was 112; lowered
+    /// when the closed-loop note sat above the disc. The note now sits below it and the
+    /// header row is gone, so there is room to raise it again if wanted.)
     private let chartHeight: CGFloat = 96
 
     var body: some View {
         let d = store.data
         let st = glucoseStatus(d.current, low: d.targetLow, high: d.targetHigh)
         let r = d.rings
-        let today = Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day()
-                                        .locale(lang.locale))
 
+        // No header row (title, date, initials): the tab bar already names the screen,
+        // and the space goes to the glucose card and the call to action below it.
         ScreenScaffold(onRefresh: { await store.refresh() }) {
-            AppHeader(title: lang.t("summary.title"), date: today,
-                      initials: profileStore.profile.initials, accent: accent)
-
             // ── Glucose hero ──
             Card(title: lang.t("summary.glucose"), icon: "drop", iconColor: Theme.green,
                  right: store.isLoading ? lang.t("common.updating") : lang.t("common.now"),
@@ -92,34 +90,6 @@ struct SummaryView: View {
                 .padding(.top, 5)
             }
 
-            // ── Closed-loop note ──
-            // Outside the glucose card, whose tap opens the glucose detail; the whole strip
-            // leads to the full explanation in Help & FAQ. It must sit above the fold on
-            // every supported phone, so it stays small: fine type, no leading icon (the
-            // width keeps it to three lines), tight padding. Worst case — iPhone SE at the
-            // largest text size, with a workout overlay in the card — it ends ~40 pt above
-            // the tab bar. Anything added above it eats into that margin.
-            Button(action: onOpenAidHelp) {
-                HStack(spacing: 8) {
-                    Text(lang.t("summary.aidNote"))
-                        .font(Theme.fineFont.weight(.medium))
-                        .foregroundStyle(Theme.ink)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    Image(systemName: "info.circle")
-                        .font(.app(size: 18))
-                        .foregroundStyle(accent)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.ringMet.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
             // ── Insight banner, or the prompt that replaces it on an empty day. ──
             // Empty snapshot insight = no workout today. With nothing to report there is
             // no insight to dress up, so the blue box stops wrapping the whole thing and
@@ -141,6 +111,36 @@ struct SummaryView: View {
                               actionSubtitle: lang.t("summary.planAnotherSub"),
                               action: onGoPlan)
             }
+
+            // ── Closed-loop note ──
+            // Right under the call to action, because it decides whether the plan behind
+            // that button applies. Amber and bold so it isn't read as small print; the
+            // whole strip opens the full explanation in Help & FAQ.
+            Button(action: onOpenAidHelp) {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.app(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.amber)
+                    Text(lang.t("summary.aidNote"))
+                        .font(Theme.noteFont.weight(.bold))
+                        .foregroundStyle(Theme.ink)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Image(systemName: "info.circle")
+                        .font(.app(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.amber)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.amber.opacity(0.16))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Theme.amber.opacity(0.55), lineWidth: 1.5))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
             Card(title: lang.t("summary.beforeWorkout"), icon: "bolt", iconColor: accent) {
