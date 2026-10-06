@@ -400,7 +400,7 @@ func planFeedSchedule(totalG: Int, durationMin: Int, intervalMin: Int,
     return marks.enumerated().map { i, m in FeedStop(minute: m, grams: base + (i < extra ? 1 : 0)) }
 }
 
-// MARK: - After (EASD 2020 Table 3, ISPAD 2022 §7.5)
+// MARK: - After (EASD 2020 Table 3)
 
 struct AfterPlan {
     /// Below this in the 90 min after, take carbs by arrow: ↑↗ none, → ~10 g, ↘ ~15 g,
@@ -408,10 +408,6 @@ struct AfterPlan {
     let threshold: Double
     /// Overnight CGM low alert (EASD: 80 mg/dL, higher with elevated risk).
     let nightAlert: Double
-    /// ISPAD: after exercise ending after 4 pm and lasting ≥ 30 min, a bedtime snack of
-    /// 0.4 g/kg low–medium GI carbohydrate without bolus if glucose is under 180;
-    /// add ~15 g protein under 126.
-    let bedtimeSnackG: Int
 }
 
 // MARK: - The plan
@@ -536,8 +532,7 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     }
 
     let after = AfterPlan(threshold: group.afterThreshold,
-                          nightAlert: group.afterThreshold,
-                          bedtimeSnackG: max(5, Int((0.4 * weight / 5).rounded()) * 5))
+                          nightAlert: group.afterThreshold)
 
     return RunGuide(bandDetail: bandDetail, group: group, expectation: expectation,
                     status: decision.status, startTitle: startTitle, startReason: decision.reason,
