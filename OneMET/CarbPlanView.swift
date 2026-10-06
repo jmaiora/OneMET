@@ -381,8 +381,6 @@ struct CarbPlanView: View {
                 afterChip([.fallingFast], lang.t("plan.afterTreat"))
 
                 rule("moon.stars.fill", Theme.ringMet, lang.t("plan.afterNight", unit.amount(a.nightAlert)))
-                rule("bed.double.fill", Theme.violet,
-                     lang.t("plan.afterBedtime", unit.amount(180), String(a.bedtimeSnackG), unit.amount(126)))
                 rule("syringe.fill", Theme.ink2, lang.t("plan.afterNoCorrection"))
 
                 if guide.expectation == .staysOrRises {
