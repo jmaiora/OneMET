@@ -1,10 +1,13 @@
 import SwiftUI
 
 // WorkoutsView.swift — OneMET Workouts tab (rings + history by week). v2.
+// The whole tab is OneMET Pro: without a subscription it shows what's inside and the way
+// to unlock it.
 
 struct WorkoutsView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
+    @EnvironmentObject var subs: SubscriptionStore
     var accent: Color
     var lang: AppLanguage = .en
     var onOpenWorkout: (WorkoutSession) -> Void
@@ -12,6 +15,56 @@ struct WorkoutsView: View {
     @State private var visibleWeeks = 2
 
     var body: some View {
+        if subs.isPro { history } else { locked }
+    }
+
+    /// The tab's header, then a blurred sample session to show what the tab holds — sample
+    /// data, never the person's own — and the button to the paywall.
+    private var locked: some View {
+        ScreenScaffold {
+            AppHeader(title: lang.t("workouts.title"), date: lang.t("workouts.history"),
+                      initials: profileStore.profile.initials, accent: accent)
+
+            Card(pad: 18) {
+                VStack(alignment: .leading, spacing: 14) {
+                    if let sample = SampleData.workoutHistory.first?.sessions.first {
+                        WorkoutChart(session: sample, accent: accent, height: 150,
+                                     unit: profileStore.profile.glucoseUnit, lang: lang)
+                            .blur(radius: 4)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                    Text(lang.t("pro.workoutsTitle"))
+                        .font(.app(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(lang.t("pro.workoutsBody"))
+                        .font(Theme.noteFont)
+                        .lineSpacing(Theme.noteLineSpacing)
+                        .foregroundStyle(Theme.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button { subs.requirePro {} } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill").font(.app(size: 15, weight: .semibold))
+                            Text(lang.t("pro.unlock"))
+                                .font(.app(size: 17, weight: .semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var history: some View {
         let d = store.data
         let unit = profileStore.profile.glucoseUnit
         let r = d.rings
@@ -133,5 +186,6 @@ struct HistoryRow: View {
         WorkoutsView(accent: Theme.accent, onOpenWorkout: { _ in })
             .environmentObject(HealthDataStore())
             .environmentObject(ProfileStore())
+            .environmentObject(SubscriptionStore())
     }
 }

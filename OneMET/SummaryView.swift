@@ -56,10 +56,11 @@ struct SummaryView: View {
                 }
                 .padding(.bottom, 4)
 
-                if let tw = d.todayWorkout, !tw.curve.isEmpty {
+                if subs.isPro, let tw = d.todayWorkout, !tw.curve.isEmpty {
                     // A workout was recorded today → show its pre/during/post glucose overlay.
                     // A shade taller than the plain trace: the overlay carries the
-                    // pre/during/post bands as well as the curve.
+                    // pre/during/post bands as well as the curve. The overlay is OneMET Pro;
+                    // without it the day's plain glucose trace stays free.
                     WorkoutChart(session: tw, accent: accent, height: chartHeight + 28,
                                  unit: unit, lang: lang,
                                  low: d.targetLow, high: d.targetHigh)
