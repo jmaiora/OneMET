@@ -5,6 +5,7 @@ import SwiftUI
 struct SummaryView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
+    @EnvironmentObject var subs: SubscriptionStore
     var accent: Color
     var unit: GlucoseUnit = .mgdl
     var lang: AppLanguage = .en
@@ -107,12 +108,15 @@ struct SummaryView: View {
                                accent: accent,
                                action: onGoPlan)
             } else {
+                // Same advice as the Workouts insight, so the same OneMET Pro lock.
                 InsightBanner(title: lang.t("summary.activityInsight"),
                               text: d.insight,
                               accent: accent,
                               actionTitle: lang.t("summary.planAnother"),
                               actionSubtitle: lang.t("summary.planAnotherSub"),
-                              action: onGoPlan)
+                              action: onGoPlan,
+                              unlockTitle: subs.isPro ? nil : lang.t("pro.unlockInsight"),
+                              onUnlock: { subs.requirePro {} })
             }
 
             // ── Before workout (generic prep summary; full guide lives in Plan) ──
@@ -290,6 +294,18 @@ struct InsightBanner: View {
     var actionTitle: String? = nil
     var actionSubtitle: String? = nil
     var action: (() -> Void)? = nil
+    /// OneMET Pro: with both set, the insight — the carbohydrate advice — is blurred behind
+    /// a button that opens the paywall. The title and the call to action stay usable.
+    var unlockTitle: String? = nil
+    var onUnlock: (() -> Void)? = nil
+
+    private var insightText: some View {
+        Text(text)
+            .font(.app(size: 17, weight: .semibold))
+            .foregroundStyle(.white)
+            .lineSpacing(3)
+            .fixedSize(horizontal: false, vertical: true)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -300,11 +316,32 @@ struct InsightBanner: View {
                     .foregroundStyle(.white.opacity(0.92))
                     .tracking(0.2)
             }
-            Text(text)
-                .font(.app(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+            if let unlockTitle, let onUnlock {
+                insightText
+                    .blur(radius: 7)
+                    // Hidden from VoiceOver too, or it would read out what the blur hides.
+                    .accessibilityHidden(true)
+                    // Room for the button even when the advice is a single line.
+                    .frame(maxWidth: .infinity, minHeight: 66, alignment: .topLeading)
+                    .overlay {
+                        Button(action: onUnlock) {
+                            HStack(spacing: 7) {
+                                Image(systemName: "lock.fill")
+                                Text(unlockTitle)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .font(.app(size: 15.5, weight: .bold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(.white, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+            } else {
+                insightText
+            }
 
             // Reversed out of the accent background — white fill, accent label — and run
             // full width, so it reads as the thing to do on this screen rather than as
@@ -377,5 +414,6 @@ struct NutritionCard: View {
         SummaryView(accent: Theme.accent, onOpenGlucose: {}, onGoActivity: {}, onGoPlan: {})
             .environmentObject(HealthDataStore())
             .environmentObject(ProfileStore())
+            .environmentObject(SubscriptionStore())
     }
 }

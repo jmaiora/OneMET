@@ -107,7 +107,7 @@ enum Strings {
     // on a single literal this size, and a chunked build is near-instant.
     static let table: [String: LocalizedText] = {
         var t = chrome
-        for d in [charts, workouts, plan, insights, settings] { t.merge(d) { a, _ in a } }
+        for d in [charts, workouts, plan, insights, settings, subscription] { t.merge(d) { a, _ in a } }
         return t
     }()
 
@@ -697,5 +697,59 @@ enum Strings {
         "export.mailSubject": L("OneMET — Health report", "OneMET — Informe de salud"),
         "export.mailBody":    L("Please find attached my OneMET workout health report.",
                                 "Adjunto mi informe de salud de entrenamientos de OneMET."),
+    ]
+
+    private static let subscription: [String: LocalizedText] = [
+
+        // ── OneMET Pro (paywall, locked insights, Settings) ──
+        "pro.title":          L("OneMET Pro", "OneMET Pro"),
+        "pro.subtitle":       L("Plan the carbs for every session.", "Planifica los carbohidratos de cada sesión."),
+        "pro.benefit.plan":   L("Your fuel plan: whether to start now, a timeline of carb intakes and what to carry.",
+                                "Tu plan de carbohidratos: si empezar ya, una línea temporal de tomas y qué llevar."),
+        "pro.benefit.insight": L("Carb advice after every workout: more or less for similar sessions.",
+                                 "Consejo de carbohidratos tras cada entrenamiento: más o menos para sesiones parecidas."),
+        "pro.benefit.personal": L("Adjusted to your glucose and trend, insulin on board, weight and hypo-risk group.",
+                                  "Ajustado a tu glucosa y tendencia, insulina activa, peso y grupo de riesgo de hipoglucemia."),
+        "pro.free":           L("Summary, your workout history and curves, and the sport cards stay free.",
+                                "El resumen, el historial de entrenamientos con sus curvas y las tarjetas de deporte siguen siendo gratis."),
+        "pro.yearly":         L("Yearly", "Anual"),
+        "pro.monthly":        L("Monthly", "Mensual"),
+        "pro.perYear":        L("{0} / year", "{0} / año"),
+        "pro.perMonth":       L("{0} / month", "{0} / mes"),
+        "pro.yearlyPerMonth": L("Just {0} a month", "Solo {0} al mes"),
+        "pro.save":           L("Save {0}%", "Ahorra un {0} %"),
+        "pro.trialThen":      L("{0} free, then {1}", "{0} gratis, después {1}"),
+        "pro.nDays":          L("{0} days", "{0} días"),
+        "pro.oneMonth":       L("1 month", "1 mes"),
+        "pro.nMonths":        L("{0} months", "{0} meses"),
+        "pro.oneYear":        L("1 year", "1 año"),
+        "pro.tryFree":        L("Try it free for {0}", "Pruébalo gratis {0}"),
+        "pro.subscribe":      L("Subscribe", "Suscribirme"),
+        "pro.restore":        L("Restore purchases", "Restaurar compras"),
+        "pro.terms":          L("Terms of Use", "Condiciones de uso"),
+        "pro.privacy":        L("Privacy Policy", "Política de privacidad"),
+        "pro.close":          L("Close", "Cerrar"),
+        "pro.ok":             L("OK", "Aceptar"),
+        // App Review (Guideline 3.1.2) wants the renewal terms stated next to the button.
+        "pro.legal":          L("Payment is charged to your Apple Account when you confirm, or when the free trial ends. The subscription renews automatically unless you cancel at least 24 hours before the end of the current period. Manage or cancel it in your App Store account settings.",
+                                "El pago se carga a tu cuenta de Apple al confirmar o al terminar la prueba gratis. La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes del final del periodo en curso. Puedes gestionarla o cancelarla en los ajustes de tu cuenta del App Store."),
+        "pro.notMedical":     L("Illustrative guidance, not medical advice.", "Orientación ilustrativa, no consejo médico."),
+        "pro.unavailable":    L("Subscriptions aren't available right now. Check your connection and try again.",
+                                "Las suscripciones no están disponibles ahora mismo. Comprueba tu conexión y vuelve a intentarlo."),
+        "pro.retry":          L("Try again", "Reintentar"),
+        "pro.failed":         L("The purchase couldn't be completed. Please try again.",
+                                "No se pudo completar la compra. Inténtalo de nuevo."),
+        "pro.pending":        L("Your purchase is waiting for approval. Pro unlocks as soon as it's approved.",
+                                "Tu compra está pendiente de aprobación. Pro se desbloqueará en cuanto se apruebe."),
+        "pro.restored":       L("Your subscription has been restored.", "Se ha restaurado tu suscripción."),
+        "pro.nothingToRestore": L("No active subscription was found for this Apple Account.",
+                                  "No se ha encontrado ninguna suscripción activa en esta cuenta de Apple."),
+        "pro.unlockInsight":  L("See your carb advice", "Ver tu consejo de carbohidratos"),
+        "settings.subscription": L("Subscription", "Suscripción"),
+        "settings.proInactive":  L("Not subscribed", "Sin suscripción"),
+        "settings.proActive":    L("Active", "Activa"),
+        "settings.proRenews":    L("{0} · renews {1}", "{0} · se renueva el {1}"),
+        "settings.proEnds":      L("{0} · ends {1}", "{0} · termina el {1}"),
+
     ]
 }

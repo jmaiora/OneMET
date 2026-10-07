@@ -1,5 +1,6 @@
 import SwiftUI
 import MessageUI
+import StoreKit
 
 // SettingsView.swift — OneMET Settings tab.
 //
@@ -17,6 +18,7 @@ struct SettingsView: View {
     @EnvironmentObject var profileStore: ProfileStore
     @EnvironmentObject var glucoseSource: GlucoseSourceStore
     @EnvironmentObject var loc: LocalizationStore
+    @EnvironmentObject var subs: SubscriptionStore
     var accent: Color
     var lang: AppLanguage = .en
     /// Deep link from the Summary's closed-loop note: open Help at the closed-loop page.
@@ -28,6 +30,7 @@ struct SettingsView: View {
     @State private var mailFile: ExportFile?
     @State private var showProfile = false
     @State private var showHelp = false
+    @State private var showManageSubs = false
 
     private let anim = Animation.easeInOut(duration: 0.25)
 
@@ -97,6 +100,19 @@ struct SettingsView: View {
                     IOSListRow(title: lang.t("settings.share"), dot: Theme.teal, isLast: true) { shareWithClinician() }
                 }
 
+                // Subscribers manage or cancel through Apple's own sheet; everyone else
+                // gets the paywall. Restore is here as well as on the paywall, as App
+                // Review expects it to be findable without starting a purchase.
+                IOSList(header: lang.t("pro.title")) {
+                    IOSListRow(title: lang.t("settings.subscription"), detail: proDetail,
+                               dot: subs.isPro ? Theme.green : Theme.ink3) {
+                        if subs.isPro { showManageSubs = true } else { subs.requirePro {} }
+                    }
+                    IOSListRow(title: lang.t("pro.restore"), dot: accent, isLast: true) {
+                        Task { await subs.restore() }
+                    }
+                }
+
                 // No Profile row here — the identity card at the top is already the way in.
                 IOSList(header: lang.t("settings.more")) {
                     IOSListRow(title: lang.t("settings.help"), detail: lang.t("settings.helpSub"),
@@ -151,6 +167,13 @@ struct SettingsView: View {
             case .libre:      LibreLinkUpSheet(store: glucoseSource, lang: lang)
             }
         }
+        .manageSubscriptionsSheet(isPresented: $showManageSubs)
+        // Restore's outcome. The paywall shows its own inline, so stay quiet while it's up.
+        .alert(subs.noticeKey.map { lang.t($0) } ?? "",
+               isPresented: Binding(get: { subs.noticeKey != nil && !subs.paywallShown },
+                                    set: { if !$0 { subs.noticeKey = nil } })) {
+            Button(lang.t("pro.ok"), role: .cancel) {}
+        }
         .sheet(item: $exportFile) { file in
             ActivityView(activityItems: [file.url])
         }
@@ -168,6 +191,20 @@ struct SettingsView: View {
         var s = p.diabetesType.label(lang)
         if let y = p.diagnosisYear { s += " · " + lang.t("settings.since", String(y)) }
         return s
+    }
+
+    /// "Yearly · renews 12 Oct 2027", "Monthly · ends …", or "Not subscribed".
+    private var proDetail: String {
+        guard subs.isPro else { return lang.t("settings.proInactive") }
+        let plan: String
+        switch subs.activeProductId {
+        case ProProduct.yearly:  plan = lang.t("pro.yearly")
+        case ProProduct.monthly: plan = lang.t("pro.monthly")
+        default:                 return lang.t("settings.proActive")
+        }
+        guard let end = subs.expirationDate else { return plan }
+        let date = end.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(lang.locale))
+        return lang.t(subs.willRenew ? "settings.proRenews" : "settings.proEnds", plan, date)
     }
 
     private func sourceDetail(active: Bool, configured: Bool) -> String {
@@ -527,5 +564,6 @@ struct BackBar: View {
         .environmentObject(ProfileStore())
         .environmentObject(GlucoseSourceStore())
         .environmentObject(LocalizationStore())
+        .environmentObject(SubscriptionStore())
     }
 }

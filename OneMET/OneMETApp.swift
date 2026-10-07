@@ -25,6 +25,7 @@ struct RootView: View {
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var glucoseSource = GlucoseSourceStore()
     @StateObject private var loc = LocalizationStore()
+    @StateObject private var subs = SubscriptionStore()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var tab: AppTab = .summary
@@ -103,6 +104,12 @@ struct RootView: View {
         .environmentObject(profileStore)
         .environmentObject(glucoseSource)
         .environmentObject(loc)
+        .environmentObject(subs)
+        // One paywall for the whole app: the fuel-plan button and locked insights ask the
+        // store for it, and the store runs whatever they wanted once someone subscribes.
+        .sheet(isPresented: $subs.paywallShown, onDismiss: subs.paywallDismissed) {
+            PaywallView(subs: subs, accent: accent, lang: lang)
+        }
         .task {
             store.profile = profileStore.profile
             store.language = loc.language

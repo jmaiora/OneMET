@@ -4,6 +4,7 @@ import SwiftUI
 
 struct WorkoutDetailView: View {
     @EnvironmentObject var profileStore: ProfileStore
+    @EnvironmentObject var subs: SubscriptionStore
     var session: WorkoutSession
     var accent: Color
     var unit: GlucoseUnit = .mgdl
@@ -69,9 +70,12 @@ struct WorkoutDetailView: View {
                 }
             }
 
-            // Activity Insight — fixed blue per the design
+            // Activity Insight — fixed blue per the design. The curve above stays free;
+            // the advice is OneMET Pro.
             InsightBanner(title: lang.t("summary.activityInsight"), text: w.insight,
-                          accent: Color(hex: "2A6FDB"))
+                          accent: Color(hex: "2A6FDB"),
+                          unlockTitle: subs.isPro ? nil : lang.t("pro.unlockInsight"),
+                          onUnlock: { subs.requirePro {} })
         }
     }
 }
@@ -81,5 +85,6 @@ struct WorkoutDetailView: View {
         Theme.bg.ignoresSafeArea()
         WorkoutDetailView(session: SampleData.workoutHistory[0].sessions[0], accent: Theme.accent, onBack: {})
             .environmentObject(ProfileStore())
+            .environmentObject(SubscriptionStore())
     }
 }

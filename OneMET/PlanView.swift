@@ -12,6 +12,7 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject var store: HealthDataStore
     @EnvironmentObject var profileStore: ProfileStore
+    @EnvironmentObject var subs: SubscriptionStore
     var accent: Color
     var lang: AppLanguage = .en
 
@@ -157,10 +158,14 @@ struct PlanView: View {
                     // everyone else the honest answer is an explanation, not a number — see
                     // UserProfile.fuellingModelApplies.
                     if profileStore.profile.fuellingModelApplies {
+                        // OneMET Pro: everything above stays free to browse; the plan itself
+                        // opens straight away for subscribers, after the paywall otherwise.
                         Button {
-                            planInterval = nearestOption(profile.carbIntervalMin, in: carbFeedIntervalOptions)
-                            planCap = defaultIntakeCapG
-                            withAnimation(anim) { showCarbs = true }
+                            subs.requirePro {
+                                planInterval = nearestOption(profile.carbIntervalMin, in: carbFeedIntervalOptions)
+                                planCap = defaultIntakeCapG
+                                withAnimation(anim) { showCarbs = true }
+                            }
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "fork.knife").font(.app(size: 16, weight: .semibold))
@@ -168,6 +173,12 @@ struct PlanView: View {
                                     .font(.app(size: 17, weight: .semibold))
                                     .minimumScaleFactor(0.85)
                                     .lineLimit(1)
+                                if !subs.isPro {
+                                    Image(systemName: "lock.fill")
+                                        .font(.app(size: 13, weight: .semibold))
+                                        .opacity(0.85)
+                                        .accessibilityLabel(lang.t("pro.title"))
+                                }
                             }
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -259,5 +270,6 @@ struct PlanView: View {
         PlanView(accent: Theme.accent)
             .environmentObject(HealthDataStore())
             .environmentObject(ProfileStore())
+            .environmentObject(SubscriptionStore())
     }
 }
