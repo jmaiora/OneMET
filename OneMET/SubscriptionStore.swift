@@ -69,7 +69,9 @@ final class SubscriptionStore: ObservableObject {
         onUnlock = action
         noticeKey = nil
         paywallShown = true
-        if products.isEmpty { Task { await loadProducts() } }
+        // Ask again whenever a plan is missing, so a product made live in App Store Connect
+        // after launch shows up without restarting the app.
+        if products.count < ProProduct.all.count { Task { await loadProducts() } }
     }
 
     /// The sheet went away without a purchase: forget what it was going to unlock.
