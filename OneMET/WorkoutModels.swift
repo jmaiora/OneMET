@@ -72,16 +72,30 @@ func easdDuringCarbs(fallPer15Min: Double, expectation: GlucoseExpectation) -> I
     }
 }
 
+/// Carbohydrate that glucose above the exercise target at the end of a session stands for:
+/// the plan's "a high start counts as fuel" conversion run backwards (glucose spread through
+/// `glucoseDistributionLPerKg` of body water), so the two halves of the app use one estimate.
+/// It sizes the cut that would have kept the session inside the target, not back at its
+/// starting value — the smaller cut, since over-trimming risks a low. Neither guideline gives
+/// a figure for this; it is the app's mapping. Rounded to 5 g; 0 below that.
+func carbSurplusG(endMgdl: Double, targetTop: Double, weightKg: Double) -> Int {
+    guard endMgdl > targetTop else { return 0 }
+    let grams = (endMgdl - targetTop) / 100 * glucoseDistributionLPerKg * weightKg
+    return Int((grams / 5).rounded()) * 5
+}
+
 /// Insight copy for a session. `startMgdl` is the reading at the start and `nadirMgdl` the
 /// lowest from there through the hour after — the first decides *where* carbohydrate
 /// belongs, the second whether any is warranted at all. A fall only earns a carbohydrate
 /// suggestion if it took you below the risk group's during-exercise threshold (EASD 2020
 /// Table 2: 126 / 145 / 162 mg/dL); dropping 60 points and landing at 190 needs none.
-/// Pass nil when there's no CGM data.
+/// A cardio session that rose and ended above the exercise target earns the opposite
+/// advice — less carbohydrate next time (see `carbSurplusG`). Pass nil when there's no CGM data.
 func workoutInsight(name: String, durMin: Int, delta: Int,
                     startMgdl: Double?, nadirMgdl: Double?,
                     kind: ExerciseKind = .aerobic,
                     group: RiskGroup = .low,
+                    weightKg: Double = defaultPlanWeightKg,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
@@ -104,6 +118,16 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
                                                targetTop: group.targetTop)))
         }
         return lang.t("insight.dropModerate", size)
+    }
+    // Cardio should lower glucose, so a rise that ends above the target points at the
+    // intake. Interval and resistance rises are hormonal and keep their own message.
+    if delta >= 12, !kind.isAnaerobic, let start = startMgdl {
+        let end = start + Double(delta)
+        let less = carbSurplusG(endMgdl: end, targetTop: group.targetTop, weightKg: weightKg)
+        if less >= 5 {
+            return lang.t("insight.riseTooMuchCarbs", sport, size, mins, unit.amount(end),
+                          unit.amount(group.targetTop), String(less))
+        }
     }
     if delta >= 25 {
         if kind.isAnaerobic {
