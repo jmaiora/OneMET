@@ -806,6 +806,7 @@ final class HealthDataStore: ObservableObject {
                                     kind: ExerciseKind(sportId: workoutKey(w.workoutActivityType)),
                                     group: insightRiskGroup,
                                     weightKg: massKg,
+                                    intervalMin: profile.carbIntervalMin,
                                     unit: profile.glucoseUnit, lang: language)
         )
     }

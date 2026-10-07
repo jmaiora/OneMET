@@ -245,10 +245,6 @@ func nearestOption(_ value: Int, in options: [Int]) -> Int {
     options.min(by: { abs($0 - value) < abs($1 - value) }) ?? value
 }
 
-/// Sessions shorter than this never get a planned intake in the retrospective insight's
-/// eyes: even the lightest planned rate gives under `minDuringFuelG` there.
-let minFedSessionMin = 20
-
 /// Below this, the session's during-exercise total isn't worth scheduling — the rescue
 /// carbohydrate you carry covers it.
 let minDuringFuelG = 5
@@ -386,19 +382,18 @@ func ispadCarbRate(iob: Double, difficulty: WorkoutDifficulty) -> Double {
 }
 
 /// Intakes at each interval mark strictly before the end, sharing `totalG` as evenly as
-/// whole grams allow (remainder to the earliest). Marks inside the first `coveredMin`
-/// — time a high starting glucose already pays for — are dropped. If no mark is left, a
-/// single intake goes halfway through the uncovered part.
+/// whole grams allow (remainder to the earliest). Intakes only ever fall on the interval
+/// the person chose. Marks inside the first `coveredMin` — time a high starting glucose
+/// already pays for — are dropped; if that drops every one, the last mark keeps the
+/// remainder. A session no longer than the interval has no mark at all and gets none:
+/// buildRunGuide decides what happens to its fuel.
 func planFeedSchedule(totalG: Int, durationMin: Int, intervalMin: Int,
                       coveredMin: Double) -> [FeedStop] {
     guard totalG >= minDuringFuelG, durationMin > 0, intervalMin > 0 else { return [] }
-    var marks = Array(stride(from: intervalMin, to: durationMin, by: intervalMin))
-        .filter { Double($0) > coveredMin }
-    if marks.isEmpty {
-        let from = min(Double(durationMin), max(0, coveredMin))
-        let mid = Int(((from + Double(durationMin)) / 2 / 5).rounded()) * 5
-        marks = [min(max(5, mid), max(5, durationMin - 5))]
-    }
+    let all = Array(stride(from: intervalMin, to: durationMin, by: intervalMin))
+    guard let lastMark = all.last else { return [] }
+    var marks = all.filter { Double($0) > coveredMin }
+    if marks.isEmpty { marks = [lastMark] }
     let base = totalG / marks.count, extra = totalG % marks.count
     return marks.enumerated().map { i, m in FeedStop(minute: m, grams: base + (i < extra ? 1 : 0)) }
 }
@@ -433,6 +428,10 @@ struct RunGuide {
     let startIndividual: Bool        // start is "treat as a low" — no number to show
     let duringSchedule: [FeedStop]   // planned intakes during the session, in order
     let startMovedG: Int             // intake excess over the cap moved to the start
+    /// The session's fuel taken at the start: a session no longer than the interval has no
+    /// intake inside it. Not capped — over the snack size, the plan suggests a shorter
+    /// interval instead.
+    let startFuelG: Int
     let duringTotalG: Int            // start + intakes
     let duringIntervalMin: Int
     let startAboveTarget: Bool       // intakes are conditional: "if under the target top"
@@ -447,6 +446,12 @@ struct RunGuide {
 
     /// Everything to pack: the plan plus the rescue amount.
     var carryG: Int { duringTotalG + carryRescueG }
+
+    /// Something to show on the timeline: intakes during, or session fuel at the start.
+    var hasTimeline: Bool { !duringSchedule.isEmpty || startFuelG > 0 }
+
+    /// The start alone goes over the snack size because the session's fuel sits there.
+    var startOverCap: Bool { startFuelG > 0 && duringStartG + startFuelG > intakeCapG }
 }
 
 func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
@@ -492,6 +497,13 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
     var schedule = planFeedSchedule(totalG: planned, durationMin: durationMin,
                                     intervalMin: interval, coveredMin: coveredMin)
 
+    // No interval mark inside the session (e.g. 45 min with a 45-min interval): the fuel is
+    // taken at the start rather than at some point the interval never named — unless
+    // glucose starts above the target, where both guidelines give nothing to take.
+    let noIntakeMark = interval >= durationMin
+    let startsHigh = (glucoseMgdl ?? 0) > group.targetTop
+    let startFuelG = (noIntakeMark && !startsHigh && planned >= minDuringFuelG) ? planned : 0
+
     // Move intake excess over the cap to the start, only into the room the start has left
     // under the same cap, and only when starting glucose is not above the target.
     // The Table 1 start amount itself is never cut — at the low end it prevents a low.
@@ -506,27 +518,39 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
             return FeedStop(minute: feed.minute, grams: feed.grams - take)
         }
     }
-    let totalG = startG + startMovedG + schedule.reduce(0) { $0 + $1.grams }
+    let totalG = startG + startMovedG + startFuelG + schedule.reduce(0) { $0 + $1.grams }
 
     // The banner states the whole start amount — glucose top-up plus fuel brought forward —
     // so it matches the timeline's Start row; the breakdown says where each part comes from.
+    // A "treat the low" or "no reading" title keeps its warning.
     var startTitle = decision.title
     var startBreakdown: String? = nil
-    if startMovedG > 0 {
-        let startTotal = String(startG + startMovedG)
+    let addedG = startMovedG + startFuelG
+    if addedG > 0 {
+        let startTotal = String(startG + addedG)
         switch decision.status {
         case .topUp: startTitle = lang.t("start.topUp.title", startTotal)
         case .wait:  startTitle = lang.t("start.wait.title", startTotal)
-        default:     startTitle = lang.t("start.goFuel.title", startTotal)
+        case .go:    startTitle = lang.t("start.goFuel.title", startTotal)
+        default:     break
         }
-        startBreakdown = startG > 0
-            ? lang.t("start.breakdown", String(startG), String(startMovedG), startTotal)
-            : lang.t("start.breakdownFuel", String(startMovedG))
+        if startFuelG > 0 {
+            startBreakdown = startG > 0
+                ? lang.t("start.breakdownSession", String(startG), String(startFuelG), startTotal)
+                : lang.t("start.breakdownSessionFuel", String(startFuelG))
+        } else {
+            startBreakdown = startG > 0
+                ? lang.t("start.breakdown", String(startG), String(startMovedG), startTotal)
+                : lang.t("start.breakdownFuel", String(startMovedG))
+        }
     }
 
     let during: String
     if kind.isAnaerobic {
         during = lang.t(kind == .resistance ? "during.resistance" : "during.interval",
+                        unit.amount(group.duringThreshold))
+    } else if noIntakeMark && startsHigh && planned >= minDuringFuelG {
+        during = lang.t("during.noneHigh", unit.amount(group.targetTop),
                         unit.amount(group.duringThreshold))
     } else if schedule.isEmpty {
         during = lang.t("during.none", unit.amount(group.duringThreshold))
@@ -542,7 +566,8 @@ func buildRunGuide(sportId: String, durationMin: Int, iob: Double,
                     startBreakdown: startBreakdown,
                     duringText: during, ratePerKg: ratePerKg, duringPerHourG: Int(perHour.rounded()),
                     duringStartG: startG, intakeCapG: cap, startIndividual: decision.individual,
-                    duringSchedule: schedule, startMovedG: startMovedG, duringTotalG: totalG,
+                    duringSchedule: schedule, startMovedG: startMovedG, startFuelG: startFuelG,
+                    duringTotalG: totalG,
                     duringIntervalMin: interval,
                     startAboveTarget: (glucoseMgdl ?? 0) > group.targetTop,
                     excessG: Int(excessG.rounded()), coveredMin: Int(coveredMin.rounded()),

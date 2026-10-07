@@ -141,7 +141,7 @@ struct CarbPlanView: View {
                     .tracking(0.2)
                     .multilineTextAlignment(.trailing)
             }
-            if !guide.duringSchedule.isEmpty {
+            if guide.hasTimeline {
                 // A high start pays for the first stretch of the session; say how much.
                 if guide.excessG > 0 {
                     note(lang.t("plan.excess",
@@ -157,12 +157,14 @@ struct CarbPlanView: View {
                         timelineRow(stop, first: i == 0, last: i == stops.count - 1)
                     }
                 }
-                if guide.duringSchedule.contains(where: { $0.grams > guide.intakeCapG }) {
+                if guide.startOverCap || guide.duringSchedule.contains(where: { $0.grams > guide.intakeCapG }) {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "lightbulb.fill")
                             .font(.app(size: 14.5, weight: .semibold))
                         // Reason first — what was already done about it — then the advice.
-                        Text((guide.startMovedG > 0
+                        Text((guide.startOverCap
+                              ? lang.t("plan.largeStart", String(guide.intakeCapG))
+                              : guide.startMovedG > 0
                               ? lang.t("plan.largeMoved", String(guide.startMovedG))
                               : lang.t("plan.largeOver", String(guide.intakeCapG)))
                              + " " + lang.t("plan.largeIntake"))
@@ -199,7 +201,7 @@ struct CarbPlanView: View {
             }
             .foregroundStyle(.white)
 
-            if guide.weightIsDefault && !guide.duringSchedule.isEmpty {
+            if guide.weightIsDefault && guide.hasTimeline {
                 note(lang.t("plan.weightDefault"))
             }
 
@@ -237,7 +239,7 @@ struct CarbPlanView: View {
 
     /// Start (with its carbs, if any), the planned intakes, then the finish.
     private var timelineStops: [TimelineStop] {
-        let startG = guide.duringStartG + guide.startMovedG
+        let startG = guide.duringStartG + guide.startMovedG + guide.startFuelG
         var stops = [TimelineStop(minute: 0, label: lang.t("plan.tlStart"),
                                   grams: startG > 0 ? startG : nil, caption: nil, isFinish: false)]
         // Starting above the target, each intake only applies once you're back under it.

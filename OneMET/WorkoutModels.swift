@@ -41,14 +41,15 @@ func weekLabel(_ weeksAgo: Int, lang: AppLanguage = .en) -> String {
 ///
 ///   * nothing *before* a session that started above the exercise target — the Plan tab
 ///     gives no starting carbs there (EASD 2020 Table 1);
-///   * nothing *during* a session too short to earn a planned intake — below the shortest
-///     interval even the lowest planned rate is under `minDuringFuelG`.
+///   * nothing *during* a session no longer than the intake interval — the plan has no
+///     intake inside it and takes its fuel at the start.
 ///
 /// When neither window exists — a short session that began high and still fell — the only
 /// honest advice left is to carry fast carbs and use them on the way down.
-func carbTimingKey(startMgdl: Double?, durMin: Int, targetTop: Double = 180) -> String {
+func carbTimingKey(startMgdl: Double?, durMin: Int, targetTop: Double = 180,
+                   intervalMin: Int = carbFeedIntervalMin) -> String {
     let canPreFuel = (startMgdl ?? 0) <= targetTop
-    let canFeed = durMin >= minFedSessionMin
+    let canFeed = durMin > intervalMin
     switch (canPreFuel, canFeed) {
     case (true, false):  return "timing.before"
     case (false, true):  return "timing.during"
@@ -96,6 +97,7 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
                     kind: ExerciseKind = .aerobic,
                     group: RiskGroup = .low,
                     weightKg: Double = defaultPlanWeightKg,
+                    intervalMin: Int = carbFeedIntervalMin,
                     unit: GlucoseUnit, lang: AppLanguage = .en) -> String {
     let sport = name.lowercased()
     let size = unit.amount(Double(abs(delta)))
@@ -115,7 +117,8 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
                           // session, so the advice can't point there either.
                           lang.t(carbTimingKey(startMgdl: startMgdl,
                                                durMin: kind.isAnaerobic ? 0 : durMin,
-                                               targetTop: group.targetTop)))
+                                               targetTop: group.targetTop,
+                                               intervalMin: intervalMin)))
         }
         return lang.t("insight.dropModerate", size)
     }
