@@ -292,6 +292,7 @@ enum Strings {
         // ── Sport names ──
         "sport.walk":     L("Walk", "Caminar"),
         "sport.run":      L("Outdoor Run", "Carrera al aire libre"),
+        "sport.team":     L("Team Sports", "Deportes de equipo"),
         "sport.cycling":  L("Cycling", "Ciclismo"),
         "sport.swim":     L("Swimming", "Natación"),
         "sport.strength": L("Strength", "Fuerza"),
@@ -304,6 +305,8 @@ enum Strings {
                                  "Un paseo tranquilo. Bajo riesgo de hipoglucemia y suave con la glucosa."),
         "sport.run.desc":      L("A steady outdoor run. Expect a fast glucose drop — fuel up beforehand.",
                                  "Carrera continua al aire libre. Espera una bajada rápida de glucosa: come algo antes."),
+        "sport.team.desc":     L("Stop-start play. Glucose falls less than on a steady run; match-day adrenaline can raise it.",
+                                 "Juego intermitente. La glucosa baja menos que corriendo; en partido, la adrenalina puede subirla."),
         "sport.cycling.desc":  L("Sustained cycling effort. Plan a top-up if you ride past 45 minutes.",
                                  "Esfuerzo sostenido en bici. Prevé un aporte extra si superas los 45 minutos."),
         "sport.swim.desc":     L("Full-body swim session. Glucose can dip fast — carb up beforehand.",

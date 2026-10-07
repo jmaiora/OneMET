@@ -618,6 +618,9 @@ final class HealthDataStore: ObservableObject {
         case .traditionalStrengthTraining, .functionalStrengthTraining: return "strength"
         case .highIntensityIntervalTraining: return "hiit"
         case .yoga: return "yoga"
+        case .soccer, .basketball, .handball, .volleyball, .rugby, .hockey, .americanFootball,
+             .australianFootball, .lacrosse, .cricket, .baseball, .softball, .waterPolo:
+            return "team"
         default: return "workout"
         }
     }
@@ -634,6 +637,9 @@ final class HealthDataStore: ObservableObject {
         case .swimming: return "drop"
         case .traditionalStrengthTraining, .functionalStrengthTraining: return "flame"
         case .highIntensityIntervalTraining: return "activity"
+        case .soccer, .basketball, .handball, .volleyball, .rugby, .hockey, .americanFootball,
+             .australianFootball, .lacrosse, .cricket, .baseball, .softball, .waterPolo:
+            return "team"
         default: return "run"
         }
     }

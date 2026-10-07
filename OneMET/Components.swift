@@ -24,6 +24,7 @@ enum AppIcon {
         case "calendar": return "calendar"
         case "clock":    return "clock.fill"
         case "bike":     return "bicycle"
+        case "team":     return "figure.soccer"
         default:         return "circle"
         }
     }

@@ -44,6 +44,7 @@ struct Sport: Identifiable, Hashable {
 let SPORTS: [Sport] = [
     Sport(id: "walk",     met: 3.2,  icon: "shoe",     color: "#1F8A5B"),
     Sport(id: "run",      met: 9.1,  icon: "run",      color: "#E0556E"),
+    Sport(id: "team",     met: 7.0,  icon: "team",     color: "#4A5BD4"),
     Sport(id: "cycling",  met: 7.0,  icon: "bike",     color: "#E8833A"),
     Sport(id: "swim",     met: 8.0,  icon: "drop",     color: "#1FB8C9"),
     Sport(id: "strength", met: 5.0,  icon: "flame",    color: "#8E72E8"),
@@ -66,6 +67,8 @@ enum StartStatus { case go, topUp, wait, stop, unknown }
 /// bursts (resistance, circuits, intervals) and anaerobic work blunt the fall or raise
 /// glucose. In the real-world T1DEXI study the mean change during a session was −18 mg/dL
 /// aerobic, −14 interval and −9 resistance.
+/// Team sports are ISPAD's "mixed with short (5–30 s) anaerobic bursts": glucose still
+/// falls, if less than in steady work, so they take the aerobic path and its planned intakes.
 enum ExerciseKind {
     case aerobic, interval, resistance
 
