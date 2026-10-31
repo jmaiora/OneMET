@@ -48,7 +48,14 @@ struct WorkoutDetailView: View {
 
             // Stats + curve
             Card {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 3), spacing: 14) {
+                // The right-hand column holds the glucose change, the widest value: a
+                // three-digit drop plus its unit ("-106 mg/dL") needs ~105 pt at the default
+                // text size. Its floor takes that room from the two columns on the left,
+                // whose values are shorter, instead of wrapping the number onto two lines.
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading),
+                                    GridItem(.flexible(), alignment: .leading),
+                                    GridItem(.flexible(minimum: 108 * Theme.textScale), alignment: .leading)],
+                          spacing: 14) {
                     StatBlock(label: lang.t("workouts.duration"), value: "\(w.durMin)", unit: lang.t("workouts.min"))
                     StatBlock(label: lang.t("workouts.distance"), value: w.dist)
                     StatBlock(label: lang.t("workouts.calories"), value: "\(w.kcal)", unit: "kcal")

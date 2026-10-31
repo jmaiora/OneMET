@@ -162,15 +162,23 @@ struct StatBlock: View {
                 .font(.app(size: 13.5, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .tracking(0.2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            // One line, always: at large text sizes a narrow column used to break the
+            // number itself ("-10" / "6"). Shrinking a little reads better than that.
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(value)
                     .font(.app(size: 22, weight: .bold))
                     .foregroundStyle(color ?? Theme.ink)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 if let unit {
                     Text(unit)
                         .font(.app(size: 13.5, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
             }
         }
