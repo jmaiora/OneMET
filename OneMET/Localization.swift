@@ -149,10 +149,8 @@ enum Strings {
         "welcome.healthTitle": L("Apple Health", "Apple Salud"),
         "welcome.healthLead":  L("OneMET reads your workouts, heart rate and activity from Apple Health, and uses them to line your sessions up against your glucose.",
                                  "OneMET lee tus entrenamientos, tu frecuencia cardiaca y tu actividad de Apple Salud, y los cruza con tu glucosa."),
-        "welcome.healthNote":  L("Read-only, apart from workouts OneMET writes back. iOS will ask you which categories to allow — Workouts is the one that matters most.",
-                                 "Solo lectura, salvo los entrenamientos que OneMET escribe. iOS te preguntará qué categorías permitir: Entrenamientos es la más importante."),
-        "welcome.healthAllow": L("Allow access", "Permitir acceso"),
-        "welcome.healthDone":  L("Access requested", "Acceso solicitado"),
+        "welcome.healthNote":  L("Read-only, apart from workouts OneMET writes back. When you continue, iOS will ask which categories to allow — Workouts is the one that matters most. You can decline, and OneMET still works with glucose from Nightscout, Dexcom or Libre.",
+                                 "Solo lectura, salvo los entrenamientos que OneMET devuelve. Al continuar, iOS te preguntará qué categorías permitir — Entrenamientos es la más importante. Puedes no permitirlo: OneMET sigue funcionando con la glucosa de Nightscout, Dexcom o Libre."),
         "welcome.healthSkip":  L("Health data isn't available on this device.",
                                  "Los datos de Salud no están disponibles en este dispositivo."),
 

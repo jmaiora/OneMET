@@ -28,6 +28,8 @@ struct WelcomeView: View {
 
     @State private var step = 0
     private let stepCount = 3
+    /// Index of the Apple Health step, so the footer knows where to fire the request.
+    private let healthStepIndex = 1
 
     // Held locally and committed on the last step, except language, which applies
     // immediately so you can watch the screen change into the language you chose.
@@ -135,10 +137,20 @@ struct WelcomeView: View {
         VStack(spacing: 10) {
             Button {
                 focus = nil
-                if step < stepCount - 1 {
-                    withAnimation(.easeInOut(duration: 0.22)) { step += 1 }
+                guard step < stepCount - 1 else { finish(); return }
+                // Leaving the Apple Health step always presents the system permission
+                // request — there is no path past this screen that skips it. iOS only
+                // shows its sheet once per install; afterwards this returns immediately.
+                if step == healthStepIndex, HealthKitService.isAvailable, !healthAsked {
+                    healthAsked = true
+                    Task {
+                        await store.reRequestHealthAccess()
+                        await MainActor.run {
+                            withAnimation(.easeInOut(duration: 0.22)) { step += 1 }
+                        }
+                    }
                 } else {
-                    finish()
+                    withAnimation(.easeInOut(duration: 0.22)) { step += 1 }
                 }
             } label: {
                 Text(lang.t(step < stepCount - 1 ? "welcome.next" : "welcome.start"))
@@ -326,27 +338,11 @@ struct WelcomeView: View {
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radius, style: .continuous))
 
-        if HealthKitService.isAvailable {
-            Button {
-                healthAsked = true
-                // iOS shows its own sheet; it only ever appears once per install, so this
-                // is deliberately fired from a button rather than on view load.
-                Task { await store.reRequestHealthAccess() }
-            } label: {
-                HStack(spacing: 7) {
-                    Image(systemName: healthAsked ? "checkmark" : "heart.fill")
-                        .font(.app(size: 15, weight: .semibold))
-                    Text(lang.t(healthAsked ? "welcome.healthDone" : "welcome.healthAllow"))
-                        .font(.app(size: 16, weight: .semibold))
-                }
-                .foregroundStyle(healthAsked ? Theme.green : .white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(healthAsked ? Theme.green.opacity(0.15) : Theme.red,
-                            in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(.plain)
-        } else {
+        // No "allow" button here on purpose. App Review (5.1.1) rejects a custom screen
+        // whose button echoes the system dialog's answer, or that can be dismissed without
+        // the system prompt ever appearing. So this screen only explains: the single
+        // forward action in the footer fires requestAuthorization, and iOS asks there.
+        if !HealthKitService.isAvailable {
             Text(lang.t("welcome.healthSkip"))
                 .font(Theme.noteFont)
                 .foregroundStyle(Theme.ink3)
