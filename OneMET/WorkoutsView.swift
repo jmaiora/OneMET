@@ -109,7 +109,8 @@ struct WorkoutsView: View {
                     VStack(spacing: 0) {
                         ForEach(Array(wk.sessions.enumerated()), id: \.element.id) { i, s in
                             HistoryRow(session: s, accent: accent, unit: unit, lang: lang,
-                                       last: i == wk.sessions.count - 1) {
+                                       last: i == wk.sessions.count - 1,
+                                       onDelete: { withAnimation(.easeInOut(duration: 0.25)) { store.deleteWorkout(s) } }) {
                                 onOpenWorkout(s)
                             }
                         }
@@ -137,11 +138,98 @@ struct HistoryRow: View {
     var unit: GlucoseUnit = .mgdl
     var lang: AppLanguage = .en
     var last: Bool
+    /// Swipe left to reveal Delete, which asks before removing the session from OneMET.
+    /// Nil leaves the row without the swipe.
+    var onDelete: (() -> Void)? = nil
     var onTap: () -> Void
 
+    @State private var offset: CGFloat = 0
+    @State private var restingOffset: CGFloat = 0
+    @State private var dragAxis: Axis? = nil
+    @State private var confirmingDelete = false
+    private let revealWidth: CGFloat = 88
+    /// Dragging this far opens the confirmation straight away, like a full swipe in Mail.
+    private let fullSwipe: CGFloat = 200
+
     var body: some View {
+        ZStack(alignment: .trailing) {
+            if onDelete != nil && offset < 0 {
+                Button { confirmingDelete = true } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: "trash.fill").font(.app(size: 17, weight: .semibold))
+                        Text(lang.t("workouts.delete"))
+                            .font(.app(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: max(revealWidth, -offset))
+                    .frame(maxHeight: .infinity)
+                    .background(Theme.red)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.vertical, 4)
+            }
+            row
+                // Opaque, so the Delete button behind stays hidden until the row uncovers it.
+                .background(Theme.card)
+                .offset(x: offset)
+        }
+        .clipped()
+        // Simultaneous, and only once the drag is clearly sideways, so vertical scrolling
+        // through the list still works when it starts on a row.
+        .simultaneousGesture(swipe, including: onDelete == nil ? .none : .all)
+        .accessibilityAction(named: Text(lang.t("workouts.delete"))) {
+            if onDelete != nil { confirmingDelete = true }
+        }
+        .confirmationDialog(lang.t("workouts.deleteTitle"), isPresented: $confirmingDelete,
+                            titleVisibility: .visible) {
+            Button(lang.t("workouts.delete"), role: .destructive) { onDelete?() }
+            Button(lang.t("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(lang.t("workouts.deleteBody"))
+        }
+        .onChange(of: confirmingDelete) { open in
+            if !open { close() }
+        }
+    }
+
+    private func close() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { offset = 0 }
+        restingOffset = 0
+    }
+
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { v in
+                if dragAxis == nil {
+                    dragAxis = abs(v.translation.width) > abs(v.translation.height) ? .horizontal : .vertical
+                }
+                guard dragAxis == .horizontal else { return }
+                offset = min(0, restingOffset + v.translation.width)
+            }
+            .onEnded { v in
+                defer { dragAxis = nil }
+                guard dragAxis == .horizontal else { return }
+                if restingOffset + v.translation.width < -fullSwipe {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { offset = -revealWidth }
+                    restingOffset = -revealWidth
+                    confirmingDelete = true
+                    return
+                }
+                let end = restingOffset + v.predictedEndTranslation.width
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    offset = end < -revealWidth / 2 ? -revealWidth : 0
+                }
+                restingOffset = offset
+            }
+    }
+
+    private var row: some View {
         let dropColor = session.glucoseDelta < 0 ? Theme.green : Theme.amber
-        Button(action: onTap) {
+        // A tap on an open row closes it rather than opening the session.
+        return Button(action: { if restingOffset != 0 { close() } else { onTap() } }) {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
                     ZStack {

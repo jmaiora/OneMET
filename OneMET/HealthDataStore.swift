@@ -229,6 +229,34 @@ final class HealthDataStore: ObservableObject {
     /// freshest inputs available before sessions are built; the full assessment lands in
     /// `data.risk` at the end of each refresh.
     private var insightRiskGroup: RiskGroup = .low
+
+    /// Workouts removed from OneMET with a swipe in the Workouts tab. HealthKit only lets an
+    /// app delete samples it wrote itself, and OneMET writes none, so the session stays in
+    /// Apple Health; OneMET leaves it out of everything it derives from workouts instead —
+    /// history, today's insight and curve, MET·minutes, the risk group's session count.
+    private static let hiddenWorkoutsKey = "hiddenWorkoutIDs"
+    private var hiddenWorkoutIDs = Set(UserDefaults.standard.stringArray(forKey: hiddenWorkoutsKey) ?? [])
+
+    /// Health's workouts in the window, minus the ones removed from OneMET.
+    private func workouts(from: Date, to: Date) async throws -> [HKWorkout] {
+        try await svc.workouts(from: from, to: to).filter { !hiddenWorkoutIDs.contains($0.uuid.uuidString) }
+    }
+
+    /// Removes a session from OneMET (see `hiddenWorkoutIDs`). It disappears from the list at
+    /// once; the refresh then recomputes the rings, today's insight and the risk group.
+    func deleteWorkout(_ session: WorkoutSession) {
+        hiddenWorkoutIDs.insert(session.id)
+        UserDefaults.standard.set(Array(hiddenWorkoutIDs), forKey: Self.hiddenWorkoutsKey)
+        data.workoutHistory = data.workoutHistory.compactMap { week in
+            let kept = week.sessions.filter { $0.id != session.id }
+            return kept.isEmpty ? nil : WorkoutWeek(label: week.label, sessions: kept)
+        }
+        if data.todayWorkout?.id == session.id {
+            data.todayWorkout = nil
+            data.insight = ""
+        }
+        Task { await refresh() }
+    }
     private var pollTask: Task<Void, Never>?
     /// One glucose fetch per refresh, shared by the day chart and every workout curve.
     private var glucoseCache: (from: Date, to: Date, readings: [(date: Date, v: Double)])?
@@ -415,7 +443,7 @@ final class HealthDataStore: ObservableObject {
     /// Rebuild today's sessions so the Summary hero curve and the Workouts rows stay live
     /// between full refreshes (they are what render the during-workout glucose).
     private func refreshTodayWorkouts(_ snap: inout HealthSnapshot, startOfDay: Date, now: Date, massKg: Double) async {
-        guard let wks = try? await svc.workouts(from: startOfDay, to: now), !wks.isEmpty else { return }
+        guard let wks = try? await workouts(from: startOfDay, to: now), !wks.isEmpty else { return }
 
         var rebuilt: [WorkoutSession] = []
         for w in wks { rebuilt.append(await buildSession(w, massKg: massKg)) }
@@ -536,7 +564,7 @@ final class HealthDataStore: ObservableObject {
     // MARK: Workouts (today)
 
     private func loadWorkoutsToday(_ snap: inout HealthSnapshot, startOfDay: Date, now: Date, massKg: Double) async {
-        guard let wks = try? await svc.workouts(from: startOfDay, to: now), !wks.isEmpty else { return }
+        guard let wks = try? await workouts(from: startOfDay, to: now), !wks.isEmpty else { return }
 
         var out: [Workout] = []
         var metMinTotal = 0.0
@@ -689,7 +717,7 @@ final class HealthDataStore: ObservableObject {
 
         var wks: [HKWorkout] = []
         do {
-            wks = try await svc.workouts(from: start, to: now)
+            wks = try await workouts(from: start, to: now)
         } catch {
             workoutDiagnostic = language.t("diag.readFailed", error.localizedDescription)
             return
@@ -876,7 +904,7 @@ final class HealthDataStore: ObservableObject {
             byDay[cal.startOfDay(for: r.date), default: []].append(r.v)
         }
         let steps14 = (try? await svc.dailySums(.stepCount, unit: .count(), days: 14)) ?? [:]
-        let wk14 = (try? await svc.workouts(from: start14, to: now)) ?? []
+        let wk14 = (try? await workouts(from: start14, to: now)) ?? []
 
         // Per-day workout MET·min (dose) and minutes, from Apple METs.
         var metMinByDay: [Date: Double] = [:]

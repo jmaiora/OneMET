@@ -278,6 +278,11 @@ enum Strings {
         "workouts.glucoseDelta": L("Glucose Δ", "Δ glucosa"),
         "workouts.noCgm":        L("No CGM data around this session.", "Sin datos de MCG en torno a esta sesión."),
         "workouts.min":          L("min", "min"),
+        "workouts.delete":       L("Delete", "Eliminar"),
+        "workouts.deleteTitle":  L("Delete this workout from OneMET?", "¿Eliminar este entrenamiento de OneMET?"),
+        // OneMET reads Health but never writes to it, so it cannot delete the session there.
+        "workouts.deleteBody":   L("It stays in Apple Health, but OneMET will leave it out of your history, insights and MET·minutes.",
+                                  "Seguirá en Salud, pero OneMET lo dejará fuera de tu historial, tus análisis y tus MET·minutos."),
 
         // ── Workout diagnostics ──
         "diag.readFailed":  L("Couldn't read workouts from Health: {0}", "No se pudieron leer los entrenamientos de Salud: {0}"),
