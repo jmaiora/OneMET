@@ -88,8 +88,12 @@ func carbSurplusG(endMgdl: Double, targetTop: Double, weightKg: Double) -> Int {
 /// Insight copy for a session. `startMgdl` is the reading at the start and `nadirMgdl` the
 /// lowest from there through the hour after — the first decides *where* carbohydrate
 /// belongs, the second whether any is warranted at all. A fall only earns a carbohydrate
-/// suggestion if it took you below the risk group's during-exercise threshold (EASD 2020
-/// Table 2: 126 / 145 / 162 mg/dL); dropping 60 points and landing at 190 needs none.
+/// suggestion if it took you below the risk group's after-exercise threshold (EASD 2020
+/// Table 3: 80 / 90 / 100 mg/dL) at some point in that window. The during-exercise
+/// threshold (126 / 145 / 162) is a real-time trigger with a safety margin built in, not
+/// evidence after the fact: a session that fell 80 points, bottomed out at 120 and stayed
+/// there for the next hour never came near a low, and glucose often rises again after
+/// exercise, so extra carbohydrate would mostly buy a high.
 /// A cardio session that rose and ended above the exercise target earns the opposite
 /// advice — less carbohydrate next time (see `carbSurplusG`). Pass nil when there's no CGM data.
 func workoutInsight(name: String, durMin: Int, delta: Int,
@@ -104,8 +108,9 @@ func workoutInsight(name: String, durMin: Int, delta: Int,
     let mins = String(durMin)
 
     if delta <= -12 {
-        // The size of the fall says nothing on its own — where it landed does.
-        if let nadir = nadirMgdl, nadir >= group.duringThreshold {
+        // The size of the fall says nothing on its own — where it landed does, judged
+        // against the after-exercise threshold rather than the during-exercise one.
+        if let nadir = nadirMgdl, nadir >= group.afterThreshold {
             return lang.t("insight.dropNoCarbs", sport, size, mins, unit.amount(nadir))
         }
         if delta <= -25 {

@@ -424,7 +424,7 @@ struct HelpView: View {
             entry("bolt.fill", Theme.ringMet, lang.t("help.metTitle"),
                   lang.t("help.metBody"))
             entry("waveform.path.ecg", Theme.violet, lang.t("help.insightTitle"),
-                  lang.t("help.insightBody", unit.amount(126), unit.amount(60), unit.amount(190)))
+                  lang.t("help.insightBody", unit.amount(80), unit.amount(80), unit.amount(120)))
             entry("clock.fill", Theme.ringMet, lang.t("help.intervalTitle"),
                   lang.t("help.intervalBody"))
             entry("dumbbell.fill", Theme.violet, lang.t("help.anaerobicTitle"),
